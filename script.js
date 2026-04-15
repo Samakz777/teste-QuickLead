@@ -1,182 +1,186 @@
-// ================== BANCO DE DADOS ==================
 let bancoLeads = JSON.parse(localStorage.getItem("bancoLeads")) || [];
 let agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
 
-// ================== SALVAR ==================
-function salvarDados() {
-    localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
-    localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+function salvar() {
+localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
+localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
 }
 
-// ================== TROCAR ABA ==================
-function trocarAba(id) {
-    document.querySelectorAll(".aba").forEach(el => el.classList.remove("ativa"));
-    document.getElementById(id).classList.add("ativa");
+function trocarAba(id){
+document.querySelectorAll(".aba").forEach(a=>a.classList.remove("ativa"));
+document.getElementById(id).classList.add("ativa");
 }
 
-// ================== FORMATAR NÚMERO ==================
-function limparNumero(texto) {
-    let num = texto.replace(/\D/g, "");
-
-    // remove 55 do começo
-    if (num.startsWith("55") && num.length > 11) {
-        num = num.substring(2);
-    }
-
-    // valida tamanho
-    if (num.length < 10 || num.length > 11) return null;
-
-    return num;
+function limparNumero(t){
+let n=t.replace(/\D/g,"");
+if(n.startsWith("55") && n.length>11) n=n.slice(2);
+if(n.length<10||n.length>11) return null;
+return n;
 }
 
-// ================== FILTRO INTELIGENTE ==================
-function filtrarLeads() {
-    let entrada = document.getElementById("entradaFiltro").value.split("\n");
-
-    let resultado = [];
-    let usados = new Set();
-
-    entrada.forEach(linha => {
-        let num = limparNumero(linha);
-
-        if (!num) return;
-
-        // remove duplicados
-        if (usados.has(num)) return;
-
-        // verifica se está no banco como ruim
-        let existe = bancoLeads.find(l => l.numero === num);
-
-        if (existe && ["DES", "LON", "FOR", "PAT"].includes(existe.tipo)) return;
-
-        usados.add(num);
-        resultado.push(num);
-    });
-
-    document.getElementById("saidaFiltro").value = resultado.join("\n");
+// SENHA INTELIGENTE
+function gerarSenha(data){
+let [ano,mes,dia]=data.split("-");
+let total=agendamentos.filter(a=>a.data===data).length+1;
+return `PJ${dia}${mes}-${String(total).padStart(2,"0")}`;
 }
 
-// ================== COPIAR RESULTADO ==================
-function copiarResultado() {
-    let texto = document.getElementById("saidaFiltro");
-    texto.select();
-    document.execCommand("copy");
-    alert("Copiado!");
+// AGENDAR
+function agendar(){
+let nome=nomeInput.value.trim();
+let numero=limparNumero(numeroInput.value);
+let unidade=unidade.value;
+let data=dataInput.value;
+let hora=horaInput.value;
+
+if(!nome||!numero||!unidade||!data||!hora){
+alert("Preencha tudo");
+return;
 }
 
-// ================== SALVAR BANCO ==================
-function salvarBanco() {
-    let entrada = document.getElementById("entradaBanco").value.split("\n");
+if(!confirm("Confirmar agendamento?")) return;
 
-    entrada.forEach(linha => {
-        let partes = linha.split("-");
-        if (partes.length < 2) return;
+let senha=gerarSenha(data);
 
-        let numero = limparNumero(partes[0]);
-        let info = partes[1].trim();
+let ag={nome,numero,unidade,data,hora,senha};
+agendamentos.push(ag);
+salvar();
 
-        if (!numero) return;
+nomeInput.value="";
+numeroInput.value="";
+unidade.value="";
+dataInput.value="";
+horaInput.value="";
 
-        let tipo = info.split(" ")[0];
-        let tempo = info.split(" ")[1] || "";
-
-        bancoLeads.push({ numero, tipo, tempo });
-    });
-
-    salvarDados();
-    mostrarBanco();
-    alert("Salvo!");
+gerarComprovante(ag);
 }
 
-// ================== MOSTRAR BANCO ==================
-function mostrarBanco() {
-    let div = document.getElementById("listaBanco");
-    div.innerHTML = "";
+// COMPROVANTE
+function gerarComprovante(a){
+let dataFormatada=a.data.split("-").reverse().join("/");
 
-    bancoLeads.forEach(l => {
-        div.innerHTML += `<p>${l.numero} - ${l.tipo} ${l.tempo}</p>`;
-    });
+let msg=`*SEU AGENDAMENTO FOI CONFIRMADO!✅*
+
+*Consultor: PAULO LOBATO*
+
+*Pacientes: ${a.nome.toUpperCase()}*
+
+Senha:
+*${a.senha}*
+
+*DATA: ${dataFormatada} às ${a.hora}H DA TARDE!*
+
+*LEVAR UM DOCUMENTO OFICIAL COM FOTO*
+
+*Não realizam o exame:*
+* Crianças menores de 6 anos
+* Lactantes e Gestantes
+* Menores de idade ir acompanhado(a) com responsável
+* Atendimento por ordem de chegada
+
+*Tenha um excelente exame!😃*
+
+Projeto Enxergar 🌐`;
+
+let link=`https://wa.me/55${a.numero}?text=${encodeURIComponent(msg)}`;
+
+if(confirm("Enviar no WhatsApp?")){
+window.open(link,"_blank");
+}
 }
 
-// ================== AGENDAR ==================
-function agendar() {
-    let nome = document.getElementById("nome").value;
-    let numero = limparNumero(document.getElementById("numero").value);
-    let unidade = document.getElementById("unidade").value;
-    let data = document.getElementById("data").value;
-    let hora = document.getElementById("hora").value;
+// FILTRO
+function filtrarLeads(){
+let entrada=entradaFiltro.value.split("\n");
 
-    if (!nome || !numero || !unidade || !data || !hora) {
-        alert("Preencha tudo!");
-        return;
-    }
+let resultado=[];
+let usados=new Set();
 
-    agendamentos.push({ nome, numero, unidade, data, hora });
+let dup=0;
+let ruins=0;
 
-    salvarDados();
-    alert("Agendado!");
+entrada.forEach(l=>{
+let n=limparNumero(l);
+if(!n) return;
+
+if(usados.has(n)){dup++;return;}
+
+let ex=bancoLeads.find(x=>x.numero===n);
+if(ex && ["DES","LON","FOR","PAT"].includes(ex.tipo)){ruins++;return;}
+
+usados.add(n);
+resultado.push(n);
+});
+
+saidaFiltro.value=resultado.join("\n")+
+`\n\nDuplicados: ${dup}\nRemovidos: ${ruins}`;
 }
 
-// ================== FILTRAR AGENDA ==================
-function filtrarAgenda() {
-    let data = document.getElementById("filtroData").value;
-    let div = document.getElementById("listaAgenda");
+// BANCO
+function salvarBanco(){
+let linhas=entradaBanco.value.split("\n");
 
-    div.innerHTML = "";
+linhas.forEach(l=>{
+let p=l.split("-");
+if(p.length<2) return;
 
-    agendamentos
-        .filter(a => a.data === data)
-        .forEach(a => {
-            div.innerHTML += `<p>${a.nome} - ${a.unidade} - ${a.hora}</p>`;
-        });
+let n=limparNumero(p[0]);
+let info=p[1].trim().split(" ");
+
+bancoLeads.push({numero:n,tipo:info[0]});
+});
+
+salvar();
+mostrarBanco();
 }
 
-// ================== LEMBRETES ==================
-function gerarLembretes() {
-    let data = document.getElementById("dataLembrete").value;
-    let div = document.getElementById("listaLembretes");
-
-    div.innerHTML = "";
-
-    agendamentos
-        .filter(a => a.data === data)
-        .forEach(a => {
-
-            let mensagem = `*SEU AGENDAMENTO FOI CONFIRMADO!*\n\nPaciente: ${a.nome}\nUnidade: ${a.unidade}\nData: ${a.data} às ${a.hora}\n\nLevar documento com foto`;
-
-            let link = `https://wa.me/55${a.numero}?text=${encodeURIComponent(mensagem)}`;
-
-            div.innerHTML += `
-                <p>${a.nome} - ${a.hora}</p>
-                <a href="${link}" target="_blank">Enviar WhatsApp</a>
-                <hr>
-            `;
-        });
+function mostrarBanco(){
+listaBanco.innerHTML="";
+bancoLeads.forEach(l=>{
+listaBanco.innerHTML+=`<p>${l.numero} - ${l.tipo}</p>`;
+});
 }
 
-// ================== RELATÓRIO ==================
-function gerarRelatorio() {
-    let data = document.getElementById("dataRelatorio").value;
-    let resultado = document.getElementById("resultadoRelatorio");
+// AGENDA
+function filtrarAgenda(){
+let d=filtroData.value;
+listaAgenda.innerHTML="";
 
-    let lista = agendamentos.filter(a => a.data === data);
-
-    let contagem = {};
-
-    lista.forEach(a => {
-        contagem[a.unidade] = (contagem[a.unidade] || 0) + 1;
-    });
-
-    let texto = `📅 Relatório - ${data}\n\n`;
-
-    for (let unidade in contagem) {
-        texto += `${unidade}: ${contagem[unidade]}\n`;
-    }
-
-    texto += `\nTotal: ${lista.length}`;
-
-    resultado.textContent = texto;
+agendamentos.filter(a=>a.data===d).forEach((a,i)=>{
+listaAgenda.innerHTML+=`
+<p>${a.nome} - ${a.unidade} - ${a.hora}</p>
+<button onclick="excluir(${i})">Excluir</button><hr>`;
+});
 }
 
-// ================== INICIAR ==================
+function excluir(i){
+if(!confirm("Excluir?")) return;
+agendamentos.splice(i,1);
+salvar();
+filtrarAgenda();
+}
+
+// RELATÓRIO
+function gerarRelatorio(){
+let d=dataRelatorio.value;
+
+let lista=agendamentos.filter(a=>a.data===d);
+
+let cont={};
+
+lista.forEach(a=>{
+cont[a.unidade]=(cont[a.unidade]||0)+1;
+});
+
+let txt=`Relatório ${d}\n\n`;
+
+for(let u in cont){
+txt+=`${u}: ${cont[u]}\n`;
+}
+
+txt+=`\nTotal: ${lista.length}`;
+
+resultadoRelatorio.textContent=txt;
+}
+
 mostrarBanco();
