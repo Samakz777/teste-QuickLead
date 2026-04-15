@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta
@@ -8,7 +8,7 @@
   >
   <meta
     name="description"
-    content="QuickLead - sistema inteligente de agendamentos, banco de leads, filtro e relatórios."
+    content="QuickLead - sistema inteligente de agendamentos, filtro, banco de leads e campanhas programadas."
   >
   <meta name="theme-color" content="#0f1115">
   <title>QuickLead</title>
@@ -18,10 +18,20 @@
   <div class="app-shell">
     <header class="topo">
       <div class="topo__conteudo">
-        <h1>QuickLead</h1>
-        <p class="subtitulo">
-          Sistema inteligente de agendamentos e qualificação de leads
-        </p>
+        <div class="topo__linha">
+          <div>
+            <h1>QuickLead</h1>
+            <p class="subtitulo">
+              Sistema inteligente de agendamentos e qualificação de leads
+            </p>
+          </div>
+
+          <div class="topo__acoes">
+            <button type="button" id="btnTema" onclick="alternarTema()">
+              🌙 / ☀️ Tema
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -37,6 +47,9 @@
       </button>
       <button type="button" onclick="trocarAba('banco')" aria-controls="banco">
         Banco
+      </button>
+      <button type="button" onclick="trocarAba('campanhas')" aria-controls="campanhas">
+        Campanhas
       </button>
       <button type="button" onclick="trocarAba('relatorios')" aria-controls="relatorios">
         Relatórios
@@ -143,24 +156,24 @@
           <div class="card__topo">
             <h2 id="titulo-filtro">Filtro Inteligente de Leads</h2>
             <p class="texto-apoio">
-              Cole a lista de números para separar os leads aproveitáveis dos bloqueados.
+              Cole a lista para separar aprovados, ignorados e desqualificados.
             </p>
           </div>
 
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>Novos e REED1</span>
+              <span>NOVO e REED1</span>
             </div>
 
             <div class="status-box status-box--alerta">
               <strong>Ignorar no momento:</strong>
-              <span>REED2, REED29 e PROM4</span>
+              <span>PRO M1 até M12, REED D2 até D30</span>
             </div>
 
             <div class="status-box status-box--erro">
               <strong>Desqualificados:</strong>
-              <span>LON, FOR, DES e PAT</span>
+              <span>DES, LON, FOR, PAT e REED vencido</span>
             </div>
           </div>
 
@@ -182,6 +195,9 @@
             <button type="button" onclick="limparFiltro()">
               Limpar filtro
             </button>
+            <button type="button" onclick="organizarNumerosEmFileira()">
+              Organizar em fileira
+            </button>
           </div>
 
           <div class="resultados-filtro-grid">
@@ -195,10 +211,10 @@
             </div>
 
             <div class="grupo-campos">
-              <label for="saidaBloqueados">Desqualificados / ignorados</label>
+              <label for="saidaBloqueados">Ignorados / desqualificados</label>
               <textarea
                 id="saidaBloqueados"
-                placeholder="Os números removidos aparecerão aqui para análise..."
+                placeholder="Os leads removidos aparecerão aqui..."
                 readonly
               ></textarea>
             </div>
@@ -217,11 +233,11 @@
 
       <!-- BANCO -->
       <section id="banco" class="aba" aria-labelledby="titulo-banco">
-        <div class="card">
+        <div class="card card--banco">
           <div class="card__topo">
             <h2 id="titulo-banco">Banco de Leads</h2>
             <p class="texto-apoio">
-              Gerencie sua base principal de segmentação e bloqueio.
+              Gerencie a base geral, segmentações e campanhas programadas.
             </p>
           </div>
 
@@ -242,16 +258,16 @@
           </div>
 
           <div class="grupo-campos">
-            <label for="entradaBanco">Adicionar ou atualizar leads no banco</label>
+            <label for="entradaBanco">Adicionar ou atualizar leads</label>
             <textarea
               id="entradaBanco"
               placeholder="Ex:
-91999990000 - REED1
-91988887777 - PROM4
+91999990000 - REED D1
+91988887777 - PRO M3
 91977776666 - PAT"
             ></textarea>
             <small class="texto-ajuda">
-              Formatos aceitos: REED1, REED2, REED29, PROM4, DES, LON, FOR e PAT.
+              Formatos aceitos: NOVO, REED D1 até D30, PRO M1 até M12, DES, LON, FOR e PAT.
             </small>
           </div>
 
@@ -262,6 +278,9 @@
             <button type="button" onclick="mostrarBanco()">
               Atualizar lista
             </button>
+            <button type="button" onclick="copiarBancoEmFileira()">
+              Copiar banco em fileira
+            </button>
           </div>
 
           <div class="grupo-campos">
@@ -269,12 +288,137 @@
             <input
               id="buscaBanco"
               type="text"
-              placeholder="Buscar por número ou status..."
+              placeholder="Buscar por número, status, dia ou mês..."
               oninput="filtrarBancoManual()"
             >
           </div>
 
+          <div class="painel-banco-grid">
+            <div class="grupo-campos">
+              <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
+              <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
+                <option value="">Todas</option>
+                <option value="NOVO">NOVO</option>
+                <option value="REED">REED</option>
+                <option value="PRO">PRO</option>
+                <option value="DES">DES</option>
+                <option value="LON">LON</option>
+                <option value="FOR">FOR</option>
+                <option value="PAT">PAT</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="filtroDiaReed">Dia do REED</label>
+              <select id="filtroDiaReed" onchange="aplicarFiltrosBanco()">
+                <option value="">Todos</option>
+                <option value="D1">D1</option>
+                <option value="D2">D2</option>
+                <option value="D3">D3</option>
+                <option value="D4">D4</option>
+                <option value="D5">D5</option>
+                <option value="D6">D6</option>
+                <option value="D7">D7</option>
+                <option value="D8">D8</option>
+                <option value="D9">D9</option>
+                <option value="D10">D10</option>
+                <option value="D11">D11</option>
+                <option value="D12">D12</option>
+                <option value="D13">D13</option>
+                <option value="D14">D14</option>
+                <option value="D15">D15</option>
+                <option value="D16">D16</option>
+                <option value="D17">D17</option>
+                <option value="D18">D18</option>
+                <option value="D19">D19</option>
+                <option value="D20">D20</option>
+                <option value="D21">D21</option>
+                <option value="D22">D22</option>
+                <option value="D23">D23</option>
+                <option value="D24">D24</option>
+                <option value="D25">D25</option>
+                <option value="D26">D26</option>
+                <option value="D27">D27</option>
+                <option value="D28">D28</option>
+                <option value="D29">D29</option>
+                <option value="D30">D30</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="filtroMesPro">Mês do PRO</label>
+              <select id="filtroMesPro" onchange="aplicarFiltrosBanco()">
+                <option value="">Todos</option>
+                <option value="M1">M1</option>
+                <option value="M2">M2</option>
+                <option value="M3">M3</option>
+                <option value="M4">M4</option>
+                <option value="M5">M5</option>
+                <option value="M6">M6</option>
+                <option value="M7">M7</option>
+                <option value="M8">M8</option>
+                <option value="M9">M9</option>
+                <option value="M10">M10</option>
+                <option value="M11">M11</option>
+                <option value="M12">M12</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="resumoBanco">Resumo do banco</label>
+            <textarea
+              id="resumoBanco"
+              placeholder="Resumo automático do banco..."
+              readonly
+            ></textarea>
+          </div>
+
           <div id="listaBanco" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- CAMPANHAS -->
+      <section id="campanhas" class="aba" aria-labelledby="titulo-campanhas">
+        <div class="card card--campanhas">
+          <div class="card__topo">
+            <h2 id="titulo-campanhas">Campanhas Programadas</h2>
+            <p class="texto-apoio">
+              Visualize separadamente os REED por dia e os PRO por mês.
+            </p>
+          </div>
+
+          <div class="painel-campanhas-grid">
+            <div class="grupo-campos">
+              <label for="painelReed">Fila REED por dia</label>
+              <textarea
+                id="painelReed"
+                placeholder="Os REED D1 até D30 aparecerão organizados aqui..."
+                readonly
+              ></textarea>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="painelPro">Fila PRO por mês</label>
+              <textarea
+                id="painelPro"
+                placeholder="Os PRO M1 até M12 aparecerão organizados aqui..."
+                readonly
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" onclick="atualizarCampanhas()">
+              Atualizar campanhas
+            </button>
+            <button type="button" onclick="copiarPainelReed()">
+              Copiar REED
+            </button>
+            <button type="button" onclick="copiarPainelPro()">
+              Copiar PRO
+            </button>
+          </div>
         </div>
       </section>
 
@@ -293,9 +437,14 @@
             <input type="date" id="dataRelatorio">
           </div>
 
-          <button type="button" onclick="gerarRelatorio()">
-            Gerar Relatório
-          </button>
+          <div class="acoes-secundarias">
+            <button type="button" onclick="gerarRelatorio()">
+              Gerar Relatório
+            </button>
+            <button type="button" onclick="copiarRelatorio()">
+              Copiar Relatório
+            </button>
+          </div>
 
           <pre id="resultadoRelatorio" aria-live="polite"></pre>
         </div>
