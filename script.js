@@ -1,7 +1,8 @@
 let bancoLeads = JSON.parse(localStorage.getItem("bancoLeads")) || [];
 let agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
+let agendamentoAtual = null; // para o modal
 
-// ==================== ELEMENTOS DOM ====================
+// ==================== ELEMENTOS ====================
 const nomeInput = document.getElementById("nome");
 const numeroInput = document.getElementById("numero");
 const unidade = document.getElementById("unidade");
@@ -15,6 +16,8 @@ const filtroData = document.getElementById("filtroData");
 const listaAgenda = document.getElementById("listaAgenda");
 const dataRelatorio = document.getElementById("dataRelatorio");
 const resultadoRelatorio = document.getElementById("resultadoRelatorio");
+const modal = document.getElementById("modalComprovante");
+const textoComprovante = document.getElementById("textoComprovante");
 
 // ==================== FUNÇÕES BÁSICAS ====================
 function salvar() {
@@ -34,7 +37,16 @@ function limparNumero(t) {
   return n;
 }
 
-// ==================== SENHA INTELIGENTE ====================
+// NOVO: Normaliza número com ou sem o "9" para detectar duplicados
+function getNumeroKey(n) {
+  if (!n) return null;
+  if (n.length === 11 && n[2] === "9") {
+    return n.substring(0, 2) + n.substring(3); // remove o 9
+  }
+  return n;
+}
+
+// ==================== SENHA ====================
 function gerarSenha(data) {
   let total = agendamentos.filter(a => a.data === data).length + 1;
   let [ano, mes, dia] = data.split("-");
@@ -62,49 +74,71 @@ function agendar() {
   agendamentos.push(ag);
   salvar();
 
-  // Limpar campos
+  // Limpa campos
   nomeInput.value = "";
   numeroInput.value = "";
   unidade.value = "";
   dataInput.value = "";
   horaInput.value = "";
 
-  gerarComprovante(ag);
+  // Abre o modal com o comprovante
+  mostrarModalComprovante(ag);
 }
 
-// ==================== COMPROVANTE + WHATSAPP ====================
-function gerarComprovante(a) {
+// ==================== MODAL COMPROVANTE ====================
+function mostrarModalComprovante(a) {
+  agendamentoAtual = a;
+
   let dataFormatada = a.data.split("-").reverse().join("/");
+  let horaFormat = a.hora.split(":")[0] + "H";
 
   let msg = `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
 
 *Consultor: PAULO LOBATO*
 
-*Paciente: ${a.nome.toUpperCase()}*
+*Pacientes: ${a.nome.toUpperCase()}*
 
-*Senha: ${a.senha}*
+Senha:
+*${a.senha}*
 
-*DATA: ${dataFormatada} às ${a.hora}H*
+*DATA: ${dataFormatada} às ${horaFormat} DA TARDE!*
 
-*LEVAR DOCUMENTO OFICIAL COM FOTO*
+*LEVAR UM DOCUMENTO OFICIAL COM FOTO*
 
 *Não realizam o exame:*
-• Crianças menores de 6 anos
-• Lactantes e Gestantes
-• Menores de idade precisam de responsável
+* Crianças menores de 6 anos
+* Lactantes e Gestantes
+* Menores de idade ir acompanhado(a) com responsável
+* Atendimento por ordem de chegada
 
-*Tenha um excelente exame! 😃*
+*Tenha um excelente exame!😃*
 
 Projeto Enxergar 🌐`;
 
-  let link = `https://wa.me/55${a.numero}?text=${encodeURIComponent(msg)}`;
-
-  if (confirm("Enviar no WhatsApp?")) {
-    window.open(link, "_blank");
-  }
+  textoComprovante.value = msg;
+  modal.style.display = "flex";
 }
 
-// ==================== FILTRO INTELIGENTE ====================
+function copiarComprovante() {
+  textoComprovante.select();
+  document.execCommand("copy");
+  alert("✅ Copiado para a área de transferência!");
+}
+
+function enviarWhats() {
+  if (!agendamentoAtual) return;
+  let msg = textoComprovante.value;
+  let link = `https://wa.me/55${agendamentoAtual.numero}?text=${encodeURIComponent(msg)}`;
+  window.open(link, "_blank");
+  fecharModal();
+}
+
+function fecharModal() {
+  modal.style.display = "none";
+  agendamentoAtual = null;
+}
+
+// ==================== FILTRO (CORRIGIDO) ====================
 function filtrarLeads() {
   let entrada = entradaFiltro.value.split("\n");
   let resultado = [];
@@ -116,12 +150,14 @@ function filtrarLeads() {
     let n = limparNumero(l);
     if (!n) return;
 
-    if (usados.has(n)) { dup++; return; }
+    let key = getNumeroKey(n);
 
-    let ex = bancoLeads.find(x => x.numero === n);
-    if (ex && ["DES", "LON", "FOR", "PAT"].includes(ex.tipo)) { ruins++; return; }
+    if (usados.has(key)) { dup++; return; }
 
-    usados.add(n);
+    let ex = bancoLeads.find(x => getNumeroKey(x.numero) === key);
+    if (ex && ["DES","LON","FOR","PAT"].includes(ex.tipo)) { ruins++; return; }
+
+    usados.add(key);
     resultado.push(n);
   });
 
@@ -129,23 +165,19 @@ function filtrarLeads() {
     `\n\nDuplicados removidos: ${dup}\nLeads ruins removidos: ${ruins}`;
 }
 
-// ==================== BANCO DE LEADS ====================
+// ==================== BANCO ====================
 function salvarBanco() {
   let linhas = entradaBanco.value.split("\n");
-
   linhas.forEach(l => {
     let p = l.split("-");
     if (p.length < 2) return;
-
     let n = limparNumero(p[0]);
     if (!n) return;
-
     let info = p[1].trim().split(" ");
     bancoLeads.push({ numero: n, tipo: info[0] });
   });
-
   salvar();
-  entradaBanco.value = ""; // limpa após salvar
+  entradaBanco.value = "";
   mostrarBanco();
 }
 
@@ -156,29 +188,22 @@ function mostrarBanco() {
   });
 }
 
-// ==================== AGENDA ====================
+// ==================== AGENDA + EXCLUIR ====================
 function filtrarAgenda() {
   let d = filtroData.value;
-  if (!d) {
-    alert("Selecione uma data!");
-    return;
-  }
+  if (!d) { alert("Selecione uma data!"); return; }
 
   listaAgenda.innerHTML = "";
 
-  agendamentos
-    .filter(a => a.data === d)
-    .forEach(a => {
-      let idx = agendamentos.indexOf(a); // índice real no array principal
-      listaAgenda.innerHTML += `
-        <p><strong>${a.nome}</strong> - ${a.unidade} - ${a.hora}</p>
-        <button onclick="excluir(${idx})">Excluir</button>
-        <hr>`;
-    });
+  agendamentos.filter(a => a.data === d).forEach(a => {
+    let idx = agendamentos.indexOf(a);
+    listaAgenda.innerHTML += `
+      <p><strong>${a.nome}</strong> - ${a.unidade} - ${a.hora}</p>
+      <button onclick="excluir(${idx})">Excluir</button>
+      <hr>`;
+  });
 
-  if (listaAgenda.innerHTML === "") {
-    listaAgenda.innerHTML = "<p>Nenhum agendamento para esta data.</p>";
-  }
+  if (listaAgenda.innerHTML === "") listaAgenda.innerHTML = "<p>Nenhum agendamento para esta data.</p>";
 }
 
 function excluir(i) {
@@ -191,22 +216,14 @@ function excluir(i) {
 // ==================== RELATÓRIO ====================
 function gerarRelatorio() {
   let d = dataRelatorio.value;
-  if (!d) {
-    alert("Selecione uma data!");
-    return;
-  }
+  if (!d) { alert("Selecione uma data!"); return; }
 
   let lista = agendamentos.filter(a => a.data === d);
-
   let cont = {};
-  lista.forEach(a => {
-    cont[a.unidade] = (cont[a.unidade] || 0) + 1;
-  });
+  lista.forEach(a => cont[a.unidade] = (cont[a.unidade] || 0) + 1);
 
   let txt = `Relatório ${d}\n\n`;
-  for (let u in cont) {
-    txt += `${u}: ${cont[u]}\n`;
-  }
+  for (let u in cont) txt += `${u}: ${cont[u]}\n`;
   txt += `\nTotal do dia: ${lista.length}`;
 
   resultadoRelatorio.textContent = txt;
