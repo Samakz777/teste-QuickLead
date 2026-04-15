@@ -67,7 +67,7 @@
       <div class="card">
         <textarea id="entradaFiltro" placeholder="Cole os leads aqui..."></textarea>
         <button class="btn-principal" onclick="filtrarLeads()">Filtrar Leads</button>
-        <textarea id="saidaFiltro" placeholder="Resultado aparecerá aqui..."></textarea>
+        <textarea id="saidaFiltro" placeholder="Resultado aparecerá aqui..." readonly></textarea>
       </div>
     </section>
 
@@ -77,6 +77,13 @@
       <div class="card">
         <textarea id="entradaBanco" placeholder="Ex: 91999990000 - REE D1"></textarea>
         <button class="btn-principal" onclick="salvarBanco()">Salvar no Banco</button>
+        
+        <div style="margin-top:20px">
+          <button onclick="exportarDados()" style="background:#00aaff">📤 Exportar Dados (JSON)</button>
+          <button onclick="importarDados()" style="background:#ff8800">📥 Importar Dados (JSON)</button>
+        </div>
+        
+        <textarea id="importarTexto" placeholder="Cole o JSON aqui para importar..." style="margin-top:15px;height:120px;"></textarea>
         <div id="listaBanco"></div>
       </div>
     </section>
@@ -93,7 +100,7 @@
 
   </main>
 
-  <!-- 🔥 MODAL DO COMPROVANTE (agora funcional) -->
+  <!-- MODAL -->
   <div id="modalComprovante" class="modal">
     <div class="modal-content">
       <h3>Comprovante de Agendamento</h3>
@@ -101,7 +108,7 @@
       <div class="botoes">
         <button onclick="copiarComprovante()">📋 Copiar</button>
         <button onclick="enviarWhats()">📱 Enviar WhatsApp</button>
-        <button onclick="fecharModal()">❌ Cancelar</button>
+        <button onclick="fecharModal()">✅ OK</button>
       </div>
     </div>
   </div>
