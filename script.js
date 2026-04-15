@@ -1,6 +1,7 @@
 let bancoLeads = JSON.parse(localStorage.getItem("bancoLeads")) || [];
 let agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
 let agendamentoAtual = null;
+let leadSelecionadoIndex = null;
 
 // ELEMENTOS
 const nomeInput = document.getElementById("nome");
@@ -11,9 +12,12 @@ const horaInput = document.getElementById("hora");
 
 const entradaFiltro = document.getElementById("entradaFiltro");
 const saidaFiltro = document.getElementById("saidaFiltro");
+const saidaBloqueados = document.getElementById("saidaBloqueados");
+const resumoFiltro = document.getElementById("resumoFiltro");
 
 const entradaBanco = document.getElementById("entradaBanco");
 const listaBanco = document.getElementById("listaBanco");
+const buscaBanco = document.getElementById("buscaBanco");
 
 const filtroData = document.getElementById("filtroData");
 const listaAgenda = document.getElementById("listaAgenda");
@@ -24,20 +28,28 @@ const resultadoRelatorio = document.getElementById("resultadoRelatorio");
 const modal = document.getElementById("modalComprovante");
 const textoComprovante = document.getElementById("textoComprovante");
 
-const importarTexto = document.getElementById("importarTexto");
+const modalAcoesBanco = document.getElementById("modalAcoesBanco");
+const syncStatusTexto = document.getElementById("syncStatusTexto");
 
 // =========================
-// UTILIDADES GERAIS
+// BASE
 // =========================
 function salvar() {
   localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
   localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+  atualizarStatusSync("Salvo localmente");
+}
+
+function atualizarStatusSync(texto = "Modo local ativo") {
+  if (syncStatusTexto) {
+    syncStatusTexto.textContent = texto;
+  }
 }
 
 function trocarAba(id) {
   document.querySelectorAll(".aba").forEach((aba) => aba.classList.remove("ativa"));
-  const destino = document.getElementById(id);
-  if (destino) destino.classList.add("ativa");
+  const abaDestino = document.getElementById(id);
+  if (abaDestino) abaDestino.classList.add("ativa");
 }
 
 function limparNumero(texto = "") {
@@ -45,26 +57,12 @@ function limparNumero(texto = "") {
 }
 
 function getPhoneKey(numero) {
-  if (!numero) return "";
-  return limparNumero(numero).slice(-8);
+  const limpo = limparNumero(numero);
+  return limpo ? limpo.slice(-8) : "";
 }
 
 function normalizarTexto(texto = "") {
   return String(texto).trim().toUpperCase();
-}
-
-function formatarNumero(numero) {
-  const n = limparNumero(numero);
-
-  if (n.length === 11) {
-    return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
-  }
-
-  if (n.length === 10) {
-    return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
-  }
-
-  return numero || "";
 }
 
 function escaparHTML(texto = "") {
@@ -75,7 +73,46 @@ function escaparHTML(texto = "") {
     .replace(/"/g, "&quot;");
 }
 
+function formatarNumero(numero = "") {
+  const n = limparNumero(numero);
+
+  if (n.length === 11) {
+    return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+  }
+
+  if (n.length === 10) {
+    return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+  }
+
+  return numero;
+}
+
+function copiarTexto(texto, mensagemSucesso = "✅ Copiado com sucesso!") {
+  if (!texto) return;
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(texto)
+      .then(() => alert(mensagemSucesso))
+      .catch(() => fallbackCopiarTexto(texto, mensagemSucesso));
+    return;
+  }
+
+  fallbackCopiarTexto(texto, mensagemSucesso);
+}
+
+function fallbackCopiarTexto(texto, mensagemSucesso) {
+  const area = document.createElement("textarea");
+  area.value = texto;
+  document.body.appendChild(area);
+  area.select();
+  document.execCommand("copy");
+  document.body.removeChild(area);
+  alert(mensagemSucesso);
+}
+
 function setDataHoje() {
+  if (!dataInput) return;
+
   if (!dataInput.value) {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -86,7 +123,7 @@ function setDataHoje() {
 }
 
 // =========================
-// REGRAS DE STATUS
+// STATUS / REGRAS
 // =========================
 function normalizarStatus(texto = "") {
   const bruto = normalizarTexto(texto).replace(/[\s._-]+/g, "");
@@ -95,39 +132,35 @@ function normalizarStatus(texto = "") {
 
   if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
 
-  if (bruto === "REED1" || bruto === "REED01" || bruto === "REENG1" || bruto === "REENGAJAMENTO1") {
+  if (["REED1", "REED01", "REENG1", "REENGAJAMENTO1", "REEDD1", "REEDIA1"].includes(bruto)) {
     return "REED1";
   }
 
-  if (bruto === "REED2" || bruto === "REED02" || bruto === "REENG2" || bruto === "REENGAJAMENTO2") {
+  if (["REED2", "REED02", "REENG2", "REENGAJAMENTO2", "REEDD2"].includes(bruto)) {
     return "REED2";
   }
 
-  if (
-    bruto === "REED29" ||
-    bruto === "REENG29" ||
-    bruto === "REENGAJAMENTO29"
-  ) {
+  if (["REED29", "REENG29", "REENGAJAMENTO29"].includes(bruto)) {
     return "REED29";
   }
 
-  if (bruto === "PROM4" || bruto === "PROM04" || bruto === "PROMO4") {
+  if (["PROM4", "PROM04", "PRO4", "PROMO4", "PROMM4", "PROMES4"].includes(bruto)) {
     return "PROM4";
   }
 
-  if (bruto === "LON" || bruto === "LONG" || bruto === "LONGDISTANCE") {
+  if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) {
     return "LON";
   }
 
-  if (bruto === "FOR" || bruto === "FORA" || bruto === "FORADECobertura".toUpperCase() || bruto === "FORADECOVERAGE") {
+  if (["FOR", "FORA", "FORADECobertura".toUpperCase(), "FORADECOVERAGE"].includes(bruto)) {
     return "FOR";
   }
 
-  if (bruto === "DES" || bruto === "DESCARTADO" || bruto === "DESQUALIFICADO") {
+  if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) {
     return "DES";
   }
 
-  if (bruto === "PAT" || bruto === "PACIENTE") {
+  if (["PAT", "PATOLOGIA"].includes(bruto)) {
     return "PAT";
   }
 
@@ -137,17 +170,9 @@ function normalizarStatus(texto = "") {
 function obterCategoriaStatus(status) {
   const s = normalizarStatus(status);
 
-  if (s === "NOVO" || s === "REED1") {
-    return "UTIL_AGORA";
-  }
-
-  if (s === "REED2" || s === "REED29" || s === "PROM4") {
-    return "IGNORAR_AGORA";
-  }
-
-  if (s === "LON" || s === "FOR" || s === "DES" || s === "PAT") {
-    return "DESQUALIFICADO";
-  }
+  if (s === "NOVO" || s === "REED1") return "UTIL_AGORA";
+  if (s === "REED2" || s === "REED29" || s === "PROM4") return "IGNORAR_AGORA";
+  if (s === "LON" || s === "FOR" || s === "DES" || s === "PAT") return "DESQUALIFICADO";
 
   return "NEUTRO";
 }
@@ -160,25 +185,23 @@ function obterPrioridadeStatus(status) {
   if (s === "REED2") return 3;
   if (s === "REED29") return 4;
   if (s === "PROM4") return 5;
-  if (s === "LON" || s === "FOR" || s === "DES" || s === "PAT") return 99;
+  if (s === "DES") return 96;
+  if (s === "LON") return 97;
+  if (s === "FOR") return 98;
+  if (s === "PAT") return 99;
 
   return 50;
 }
 
-function statusEhDesqualificado(status) {
-  return obterCategoriaStatus(status) === "DESQUALIFICADO";
-}
-
-function statusEhIgnoradoAgora(status) {
-  return obterCategoriaStatus(status) === "IGNORAR_AGORA";
-}
-
-function statusEhUtilAgora(status) {
-  return obterCategoriaStatus(status) === "UTIL_AGORA";
+function categoriaParaClasse(categoria) {
+  if (categoria === "UTIL_AGORA") return "util";
+  if (categoria === "IGNORAR_AGORA") return "ignorar";
+  if (categoria === "DESQUALIFICADO") return "desqualificado";
+  return "neutro";
 }
 
 // =========================
-// BANCO DE LEADS
+// BANCO
 // =========================
 function extrairNumeroEStatusDaLinha(linha = "") {
   const texto = String(linha).trim();
@@ -194,7 +217,7 @@ function extrairNumeroEStatusDaLinha(linha = "") {
 
   const partes = restante
     .split("-")
-    .map((p) => p.trim())
+    .map((parte) => parte.trim())
     .filter(Boolean);
 
   let status = "NOVO";
@@ -202,19 +225,34 @@ function extrairNumeroEStatusDaLinha(linha = "") {
   if (partes.length > 0) {
     status = normalizarStatus(partes[partes.length - 1]);
   } else {
-    const tokens = restante.split(/\s+/).filter(Boolean);
-    if (tokens.length > 0) {
-      status = normalizarStatus(tokens.join(""));
-    }
+    const fallback = restante.split(/\s+/).filter(Boolean).join("");
+    if (fallback) status = normalizarStatus(fallback);
   }
 
-  return { numero, tipo: status };
+  return {
+    numero,
+    tipo: status
+  };
 }
 
 function buscarLeadNoBancoPorNumero(numero) {
-  const key = getPhoneKey(numero);
-  if (!key) return null;
-  return bancoLeads.find((lead) => getPhoneKey(lead.numero) === key) || null;
+  const chave = getPhoneKey(numero);
+  if (!chave) return null;
+
+  return bancoLeads.find((lead) => getPhoneKey(lead.numero) === chave) || null;
+}
+
+function ordenarBanco() {
+  bancoLeads.sort((a, b) => {
+    const prioridadeA = obterPrioridadeStatus(a.tipo);
+    const prioridadeB = obterPrioridadeStatus(b.tipo);
+
+    if (prioridadeA !== prioridadeB) {
+      return prioridadeA - prioridadeB;
+    }
+
+    return limparNumero(a.numero).localeCompare(limparNumero(b.numero));
+  });
 }
 
 function salvarBanco() {
@@ -225,8 +263,9 @@ function salvarBanco() {
 
   linhas.forEach((linha) => {
     const dado = extrairNumeroEStatusDaLinha(linha);
+
     if (!dado) {
-      ignorados++;
+      if (linha.trim()) ignorados++;
       return;
     }
 
@@ -245,17 +284,7 @@ function salvarBanco() {
     }
   });
 
-  bancoLeads.sort((a, b) => {
-    const prioridadeA = obterPrioridadeStatus(a.tipo);
-    const prioridadeB = obterPrioridadeStatus(b.tipo);
-
-    if (prioridadeA !== prioridadeB) {
-      return prioridadeA - prioridadeB;
-    }
-
-    return a.numero.localeCompare(b.numero);
-  });
-
+  ordenarBanco();
   salvar();
   entradaBanco.value = "";
   mostrarBanco();
@@ -265,152 +294,291 @@ function salvarBanco() {
   );
 }
 
-function mostrarBanco() {
+function renderBanco(lista = bancoLeads) {
   if (!listaBanco) return;
 
-  if (bancoLeads.length === 0) {
-    listaBanco.innerHTML = "<p>Nenhum lead salvo no banco.</p>";
+  if (!lista.length) {
+    listaBanco.innerHTML = "<p>Nenhum lead encontrado no banco.</p>";
     return;
   }
 
-  listaBanco.innerHTML = bancoLeads
-    .map((lead, index) => {
-      const categoria = obterCategoriaStatus(lead.tipo);
-      let classe = "neutro";
+  listaBanco.innerHTML = lista.map((lead) => {
+    const categoria = obterCategoriaStatus(lead.tipo);
+    const classe = categoriaParaClasse(categoria);
+    const indexOriginal = bancoLeads.findIndex(
+      (item) => getPhoneKey(item.numero) === getPhoneKey(lead.numero)
+    );
 
-      if (categoria === "UTIL_AGORA") classe = "util";
-      if (categoria === "IGNORAR_AGORA") classe = "ignorar";
-      if (categoria === "DESQUALIFICADO") classe = "desqualificado";
+    return `
+      <div class="agenda-item ${classe}">
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+          <div>
+            <p><strong>${escaparHTML(formatarNumero(lead.numero))}</strong></p>
+            <p>Status: <strong>${escaparHTML(normalizarStatus(lead.tipo))}</strong></p>
+            <p>Categoria: <strong>${escaparHTML(categoria)}</strong></p>
+          </div>
 
-      return `
-        <div class="agenda-item">
-          <p><strong>${index + 1}.</strong> ${escaparHTML(formatarNumero(lead.numero))}</p>
-          <p>Status: <strong>${escaparHTML(normalizarStatus(lead.tipo))}</strong></p>
-          <p>Categoria: <strong>${classe.toUpperCase()}</strong></p>
+          <button
+            type="button"
+            onclick="abrirAcoesBanco(${indexOriginal})"
+            aria-label="Abrir ações do lead"
+            style="min-width:44px;"
+          >⋯</button>
         </div>
-      `;
-    })
-    .join("");
+      </div>
+    `;
+  }).join("");
+}
+
+function mostrarBanco() {
+  renderBanco(bancoLeads);
+}
+
+function filtrarBancoManual() {
+  const termo = normalizarTexto(buscaBanco?.value || "");
+
+  if (!termo) {
+    renderBanco(bancoLeads);
+    return;
+  }
+
+  const listaFiltrada = bancoLeads.filter((lead) => {
+    const numero = limparNumero(lead.numero);
+    const numeroFormatado = formatarNumero(lead.numero).toUpperCase();
+    const status = normalizarStatus(lead.tipo);
+
+    return (
+      numero.includes(termo.replace(/\D/g, "")) ||
+      numeroFormatado.includes(termo) ||
+      status.includes(termo)
+    );
+  });
+
+  renderBanco(listaFiltrada);
+}
+
+function limparBancoCompleto() {
+  if (!bancoLeads.length) {
+    alert("O banco já está vazio.");
+    return;
+  }
+
+  const confirmar = confirm(
+    "Tem certeza que deseja apagar todo o banco de leads?\n\nEssa ação não pode ser desfeita."
+  );
+
+  if (!confirmar) return;
+
+  bancoLeads = [];
+  salvar();
+  mostrarBanco();
+
+  if (buscaBanco) buscaBanco.value = "";
+
+  alert("✅ Banco apagado com sucesso.");
+}
+
+function abrirAcoesBanco(index) {
+  leadSelecionadoIndex = index;
+  if (modalAcoesBanco) {
+    modalAcoesBanco.style.display = "flex";
+    modalAcoesBanco.setAttribute("aria-hidden", "false");
+  }
+}
+
+function fecharModalBanco() {
+  leadSelecionadoIndex = null;
+  if (modalAcoesBanco) {
+    modalAcoesBanco.style.display = "none";
+    modalAcoesBanco.setAttribute("aria-hidden", "true");
+  }
+}
+
+function editarLeadSelecionado() {
+  if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
+
+  const lead = bancoLeads[leadSelecionadoIndex];
+
+  const novoNumero = prompt("Editar número:", lead.numero);
+  if (novoNumero === null) return;
+
+  const novoStatus = prompt(
+    "Editar status:\n\nUse por exemplo: NOVO, REED1, REED2, REED29, PROM4, DES, LON, FOR, PAT",
+    lead.tipo
+  );
+  if (novoStatus === null) return;
+
+  const numeroLimpo = limparNumero(novoNumero);
+  const statusNormalizado = normalizarStatus(novoStatus);
+
+  if (!numeroLimpo) {
+    alert("Número inválido.");
+    return;
+  }
+
+  lead.numero = numeroLimpo;
+  lead.tipo = statusNormalizado;
+
+  ordenarBanco();
+  salvar();
+  mostrarBanco();
+  fecharModalBanco();
+
+  alert("✅ Lead atualizado com sucesso.");
+}
+
+function excluirLeadSelecionado() {
+  if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
+
+  const lead = bancoLeads[leadSelecionadoIndex];
+  const confirmar = confirm(
+    `Excluir este lead?\n\n${formatarNumero(lead.numero)} - ${normalizarStatus(lead.tipo)}`
+  );
+
+  if (!confirmar) return;
+
+  bancoLeads.splice(leadSelecionadoIndex, 1);
+  salvar();
+  mostrarBanco();
+  fecharModalBanco();
+
+  alert("✅ Lead excluído com sucesso.");
+}
+
+function sincronizarAgora() {
+  atualizarStatusSync("Sincronização online ainda não configurada");
+  alert(
+    "A estrutura já está pronta, mas a sincronização em tempo real ainda depende de banco online.\n\nNo próximo passo, isso pode ser ligado com Firebase."
+  );
 }
 
 // =========================
-// FILTRO INTELIGENTE
+// FILTRO
 // =========================
 function filtrarLeads() {
   const linhas = entradaFiltro.value.split("\n");
 
   const aprovados = [];
-  const removidosDuplicados = [];
-  const removidosIgnorados = [];
-  const removidosDesqualificados = [];
-  const removidosInvalidos = [];
-
+  const bloqueados = [];
   const usados = new Set();
+
+  let totalDuplicados = 0;
+  let totalIgnorados = 0;
+  let totalDesqualificados = 0;
+  let totalInvalidos = 0;
+  let totalNovos = 0;
+  let totalReed1 = 0;
 
   linhas.forEach((linha) => {
     const numero = limparNumero(linha);
+
     if (!numero) {
-      if (linha.trim()) removidosInvalidos.push(linha.trim());
+      if (linha.trim()) {
+        totalInvalidos++;
+        bloqueados.push(`${linha.trim()} - INVÁLIDO`);
+      }
       return;
     }
 
-    const key = getPhoneKey(numero);
-    if (!key) {
-      removidosInvalidos.push(linha.trim());
+    const chave = getPhoneKey(numero);
+
+    if (!chave) {
+      totalInvalidos++;
+      bloqueados.push(`${linha.trim()} - INVÁLIDO`);
       return;
     }
 
-    if (usados.has(key)) {
-      removidosDuplicados.push(numero);
+    if (usados.has(chave)) {
+      totalDuplicados++;
+      bloqueados.push(`${numero} - DUPLICADO`);
       return;
     }
 
-    usados.add(key);
+    usados.add(chave);
 
     const leadBanco = buscarLeadNoBancoPorNumero(numero);
 
     if (!leadBanco) {
-      aprovados.push({
-        numero,
-        status: "NOVO",
-        origem: "ENTRADA NOVA"
-      });
+      aprovados.push(`${numero} - NOVO`);
+      totalNovos++;
       return;
     }
 
     const status = normalizarStatus(leadBanco.tipo);
+    const categoria = obterCategoriaStatus(status);
 
-    if (statusEhDesqualificado(status)) {
-      removidosDesqualificados.push(`${numero} (${status})`);
+    if (categoria === "UTIL_AGORA") {
+      aprovados.push(`${numero} - ${status}`);
+      if (status === "NOVO") totalNovos++;
+      if (status === "REED1") totalReed1++;
       return;
     }
 
-    if (statusEhIgnoradoAgora(status)) {
-      removidosIgnorados.push(`${numero} (${status})`);
+    if (categoria === "IGNORAR_AGORA") {
+      totalIgnorados++;
+      bloqueados.push(`${numero} - ${status} - IGNORAR AGORA`);
       return;
     }
 
-    if (statusEhUtilAgora(status)) {
-      aprovados.push({
-        numero,
-        status,
-        origem: "BANCO"
-      });
+    if (categoria === "DESQUALIFICADO") {
+      totalDesqualificados++;
+      bloqueados.push(`${numero} - ${status} - DESQUALIFICADO`);
       return;
     }
 
-    aprovados.push({
-      numero,
-      status,
-      origem: "BANCO"
-    });
+    aprovados.push(`${numero} - ${status}`);
   });
 
-  aprovados.sort((a, b) => {
-    return obterPrioridadeStatus(a.status) - obterPrioridadeStatus(b.status);
-  });
+  saidaFiltro.value = aprovados.join("\n");
+  saidaBloqueados.value = bloqueados.join("\n");
 
-  let textoFinal = "";
+  resumoFiltro.value =
+`RESUMO DA TRIAGEM
+====================
+Aprovados: ${aprovados.length}
+- Novos: ${totalNovos}
+- REED1: ${totalReed1}
 
-  textoFinal += "LEADS APROVADOS\n";
-  textoFinal += "====================\n";
-  textoFinal += aprovados.length
-    ? aprovados.map((lead) => `${lead.numero} - ${lead.status}`).join("\n")
-    : "Nenhum lead aprovado.";
+Bloqueados: ${bloqueados.length}
+- Duplicados: ${totalDuplicados}
+- Ignorados no momento: ${totalIgnorados}
+- Desqualificados: ${totalDesqualificados}
+- Inválidos: ${totalInvalidos}
 
-  textoFinal += "\n\nRESUMO\n";
-  textoFinal += "====================\n";
-  textoFinal += `Aprovados: ${aprovados.length}\n`;
-  textoFinal += `Duplicados removidos: ${removidosDuplicados.length}\n`;
-  textoFinal += `Ignorados no momento: ${removidosIgnorados.length}\n`;
-  textoFinal += `Desqualificados removidos: ${removidosDesqualificados.length}\n`;
-  textoFinal += `Inválidos: ${removidosInvalidos.length}\n`;
+REGRAS ATIVAS
+====================
+TRABALHAR AGORA:
+- NOVO
+- REED1
 
-  if (removidosDuplicados.length) {
-    textoFinal += "\nDUPLICADOS REMOVIDOS\n";
-    textoFinal += "====================\n";
-    textoFinal += removidosDuplicados.join("\n");
+IGNORAR NO MOMENTO:
+- REED2
+- REED29
+- PROM4
+
+DESQUALIFICAR:
+- DES
+- LON
+- FOR
+- PAT`;
+}
+
+function copiarAprovados() {
+  const texto = saidaFiltro.value.trim();
+
+  if (!texto) {
+    alert("Não há aprovados para copiar.");
+    return;
   }
 
-  if (removidosIgnorados.length) {
-    textoFinal += "\n\nIGNORADOS NO MOMENTO\n";
-    textoFinal += "====================\n";
-    textoFinal += removidosIgnorados.join("\n");
-  }
+  copiarTexto(texto, "✅ Leads aprovados copiados.");
+}
 
-  if (removidosDesqualificados.length) {
-    textoFinal += "\n\nDESQUALIFICADOS REMOVIDOS\n";
-    textoFinal += "====================\n";
-    textoFinal += removidosDesqualificados.join("\n");
-  }
-
-  if (removidosInvalidos.length) {
-    textoFinal += "\n\nLINHAS INVÁLIDAS\n";
-    textoFinal += "====================\n";
-    textoFinal += removidosInvalidos.join("\n");
-  }
-
-  saidaFiltro.value = textoFinal;
+function limparFiltro() {
+  if (entradaFiltro) entradaFiltro.value = "";
+  if (saidaFiltro) saidaFiltro.value = "";
+  if (saidaBloqueados) saidaBloqueados.value = "";
+  if (resumoFiltro) resumoFiltro.value = "";
 }
 
 // =========================
@@ -427,8 +595,8 @@ function formatarHorario(hora = "") {
 }
 
 function gerarSenha(data) {
-  const totalNoDia = agendamentos.filter((a) => a.data === data).length + 1;
-  const [ano, mes, dia] = data.split("-");
+  const totalNoDia = agendamentos.filter((item) => item.data === data).length + 1;
+  const [, mes, dia] = data.split("-");
   return `PJ${dia}${mes}-${String(totalNoDia).padStart(2, "0")}`;
 }
 
@@ -462,18 +630,18 @@ Senha:
 Projeto Enxergar 🌐`;
 }
 
-function validarAgendamento({ nome, numero, unidade, data, hora }) {
-  if (!nome || !numero || !unidade || !data || !hora) {
-    alert("Preencha todos os campos!");
+function validarAgendamento(dados) {
+  if (!dados.nome || !dados.numero || !dados.unidade || !dados.data || !dados.hora) {
+    alert("Preencha todos os campos.");
     return false;
   }
 
-  if (nome.length < 3) {
+  if (dados.nome.trim().length < 3) {
     alert("Digite um nome válido.");
     return false;
   }
 
-  if (numero.length < 10) {
+  if (limparNumero(dados.numero).length < 10) {
     alert("Digite um número válido.");
     return false;
   }
@@ -482,26 +650,20 @@ function validarAgendamento({ nome, numero, unidade, data, hora }) {
 }
 
 function agendar() {
-  const nome = nomeInput.value.trim();
-  const numero = limparNumero(numeroInput.value);
-  const unidade = unidadeInput.value;
-  const data = dataInput.value;
-  const hora = horaInput.value;
-
-  const dados = { nome, numero, unidade, data, hora };
+  const dados = {
+    nome: nomeInput.value.trim(),
+    numero: limparNumero(numeroInput.value),
+    unidade: unidadeInput.value,
+    data: dataInput.value,
+    hora: horaInput.value
+  };
 
   if (!validarAgendamento(dados)) return;
   if (!confirm("Confirmar agendamento?")) return;
 
-  const senha = gerarSenha(data);
-
   const novoAgendamento = {
-    nome,
-    numero,
-    unidade,
-    data,
-    hora,
-    senha,
+    ...dados,
+    senha: gerarSenha(dados.data),
     criadoEm: new Date().toISOString()
   };
 
@@ -518,9 +680,6 @@ function agendar() {
   setDataHoje();
 }
 
-// =========================
-// MODAL / WHATSAPP
-// =========================
 function mostrarModalComprovante(agendamento) {
   agendamentoAtual = agendamento;
   textoComprovante.value = gerarMensagem(agendamento);
@@ -529,25 +688,9 @@ function mostrarModalComprovante(agendamento) {
 }
 
 function copiarComprovante() {
-  const texto = textoComprovante.value;
-
+  const texto = textoComprovante.value.trim();
   if (!texto) return;
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(texto)
-      .then(() => alert("✅ Comprovante copiado!"))
-      .catch(() => fallbackCopiarTexto());
-    return;
-  }
-
-  fallbackCopiarTexto();
-}
-
-function fallbackCopiarTexto() {
-  textoComprovante.select();
-  textoComprovante.setSelectionRange(0, 99999);
-  document.execCommand("copy");
-  alert("✅ Comprovante copiado!");
+  copiarTexto(texto, "✅ Comprovante copiado.");
 }
 
 function enviarWhats() {
@@ -570,16 +713,7 @@ function fecharModal() {
 // AGENDA
 // =========================
 function copiarNumero(numero) {
-  const texto = limparNumero(numero);
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(texto)
-      .then(() => alert("✅ Número copiado!"))
-      .catch(() => alert("Não foi possível copiar o número."));
-    return;
-  }
-
-  alert(`Número: ${texto}`);
+  copiarTexto(limparNumero(numero), "✅ Número copiado.");
 }
 
 function verComprovante(index) {
@@ -592,9 +726,7 @@ function reenviarWhats(index) {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
 
-  const mensagem = gerarMensagem(agendamento);
-  const link = `https://wa.me/55${limparNumero(agendamento.numero)}?text=${encodeURIComponent(mensagem)}`;
-
+  const link = `https://wa.me/55${limparNumero(agendamento.numero)}?text=${encodeURIComponent(gerarMensagem(agendamento))}`;
   window.open(link, "_blank");
 }
 
@@ -602,7 +734,8 @@ function excluir(index) {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
 
-  if (!confirm(`Excluir o agendamento de ${agendamento.nome}?`)) return;
+  const confirmar = confirm(`Excluir o agendamento de ${agendamento.nome}?`);
+  if (!confirmar) return;
 
   agendamentos.splice(index, 1);
   salvar();
@@ -613,37 +746,33 @@ function filtrarAgenda() {
   const dataSelecionada = filtroData.value;
 
   if (!dataSelecionada) {
-    alert("Selecione uma data!");
+    alert("Selecione uma data.");
     return;
   }
 
   const listaDoDia = agendamentos
-    .map((agendamento, index) => ({ ...agendamento, indexOriginal: index }))
-    .filter((agendamento) => agendamento.data === dataSelecionada)
+    .map((item, index) => ({ ...item, indexOriginal: index }))
+    .filter((item) => item.data === dataSelecionada)
     .sort((a, b) => a.hora.localeCompare(b.hora));
 
-  if (listaDoDia.length === 0) {
+  if (!listaDoDia.length) {
     listaAgenda.innerHTML = "<p>Nenhum agendamento para esta data.</p>";
     return;
   }
 
-  listaAgenda.innerHTML = listaDoDia
-    .map((agendamento) => {
-      return `
-        <div class="agenda-item">
-          <p><strong>${escaparHTML(agendamento.nome)}</strong> — ${escaparHTML(agendamento.unidade)} — ${escaparHTML(agendamento.hora)}</p>
-          <p>Senha: <strong>${escaparHTML(agendamento.senha)}</strong></p>
-          <p>Número: <strong>${escaparHTML(formatarNumero(agendamento.numero))}</strong></p>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-            <button onclick="copiarNumero('${agendamento.numero}')">Copiar Número</button>
-            <button onclick="verComprovante(${agendamento.indexOriginal})">📋 Ver Comprovante</button>
-            <button onclick="reenviarWhats(${agendamento.indexOriginal})">📱 Reenviar WhatsApp</button>
-            <button onclick="excluir(${agendamento.indexOriginal})">Excluir</button>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+  listaAgenda.innerHTML = listaDoDia.map((item) => `
+    <div class="agenda-item">
+      <p><strong>${escaparHTML(item.nome)}</strong> — ${escaparHTML(item.unidade)} — ${escaparHTML(item.hora)}</p>
+      <p>Senha: <strong>${escaparHTML(item.senha)}</strong></p>
+      <p>Número: <strong>${escaparHTML(formatarNumero(item.numero))}</strong></p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button type="button" onclick="copiarNumero('${item.numero}')">Copiar Número</button>
+        <button type="button" onclick="verComprovante(${item.indexOriginal})">📋 Ver Comprovante</button>
+        <button type="button" onclick="reenviarWhats(${item.indexOriginal})">📱 Reenviar WhatsApp</button>
+        <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
+      </div>
+    </div>
+  `).join("");
 }
 
 // =========================
@@ -653,20 +782,20 @@ function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
 
   if (!dataSelecionada) {
-    alert("Selecione uma data!");
+    alert("Selecione uma data.");
     return;
   }
 
-  const lista = agendamentos.filter((a) => a.data === dataSelecionada);
+  const lista = agendamentos.filter((item) => item.data === dataSelecionada);
   const contagemPorUnidade = {};
 
-  lista.forEach((agendamento) => {
-    contagemPorUnidade[agendamento.unidade] = (contagemPorUnidade[agendamento.unidade] || 0) + 1;
+  lista.forEach((item) => {
+    contagemPorUnidade[item.unidade] = (contagemPorUnidade[item.unidade] || 0) + 1;
   });
 
   let texto = `Relatório ${dataSelecionada}\n\n`;
 
-  if (lista.length === 0) {
+  if (!lista.length) {
     texto += "Nenhum agendamento encontrado para esta data.";
     resultadoRelatorio.textContent = texto;
     return;
@@ -683,75 +812,9 @@ function gerarRelatorio() {
 }
 
 // =========================
-// IMPORTAR / EXPORTAR
-// =========================
-function exportarDados() {
-  const dados = {
-    bancoLeads,
-    agendamentos,
-    exportadoEm: new Date().toISOString()
-  };
-
-  const blob = new Blob([JSON.stringify(dados, null, 2)], {
-    type: "application/json"
-  });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "quicklead-dados.json";
-  link.click();
-
-  URL.revokeObjectURL(url);
-  alert("✅ Arquivo JSON exportado com sucesso!");
-}
-
-function importarDados() {
-  const texto = importarTexto.value.trim();
-
-  if (!texto) {
-    alert("Cole o conteúdo do JSON primeiro!");
-    return;
-  }
-
-  if (!confirm("Importar esses dados? Os dados atuais serão substituídos.")) {
-    return;
-  }
-
-  try {
-    const dados = JSON.parse(texto);
-
-    bancoLeads = Array.isArray(dados.bancoLeads)
-      ? dados.bancoLeads.map((lead) => ({
-          numero: limparNumero(lead.numero || ""),
-          tipo: normalizarStatus(lead.tipo || "NOVO")
-        })).filter((lead) => lead.numero)
-      : [];
-
-    agendamentos = Array.isArray(dados.agendamentos)
-      ? dados.agendamentos.map((agendamento) => ({
-          nome: String(agendamento.nome || "").trim(),
-          numero: limparNumero(agendamento.numero || ""),
-          unidade: String(agendamento.unidade || "").trim(),
-          data: String(agendamento.data || "").trim(),
-          hora: String(agendamento.hora || "").trim(),
-          senha: String(agendamento.senha || "").trim(),
-          criadoEm: agendamento.criadoEm || new Date().toISOString()
-        })).filter((agendamento) => agendamento.nome && agendamento.numero && agendamento.data)
-      : [];
-
-    salvar();
-    mostrarBanco();
-    importarTexto.value = "";
-
-    alert("✅ Dados importados com sucesso!");
-  } catch (erro) {
-    alert("❌ JSON inválido! Verifique o conteúdo colado.");
-  }
-}
-
-// =========================
 // INICIALIZAÇÃO
 // =========================
 setDataHoje();
+ordenarBanco();
 mostrarBanco();
+atualizarStatusSync("Modo local ativo");
