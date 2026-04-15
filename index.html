@@ -4,98 +4,131 @@
 <meta charset="UTF-8">
 <title>QuickLead</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
+<!-- HEADER -->
 <header>
-<h1>QuickLead</h1>
-<p class="subtitulo">Sistema de alta performance para agendamentos</p>
+  <h1>QuickLead</h1>
+  <p class="subtitulo">Sistema inteligente de agendamentos</p>
 </header>
 
+<!-- MENU -->
 <nav class="menu">
-<button onclick="trocarAba('agendamento')">Agendar</button>
-<button onclick="trocarAba('agenda')">Agenda</button>
-<button onclick="trocarAba('filtro')">Filtro</button>
-<button onclick="trocarAba('banco')">Banco</button>
-<button onclick="trocarAba('relatorios')">Relatórios</button>
+  <button onclick="trocarAba('agendamento')">Agendar</button>
+  <button onclick="trocarAba('agenda')">Agenda</button>
+  <button onclick="trocarAba('filtro')">Filtro</button>
+  <button onclick="trocarAba('banco')">Banco</button>
+  <button onclick="trocarAba('relatorios')">Relatórios</button>
 </nav>
 
+<!-- CONTEÚDO -->
 <main>
 
+<!-- 🔵 AGENDAMENTO -->
 <section id="agendamento" class="aba ativa">
-<h2>Novo Agendamento</h2>
+  <h2>Novo Agendamento</h2>
 
-<div class="card">
-<input id="nome" placeholder="Nome">
-<input id="numero" placeholder="Número">
+  <div class="card">
+    <input id="nome" placeholder="Nome do paciente">
 
-<select id="unidade">
-<option value="">Selecionar unidade</option>
-<option>Cidade Nova 2</option>
-<option>Ananindeua</option>
-<option>Marambaia</option>
-<option>Jurunas</option>
-<option>José Bonifácio</option>
-<option>Augusto Montenegro</option>
-<option>Telégrafo</option>
-<option>Castanhal</option>
-<option>Marabá</option>
-<option>Capanema</option>
-</select>
+    <input id="numero" placeholder="Número (com ou sem +55)">
 
-<div class="linha">
-<input type="date" id="data">
-<input type="time" id="hora">
-</div>
+    <select id="unidade">
+      <option value="">Selecionar unidade</option>
+      <option>Cidade Nova 2</option>
+      <option>Ananindeua</option>
+      <option>Marambaia</option>
+      <option>Jurunas</option>
+      <option>José Bonifácio</option>
+      <option>Augusto Montenegro</option>
+      <option>Telégrafo</option>
+      <option>Castanhal</option>
+      <option>Marabá</option>
+      <option>Capanema</option>
+    </select>
 
-<button class="btn-principal" onclick="agendar()">Agendar</button>
-</div>
+    <div class="linha">
+      <input type="date" id="data">
+      <input type="time" id="hora">
+    </div>
+
+    <button class="btn-principal" onclick="agendar()">Confirmar Agendamento</button>
+  </div>
 </section>
 
+<!-- 🟡 AGENDA -->
 <section id="agenda" class="aba">
-<h2>Agenda</h2>
+  <h2>Agenda do Dia</h2>
 
-<div class="card">
-<input type="date" id="filtroData">
-<button onclick="filtrarAgenda()">Filtrar</button>
+  <div class="card">
+    <input type="date" id="filtroData">
+    <button onclick="filtrarAgenda()">Buscar</button>
 
-<div id="listaAgenda"></div>
-</div>
+    <div id="listaAgenda"></div>
+  </div>
 </section>
 
+<!-- 🟣 FILTRO -->
 <section id="filtro" class="aba">
-<h2>Filtro Inteligente</h2>
+  <h2>Filtro Inteligente de Leads</h2>
 
-<div class="card">
-<textarea id="entradaFiltro"></textarea>
-<button class="btn-principal" onclick="filtrarLeads()">Filtrar</button>
-<textarea id="saidaFiltro"></textarea>
-</div>
+  <div class="card">
+    <textarea id="entradaFiltro" placeholder="Cole os leads aqui..."></textarea>
+
+    <button class="btn-principal" onclick="filtrarLeads()">Filtrar Leads</button>
+
+    <textarea id="saidaFiltro" placeholder="Resultado aparecerá aqui..."></textarea>
+  </div>
 </section>
 
+<!-- 🟢 BANCO -->
 <section id="banco" class="aba">
-<h2>Banco de Leads</h2>
+  <h2>Banco de Leads</h2>
 
-<div class="card">
-<textarea id="entradaBanco"></textarea>
-<button class="btn-principal" onclick="salvarBanco()">Salvar</button>
-<div id="listaBanco"></div>
-</div>
+  <div class="card">
+    <textarea id="entradaBanco" placeholder="Ex: 91999990000 - REE D1"></textarea>
+
+    <button class="btn-principal" onclick="salvarBanco()">Salvar no Banco</button>
+
+    <div id="listaBanco"></div>
+  </div>
 </section>
 
+<!-- 🔴 RELATÓRIOS -->
 <section id="relatorios" class="aba">
-<h2>Relatório</h2>
+  <h2>Relatório Diário</h2>
 
-<div class="card">
-<input type="date" id="dataRelatorio">
-<button onclick="gerarRelatorio()">Gerar</button>
-<pre id="resultadoRelatorio"></pre>
-</div>
+  <div class="card">
+    <input type="date" id="dataRelatorio">
+
+    <button onclick="gerarRelatorio()">Gerar Relatório</button>
+
+    <pre id="resultadoRelatorio"></pre>
+  </div>
 </section>
 
 </main>
+
+<!-- 🔥 MODAL DO COMPROVANTE -->
+<div id="modalComprovante" class="modal">
+  <div class="modal-content">
+
+    <h3>Comprovante de Agendamento</h3>
+
+    <textarea id="textoComprovante"></textarea>
+
+    <div class="botoes">
+      <button onclick="copiarComprovante()">Copiar</button>
+      <button onclick="enviarWhats()">Enviar WhatsApp</button>
+      <button onclick="fecharModal()">Cancelar</button>
+    </div>
+
+  </div>
+</div>
 
 <script src="script.js"></script>
 
