@@ -61,13 +61,23 @@
       </div>
     </section>
 
-    <!-- FILTRO -->
+    <!-- FILTRO INTELIGENTE -->
     <section id="filtro" class="aba">
       <h2>Filtro Inteligente de Leads</h2>
       <div class="card">
         <textarea id="entradaFiltro" placeholder="Cole os leads aqui..."></textarea>
         <button class="btn-principal" onclick="filtrarLeads()">Filtrar Leads</button>
-        <textarea id="saidaFiltro" placeholder="Resultado aparecerá aqui..." readonly></textarea>
+
+        <div class="resultado-filtro">
+          <div>
+            <h3>✅ Leads Filtrados (Novos + REED1)</h3>
+            <textarea id="saidaFiltro" readonly placeholder="Leads prontos para ligar..."></textarea>
+          </div>
+          <div>
+            <h3>🗑️ Leads Removidos</h3>
+            <textarea id="removidosFiltro" readonly placeholder="Leads que não devem ser trabalhados agora..."></textarea>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -75,15 +85,15 @@
     <section id="banco" class="aba">
       <h2>Banco de Leads</h2>
       <div class="card">
-        <textarea id="entradaBanco" placeholder="Ex: 91999990000 - REE D1"></textarea>
+        <textarea id="entradaBanco" placeholder="Ex: 91999990000 - REE 2026-04-15"></textarea>
         <button class="btn-principal" onclick="salvarBanco()">Salvar no Banco</button>
         
         <div style="margin-top:20px">
-          <button onclick="exportarDados()" style="background:#00aaff">📤 Exportar Dados (JSON)</button>
-          <button onclick="importarDados()" style="background:#ff8800">📥 Importar Dados (JSON)</button>
+          <button onclick="exportarDados()" style="background:#00aaff">📤 Exportar Dados</button>
+          <button onclick="importarDados()" style="background:#ff8800">📥 Importar Dados</button>
         </div>
         
-        <textarea id="importarTexto" placeholder="Cole o JSON aqui para importar..." style="margin-top:15px;height:120px;"></textarea>
+        <textarea id="importarTexto" placeholder="Cole o JSON aqui para importar..." style="margin-top:15px;height:100px;"></textarea>
         <div id="listaBanco"></div>
       </div>
     </section>
