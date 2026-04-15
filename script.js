@@ -1,8 +1,8 @@
 let bancoLeads = JSON.parse(localStorage.getItem("bancoLeads")) || [];
 let agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
-let agendamentoAtual = null; // para o modal
+let agendamentoAtual = null;
 
-// ==================== ELEMENTOS ====================
+// ELEMENTOS
 const nomeInput = document.getElementById("nome");
 const numeroInput = document.getElementById("numero");
 const unidade = document.getElementById("unidade");
@@ -18,8 +18,9 @@ const dataRelatorio = document.getElementById("dataRelatorio");
 const resultadoRelatorio = document.getElementById("resultadoRelatorio");
 const modal = document.getElementById("modalComprovante");
 const textoComprovante = document.getElementById("textoComprovante");
+const importarTexto = document.getElementById("importarTexto");
 
-// ==================== FUNÇÕES BÁSICAS ====================
+// FUNÇÕES BÁSICAS
 function salvar() {
   localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
   localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
@@ -31,29 +32,58 @@ function trocarAba(id) {
 }
 
 function limparNumero(t) {
-  let n = t.replace(/\D/g, "");
-  if (n.startsWith("55") && n.length > 11) n = n.slice(2);
-  if (n.length < 10 || n.length > 11) return null;
-  return n;
+  return t.replace(/\D/g, "").replace(/^55/, "");
 }
 
-// NOVO: Normaliza número com ou sem o "9" para detectar duplicados
-function getNumeroKey(n) {
+function getPhoneKey(n) {
   if (!n) return null;
-  if (n.length === 11 && n[2] === "9") {
-    return n.substring(0, 2) + n.substring(3); // remove o 9
+  return n.slice(-8);
+}
+
+// DATA AUTOMÁTICA HOJE
+function setDataHoje() {
+  if (!dataInput.value) {
+    dataInput.value = new Date().toISOString().split("T")[0];
   }
-  return n;
 }
 
-// ==================== SENHA ====================
-function gerarSenha(data) {
-  let total = agendamentos.filter(a => a.data === data).length + 1;
-  let [ano, mes, dia] = data.split("-");
-  return `PJ${dia}${mes}-${String(total).padStart(2, "0")}`;
+// FORMATAR HORÁRIO COM MANHÃ/TARDE
+function formatarHorario(hora) {
+  let [h, m] = hora.split(":");
+  let horaNum = parseInt(h);
+  let periodo = horaNum < 12 ? "DA MANHÃ" : "DA TARDE";
+  return `${h}:${m}H ${periodo}`;
 }
 
-// ==================== AGENDAR ====================
+// GERAR MENSAGEM DO COMPROVANTE
+function gerarMensagem(a) {
+  let dataFormatada = a.data.split("-").reverse().join("/");
+  let horaFormatada = formatarHorario(a.hora);
+  return `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
+
+*Consultor: PAULO LOBATO*
+
+*Pacientes: ${a.nome.toUpperCase()}*
+
+Senha:
+*${a.senha}*
+
+*DATA: ${dataFormatada} às ${horaFormatada}!*
+
+*LEVAR UM DOCUMENTO OFICIAL COM FOTO*
+
+*Não realizam o exame:*
+* Crianças menores de 6 anos
+* Lactantes e Gestantes
+* Menores de idade ir acompanhado(a) com responsável
+* Atendimento por ordem de chegada
+
+*Tenha um excelente exame!😃*
+
+Projeto Enxergar 🌐`;
+}
+
+// AGENDAR
 function agendar() {
   let nome = nomeInput.value.trim();
   let numero = limparNumero(numeroInput.value);
@@ -74,98 +104,130 @@ function agendar() {
   agendamentos.push(ag);
   salvar();
 
-  // Limpa campos
-  nomeInput.value = "";
-  numeroInput.value = "";
-  unidade.value = "";
-  dataInput.value = "";
-  horaInput.value = "";
+  nomeInput.value = numeroInput.value = unidade.value = dataInput.value = horaInput.value = "";
 
-  // Abre o modal com o comprovante
   mostrarModalComprovante(ag);
 }
 
-// ==================== MODAL COMPROVANTE ====================
+function gerarSenha(data) {
+  let total = agendamentos.filter(a => a.data === data).length + 1;
+  let [ano, mes, dia] = data.split("-");
+  return `PJ${dia}${mes}-${String(total).padStart(2, "0")}`;
+}
+
+// MODAL
 function mostrarModalComprovante(a) {
   agendamentoAtual = a;
-
-  let dataFormatada = a.data.split("-").reverse().join("/");
-  let horaFormat = a.hora.split(":")[0] + "H";
-
-  let msg = `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
-
-*Consultor: PAULO LOBATO*
-
-*Pacientes: ${a.nome.toUpperCase()}*
-
-Senha:
-*${a.senha}*
-
-*DATA: ${dataFormatada} às ${horaFormat} DA TARDE!*
-
-*LEVAR UM DOCUMENTO OFICIAL COM FOTO*
-
-*Não realizam o exame:*
-* Crianças menores de 6 anos
-* Lactantes e Gestantes
-* Menores de idade ir acompanhado(a) com responsável
-* Atendimento por ordem de chegada
-
-*Tenha um excelente exame!😃*
-
-Projeto Enxergar 🌐`;
-
-  textoComprovante.value = msg;
+  textoComprovante.value = gerarMensagem(a);
   modal.style.display = "flex";
 }
 
 function copiarComprovante() {
   textoComprovante.select();
   document.execCommand("copy");
-  alert("✅ Copiado para a área de transferência!");
+  alert("✅ Comprovante copiado!");
 }
 
 function enviarWhats() {
   if (!agendamentoAtual) return;
-  let msg = textoComprovante.value;
-  let link = `https://wa.me/55${agendamentoAtual.numero}?text=${encodeURIComponent(msg)}`;
+  let link = `https://wa.me/55${agendamentoAtual.numero}?text=${encodeURIComponent(textoComprovante.value)}`;
   window.open(link, "_blank");
-  fecharModal();
 }
 
 function fecharModal() {
-  modal.style.display = "none";
-  agendamentoAtual = null;
+  if (confirm("Deseja fechar o comprovante?\n\n(O agendamento já foi salvo com sucesso)")) {
+    modal.style.display = "none";
+    agendamentoAtual = null;
+  }
 }
 
-// ==================== FILTRO (CORRIGIDO) ====================
+// FILTRO INTELIGENTE + LISTA DE REMOVIDOS
 function filtrarLeads() {
   let entrada = entradaFiltro.value.split("\n");
   let resultado = [];
   let usados = new Set();
   let dup = 0;
   let ruins = 0;
+  let duplicadosLista = [];
+  let ruinsLista = [];
+  let ruinsPorTipo = { DES: 0, LON: 0, FOR: 0, PAT: 0 };
 
   entrada.forEach(l => {
     let n = limparNumero(l);
     if (!n) return;
 
-    let key = getNumeroKey(n);
+    let key = getPhoneKey(n);
 
-    if (usados.has(key)) { dup++; return; }
+    if (usados.has(key)) {
+      dup++;
+      duplicadosLista.push(n);
+      return;
+    }
 
-    let ex = bancoLeads.find(x => getNumeroKey(x.numero) === key);
-    if (ex && ["DES","LON","FOR","PAT"].includes(ex.tipo)) { ruins++; return; }
+    let ex = bancoLeads.find(x => getPhoneKey(x.numero) === key);
+    if (ex && ["DES","LON","FOR","PAT"].includes(ex.tipo)) {
+      ruins++;
+      ruinsPorTipo[ex.tipo]++;
+      ruinsLista.push(`${n} (${ex.tipo})`);
+      return;
+    }
 
     usados.add(key);
     resultado.push(n);
   });
 
-  saidaFiltro.value = resultado.join("\n") +
-    `\n\nDuplicados removidos: ${dup}\nLeads ruins removidos: ${ruins}`;
+  let texto = resultado.join("\n");
+
+  if (duplicadosLista.length || ruinsLista.length) {
+    texto += "\n\n--- LEADS REMOVIDOS ---";
+    if (duplicadosLista.length) {
+      texto += `\n\nDuplicados (${dup}):\n${duplicadosLista.join("\n")}`;
+    }
+    if (ruinsLista.length) {
+      texto += `\n\nLeads ruins (${ruins}):\n${ruinsLista.join("\n")}`;
+    }
+  }
+
+  texto += `\n\nResumo:\nDuplicados removidos: ${dup}\nLeads ruins removidos: ${ruins}`;
+
+  saidaFiltro.value = texto;
 }
 
-// ==================== BANCO ====================
+// EXPORT / IMPORT (sincronização)
+function exportarDados() {
+  const dados = { bancoLeads, agendamentos };
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quicklead-dados.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  alert("✅ Arquivo JSON baixado! Transfira para o outro dispositivo.");
+}
+
+function importarDados() {
+  let texto = importarTexto.value.trim();
+  if (!texto) {
+    alert("Cole o conteúdo do JSON primeiro!");
+    return;
+  }
+  if (!confirm("Importar esses dados? Os dados atuais serão substituídos.")) return;
+
+  try {
+    let dados = JSON.parse(texto);
+    if (dados.bancoLeads) bancoLeads = dados.bancoLeads;
+    if (dados.agendamentos) agendamentos = dados.agendamentos;
+    salvar();
+    mostrarBanco();
+    importarTexto.value = "";
+    alert("✅ Dados importados com sucesso!");
+  } catch (e) {
+    alert("❌ JSON inválido! Verifique o arquivo.");
+  }
+}
+
+// BANCO, AGENDA, RELATÓRIO (mantidos e funcionais)
 function salvarBanco() {
   let linhas = entradaBanco.value.split("\n");
   linhas.forEach(l => {
@@ -188,21 +250,37 @@ function mostrarBanco() {
   });
 }
 
-// ==================== AGENDA + EXCLUIR ====================
+function copiarNumero(num) {
+  navigator.clipboard.writeText(num).then(() => alert("✅ Número copiado!"));
+}
+
+function verComprovante(idx) {
+  mostrarModalComprovante(agendamentos[idx]);
+}
+
+function reenviarWhats(idx) {
+  let a = agendamentos[idx];
+  let msg = gerarMensagem(a);
+  let link = `https://wa.me/55${a.numero}?text=${encodeURIComponent(msg)}`;
+  window.open(link, "_blank");
+}
+
 function filtrarAgenda() {
   let d = filtroData.value;
   if (!d) { alert("Selecione uma data!"); return; }
-
   listaAgenda.innerHTML = "";
-
   agendamentos.filter(a => a.data === d).forEach(a => {
     let idx = agendamentos.indexOf(a);
     listaAgenda.innerHTML += `
-      <p><strong>${a.nome}</strong> - ${a.unidade} - ${a.hora}</p>
-      <button onclick="excluir(${idx})">Excluir</button>
-      <hr>`;
+      <div class="agenda-item">
+        <p><strong>${a.nome}</strong> — ${a.unidade} — ${a.hora}</p>
+        <p>Número: <strong>${a.numero}</strong> <button onclick="copiarNumero('${a.numero}')">Copiar Número</button></p>
+        <button onclick="verComprovante(${idx})">📋 Ver Comprovante</button>
+        <button onclick="reenviarWhats(${idx})">📱 Re-enviar WhatsApp</button>
+        <button onclick="excluir(${idx})">Excluir</button>
+        <hr>
+      </div>`;
   });
-
   if (listaAgenda.innerHTML === "") listaAgenda.innerHTML = "<p>Nenhum agendamento para esta data.</p>";
 }
 
@@ -213,21 +291,18 @@ function excluir(i) {
   filtrarAgenda();
 }
 
-// ==================== RELATÓRIO ====================
 function gerarRelatorio() {
   let d = dataRelatorio.value;
   if (!d) { alert("Selecione uma data!"); return; }
-
   let lista = agendamentos.filter(a => a.data === d);
   let cont = {};
   lista.forEach(a => cont[a.unidade] = (cont[a.unidade] || 0) + 1);
-
   let txt = `Relatório ${d}\n\n`;
   for (let u in cont) txt += `${u}: ${cont[u]}\n`;
   txt += `\nTotal do dia: ${lista.length}`;
-
   resultadoRelatorio.textContent = txt;
 }
 
-// ==================== INICIALIZAÇÃO ====================
+// INICIALIZAÇÃO
+setDataHoje();
 mostrarBanco();
