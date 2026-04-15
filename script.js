@@ -1119,3 +1119,231 @@ atualizarStatusAutomaticos();
 mostrarBanco();
 atualizarCampanhas();
 atualizarStatusSync("Modo local ativo");
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #0f1115;
+    color: #fff;
+    padding: 20px;
+    line-height: 1.5;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+h1 {
+    font-size: 2.6em;
+    margin-bottom: 5px;
+}
+
+.subtitulo {
+    color: #00c853;
+    font-size: 1.1em;
+}
+
+.menu {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.menu button {
+    background: #1a1d23;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.menu button:hover {
+    background: #00c853;
+    color: #000;
+}
+
+.aba {
+    display: none;
+}
+
+.ativa {
+    display: block;
+}
+
+.card {
+    background: #1a1d23;
+    padding: 25px;
+    border-radius: 12px;
+    max-width: 560px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input, select, textarea {
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background: #252a32;
+    color: #fff;
+    font-size: 1em;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.linha {
+    display: flex;
+    gap: 10px;
+}
+
+.linha input {
+    flex: 1;
+}
+
+.btn-principal {
+    background: #00c853;
+    color: #000;
+    font-weight: bold;
+    padding: 14px;
+    font-size: 1.1em;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    margin-top: 5px;
+}
+
+.btn-principal:hover {
+    background: #00e65c;
+}
+
+/* ==================== FILTRO - DUAS CAIXAS ==================== */
+.resultado-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.resultado-filtro h3 {
+    color: #00c853;
+    margin-bottom: 8px;
+    font-size: 1.15em;
+}
+
+#saidaFiltro {
+    height: 260px;
+    background: #1f2a1f;
+    font-family: monospace;
+}
+
+#removidosFiltro {
+    height: 210px;
+    background: #2a1f1f;
+    font-family: monospace;
+    color: #ff9999;
+}
+
+/* Responsivo - duas colunas em telas maiores */
+@media (min-width: 768px) {
+    .resultado-filtro {
+        flex-direction: row;
+    }
+    .resultado-filtro > div {
+        flex: 1;
+    }
+}
+
+/* ==================== MODAL ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1a1d23;
+    padding: 25px;
+    border-radius: 12px;
+    width: 92%;
+    max-width: 520px;
+    text-align: center;
+}
+
+.modal-content textarea {
+    width: 100%;
+    height: 420px;
+    margin: 15px 0;
+    background: #252a32;
+    color: #fff;
+    font-size: 15px;
+    line-height: 1.45;
+    font-family: monospace;
+}
+
+/* Botões do modal */
+.botoes button {
+    padding: 12px 20px;
+    margin: 6px 4px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.botoes button:nth-child(1) { background: #00c853; color: #000; }
+.botoes button:nth-child(2) { background: #0099ff; color: #fff; }
+.botoes button:nth-child(3) { background: #00c853; color: #000; }
+
+/* ==================== AGENDA ==================== */
+.agenda-item {
+    background: #252a32;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.agenda-item button {
+    margin: 4px 3px;
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+/* ==================== BANCO ==================== */
+#listaBanco p {
+    background: #252a32;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 6px 0;
+}
+
+/* ==================== RELATÓRIO ==================== */
+pre {
+    background: #252a32;
+    padding: 15px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.95em;
+}
