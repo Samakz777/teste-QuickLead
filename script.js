@@ -1,5 +1,7 @@
 let bancoLeads = JSON.parse(localStorage.getItem("bancoLeads")) || [];
 let agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
+let temaSalvo = localStorage.getItem("quickleadTema") || "dark";
+
 let agendamentoAtual = null;
 let leadSelecionadoIndex = null;
 
@@ -18,6 +20,14 @@ const resumoFiltro = document.getElementById("resumoFiltro");
 const entradaBanco = document.getElementById("entradaBanco");
 const listaBanco = document.getElementById("listaBanco");
 const buscaBanco = document.getElementById("buscaBanco");
+const resumoBanco = document.getElementById("resumoBanco");
+
+const filtroSegmentacaoBanco = document.getElementById("filtroSegmentacaoBanco");
+const filtroDiaReed = document.getElementById("filtroDiaReed");
+const filtroMesPro = document.getElementById("filtroMesPro");
+
+const painelReed = document.getElementById("painelReed");
+const painelPro = document.getElementById("painelPro");
 
 const filtroData = document.getElementById("filtroData");
 const listaAgenda = document.getElementById("listaAgenda");
@@ -32,7 +42,7 @@ const modalAcoesBanco = document.getElementById("modalAcoesBanco");
 const syncStatusTexto = document.getElementById("syncStatusTexto");
 
 // =========================
-// BASE
+// BASE / UTILIDADES
 // =========================
 function salvar() {
   localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
@@ -41,9 +51,7 @@ function salvar() {
 }
 
 function atualizarStatusSync(texto = "Modo local ativo") {
-  if (syncStatusTexto) {
-    syncStatusTexto.textContent = texto;
-  }
+  if (syncStatusTexto) syncStatusTexto.textContent = texto;
 }
 
 function trocarAba(id) {
@@ -87,27 +95,27 @@ function formatarNumero(numero = "") {
   return numero;
 }
 
-function copiarTexto(texto, mensagemSucesso = "✅ Copiado com sucesso!") {
+function copiarTexto(texto, mensagem = "✅ Copiado com sucesso!") {
   if (!texto) return;
 
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(texto)
-      .then(() => alert(mensagemSucesso))
-      .catch(() => fallbackCopiarTexto(texto, mensagemSucesso));
+      .then(() => alert(mensagem))
+      .catch(() => fallbackCopiarTexto(texto, mensagem));
     return;
   }
 
-  fallbackCopiarTexto(texto, mensagemSucesso);
+  fallbackCopiarTexto(texto, mensagem);
 }
 
-function fallbackCopiarTexto(texto, mensagemSucesso) {
+function fallbackCopiarTexto(texto, mensagem) {
   const area = document.createElement("textarea");
   area.value = texto;
   document.body.appendChild(area);
   area.select();
   document.execCommand("copy");
   document.body.removeChild(area);
-  alert(mensagemSucesso);
+  alert(mensagem);
 }
 
 function setDataHoje() {
@@ -122,8 +130,44 @@ function setDataHoje() {
   }
 }
 
+function agoraISO() {
+  return new Date().toISOString();
+}
+
+function diferencaEmDias(inicioISO, fim = new Date()) {
+  if (!inicioISO) return 0;
+  const inicio = new Date(inicioISO);
+  const diff = fim.getTime() - inicio.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function diferencaEmMeses(inicioISO, fim = new Date()) {
+  if (!inicioISO) return 0;
+  const inicio = new Date(inicioISO);
+
+  let meses = (fim.getFullYear() - inicio.getFullYear()) * 12;
+  meses += fim.getMonth() - inicio.getMonth();
+
+  if (fim.getDate() < inicio.getDate()) {
+    meses -= 1;
+  }
+
+  return Math.max(0, meses);
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("quickleadTema", theme);
+}
+
+function alternarTema() {
+  const atual = document.documentElement.getAttribute("data-theme") || "dark";
+  const novo = atual === "dark" ? "light" : "dark";
+  setTheme(novo);
+}
+
 // =========================
-// STATUS / REGRAS
+// STATUS / SEGMENTAÇÃO
 // =========================
 function normalizarStatus(texto = "") {
   const bruto = normalizarTexto(texto).replace(/[\s._-]+/g, "");
@@ -131,66 +175,86 @@ function normalizarStatus(texto = "") {
   if (!bruto) return "NOVO";
 
   if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
+  if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) return "DES";
+  if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) return "LON";
+  if (["FOR", "FORA", "FORADECOBERTURA", "FORADECOVERAGE"].includes(bruto)) return "FOR";
+  if (["PAT", "PATOLOGIA"].includes(bruto)) return "PAT";
 
-  if (["REED1", "REED01", "REENG1", "REENGAJAMENTO1", "REEDD1", "REEDIA1"].includes(bruto)) {
-    return "REED1";
+  const matchReed = bruto.match(/^REEDD?(\d{1,2})$/);
+  if (matchReed) {
+    const dia = Number(matchReed[1]);
+    if (dia >= 1 && dia <= 30) return `REEDD${dia}`;
   }
 
-  if (["REED2", "REED02", "REENG2", "REENGAJAMENTO2", "REEDD2"].includes(bruto)) {
-    return "REED2";
-  }
-
-  if (["REED29", "REENG29", "REENGAJAMENTO29"].includes(bruto)) {
-    return "REED29";
-  }
-
-  if (["PROM4", "PROM04", "PRO4", "PROMO4", "PROMM4", "PROMES4"].includes(bruto)) {
-    return "PROM4";
-  }
-
-  if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) {
-    return "LON";
-  }
-
-  if (["FOR", "FORA", "FORADECobertura".toUpperCase(), "FORADECOVERAGE"].includes(bruto)) {
-    return "FOR";
-  }
-
-  if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) {
-    return "DES";
-  }
-
-  if (["PAT", "PATOLOGIA"].includes(bruto)) {
-    return "PAT";
+  const matchPro = bruto.match(/^PROM?M?(\d{1,2})$|^PRO(?:GRAMADO)?M(\d{1,2})$/);
+  if (matchPro) {
+    const mes = Number(matchPro[1] || matchPro[2]);
+    if (mes >= 1 && mes <= 12) return `PROM${mes}`;
   }
 
   return bruto;
 }
 
-function obterCategoriaStatus(status) {
+function decomporStatus(status = "") {
   const s = normalizarStatus(status);
 
-  if (s === "NOVO" || s === "REED1") return "UTIL_AGORA";
-  if (s === "REED2" || s === "REED29" || s === "PROM4") return "IGNORAR_AGORA";
-  if (s === "LON" || s === "FOR" || s === "DES" || s === "PAT") return "DESQUALIFICADO";
+  if (s === "NOVO" || s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
+    return {
+      status: s,
+      segmento: s,
+      baseTipo: s,
+      baseValor: null
+    };
+  }
 
-  return "NEUTRO";
+  const reed = s.match(/^REEDD(\d{1,2})$/);
+  if (reed) {
+    return {
+      status: `REED D${Number(reed[1])}`,
+      segmento: "REED",
+      baseTipo: "REED",
+      baseValor: Number(reed[1])
+    };
+  }
+
+  const pro = s.match(/^PROM(\d{1,2})$/);
+  if (pro) {
+    return {
+      status: `PRO M${Number(pro[1])}`,
+      segmento: "PRO",
+      baseTipo: "PRO",
+      baseValor: Number(pro[1])
+    };
+  }
+
+  return {
+    status: s,
+    segmento: "OUTRO",
+    baseTipo: s,
+    baseValor: null
+  };
 }
 
-function obterPrioridadeStatus(status) {
-  const s = normalizarStatus(status);
+function formatarStatusExibicao(status = "") {
+  return decomporStatus(status).status;
+}
 
-  if (s === "NOVO") return 1;
-  if (s === "REED1") return 2;
-  if (s === "REED2") return 3;
-  if (s === "REED29") return 4;
-  if (s === "PROM4") return 5;
-  if (s === "DES") return 96;
-  if (s === "LON") return 97;
-  if (s === "FOR") return 98;
-  if (s === "PAT") return 99;
+function categoriaDoStatus(status = "") {
+  const info = decomporStatus(status);
 
-  return 50;
+  if (info.segmento === "REED") {
+    if (info.baseValor === 1) return "UTIL_AGORA";
+    return "IGNORAR_AGORA";
+  }
+
+  if (info.segmento === "PRO") {
+    return "IGNORAR_AGORA";
+  }
+
+  if (info.segmento === "NOVO") return "UTIL_AGORA";
+  if (["DES", "LON", "FOR", "PAT"].includes(info.segmento)) return "DESQUALIFICADO";
+
+  return "NEUTRO";
 }
 
 function categoriaParaClasse(categoria) {
@@ -198,6 +262,81 @@ function categoriaParaClasse(categoria) {
   if (categoria === "IGNORAR_AGORA") return "ignorar";
   if (categoria === "DESQUALIFICADO") return "desqualificado";
   return "neutro";
+}
+
+function prioridadeStatus(status = "") {
+  const info = decomporStatus(status);
+
+  if (info.segmento === "NOVO") return 1;
+  if (info.segmento === "REED" && info.baseValor === 1) return 2;
+  if (info.segmento === "REED") return 10 + info.baseValor;
+  if (info.segmento === "PRO") return 50 + info.baseValor;
+  if (info.segmento === "DES") return 96;
+  if (info.segmento === "LON") return 97;
+  if (info.segmento === "FOR") return 98;
+  if (info.segmento === "PAT") return 99;
+
+  return 70;
+}
+
+// =========================
+// ATUALIZAÇÃO AUTOMÁTICA DE CAMPANHAS
+// =========================
+function atualizarStatusDinamicoLead(lead) {
+  if (!lead || !lead.baseTipo) return lead;
+
+  if (lead.baseTipo === "REED") {
+    const diasPassados = diferencaEmDias(lead.criadoEm || agoraISO());
+
+    if (diasPassados >= lead.baseValor) {
+      lead.tipo = "DES";
+      lead.baseTipo = "DES";
+      lead.baseValor = null;
+      lead.atualizadoAutomaticamente = true;
+      return lead;
+    }
+
+    const restante = Math.max(1, lead.baseValor - diasPassados);
+    lead.tipo = `REEDD${restante}`;
+    return lead;
+  }
+
+  if (lead.baseTipo === "PRO") {
+    const mesesPassados = diferencaEmMeses(lead.criadoEm || agoraISO());
+    const restante = lead.baseValor - mesesPassados;
+
+    if (restante <= 0) {
+      lead.tipo = "NOVO";
+      lead.baseTipo = "NOVO";
+      lead.baseValor = null;
+      lead.atualizadoAutomaticamente = true;
+      return lead;
+    }
+
+    lead.tipo = `PROM${restante}`;
+    return lead;
+  }
+
+  return lead;
+}
+
+function atualizarStatusAutomaticos() {
+  bancoLeads = bancoLeads.map((lead) => {
+    if (!lead.criadoEm) {
+      lead.criadoEm = agoraISO();
+    }
+
+    if (!lead.baseTipo) {
+      const info = decomporStatus(lead.tipo);
+      lead.baseTipo = info.baseTipo;
+      lead.baseValor = info.baseValor;
+    }
+
+    return atualizarStatusDinamicoLead(lead);
+  });
+
+  ordenarBanco();
+  salvar();
 }
 
 // =========================
@@ -220,32 +359,36 @@ function extrairNumeroEStatusDaLinha(linha = "") {
     .map((parte) => parte.trim())
     .filter(Boolean);
 
-  let status = "NOVO";
-
+  let statusBruto = "NOVO";
   if (partes.length > 0) {
-    status = normalizarStatus(partes[partes.length - 1]);
+    statusBruto = partes[partes.length - 1];
   } else {
-    const fallback = restante.split(/\s+/).filter(Boolean).join("");
-    if (fallback) status = normalizarStatus(fallback);
+    const fallback = restante.split(/\s+/).filter(Boolean).join(" ");
+    if (fallback) statusBruto = fallback;
   }
+
+  const statusNormalizado = normalizarStatus(statusBruto);
+  const info = decomporStatus(statusNormalizado);
 
   return {
     numero,
-    tipo: status
+    tipo: statusNormalizado,
+    baseTipo: info.baseTipo,
+    baseValor: info.baseValor,
+    criadoEm: agoraISO()
   };
 }
 
 function buscarLeadNoBancoPorNumero(numero) {
   const chave = getPhoneKey(numero);
   if (!chave) return null;
-
   return bancoLeads.find((lead) => getPhoneKey(lead.numero) === chave) || null;
 }
 
 function ordenarBanco() {
   bancoLeads.sort((a, b) => {
-    const prioridadeA = obterPrioridadeStatus(a.tipo);
-    const prioridadeB = obterPrioridadeStatus(b.tipo);
+    const prioridadeA = prioridadeStatus(a.tipo);
+    const prioridadeB = prioridadeStatus(b.tipo);
 
     if (prioridadeA !== prioridadeB) {
       return prioridadeA - prioridadeB;
@@ -273,25 +416,60 @@ function salvarBanco() {
 
     if (existente) {
       existente.numero = dado.numero;
-      existente.tipo = normalizarStatus(dado.tipo);
+      existente.tipo = dado.tipo;
+      existente.baseTipo = dado.baseTipo;
+      existente.baseValor = dado.baseValor;
+      existente.criadoEm = agoraISO();
       atualizados++;
     } else {
-      bancoLeads.push({
-        numero: dado.numero,
-        tipo: normalizarStatus(dado.tipo)
-      });
+      bancoLeads.push(dado);
       adicionados++;
     }
   });
 
-  ordenarBanco();
-  salvar();
+  atualizarStatusAutomaticos();
   entradaBanco.value = "";
   mostrarBanco();
+  atualizarCampanhas();
 
   alert(
     `✅ Banco atualizado!\n\nAdicionados: ${adicionados}\nAtualizados: ${atualizados}\nIgnorados: ${ignorados}`
   );
+}
+
+function obterListaBancoFiltrada() {
+  const termo = normalizarTexto(buscaBanco?.value || "");
+  const segmento = filtroSegmentacaoBanco?.value || "";
+  const diaReed = filtroDiaReed?.value || "";
+  const mesPro = filtroMesPro?.value || "";
+
+  return bancoLeads.filter((lead) => {
+    const info = decomporStatus(lead.tipo);
+    const numeroLimpo = limparNumero(lead.numero);
+    const numeroFormatado = formatarNumero(lead.numero).toUpperCase();
+    const statusExibido = formatarStatusExibicao(lead.tipo).toUpperCase();
+
+    const matchBusca =
+      !termo ||
+      numeroLimpo.includes(termo.replace(/\D/g, "")) ||
+      numeroFormatado.includes(termo) ||
+      statusExibido.includes(termo) ||
+      (info.segmento || "").includes(termo);
+
+    const matchSegmento =
+      !segmento ||
+      info.segmento === segmento;
+
+    const matchDia =
+      !diaReed ||
+      (info.segmento === "REED" && `D${info.baseValor}` === diaReed);
+
+    const matchMes =
+      !mesPro ||
+      (info.segmento === "PRO" && `M${info.baseValor}` === mesPro);
+
+    return matchBusca && matchSegmento && matchDia && matchMes;
+  });
 }
 
 function renderBanco(lista = bancoLeads) {
@@ -299,11 +477,12 @@ function renderBanco(lista = bancoLeads) {
 
   if (!lista.length) {
     listaBanco.innerHTML = "<p>Nenhum lead encontrado no banco.</p>";
+    atualizarResumoBanco([]);
     return;
   }
 
   listaBanco.innerHTML = lista.map((lead) => {
-    const categoria = obterCategoriaStatus(lead.tipo);
+    const categoria = categoriaDoStatus(lead.tipo);
     const classe = categoriaParaClasse(categoria);
     const indexOriginal = bancoLeads.findIndex(
       (item) => getPhoneKey(item.numero) === getPhoneKey(lead.numero)
@@ -314,7 +493,7 @@ function renderBanco(lista = bancoLeads) {
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
           <div>
             <p><strong>${escaparHTML(formatarNumero(lead.numero))}</strong></p>
-            <p>Status: <strong>${escaparHTML(normalizarStatus(lead.tipo))}</strong></p>
+            <p>Status: <strong>${escaparHTML(formatarStatusExibicao(lead.tipo))}</strong></p>
             <p>Categoria: <strong>${escaparHTML(categoria)}</strong></p>
           </div>
 
@@ -328,33 +507,54 @@ function renderBanco(lista = bancoLeads) {
       </div>
     `;
   }).join("");
+
+  atualizarResumoBanco(lista);
+}
+
+function atualizarResumoBanco(lista = bancoLeads) {
+  if (!resumoBanco) return;
+
+  const resumo = {
+    NOVO: 0,
+    REED: 0,
+    PRO: 0,
+    DES: 0,
+    LON: 0,
+    FOR: 0,
+    PAT: 0
+  };
+
+  lista.forEach((lead) => {
+    const info = decomporStatus(lead.tipo);
+    if (resumo[info.segmento] !== undefined) {
+      resumo[info.segmento]++;
+    }
+  });
+
+  resumoBanco.value =
+`RESUMO DO BANCO
+====================
+Total: ${lista.length}
+
+NOVO: ${resumo.NOVO}
+REED: ${resumo.REED}
+PRO: ${resumo.PRO}
+DES: ${resumo.DES}
+LON: ${resumo.LON}
+FOR: ${resumo.FOR}
+PAT: ${resumo.PAT}`;
 }
 
 function mostrarBanco() {
-  renderBanco(bancoLeads);
+  renderBanco(obterListaBancoFiltrada());
 }
 
 function filtrarBancoManual() {
-  const termo = normalizarTexto(buscaBanco?.value || "");
+  mostrarBanco();
+}
 
-  if (!termo) {
-    renderBanco(bancoLeads);
-    return;
-  }
-
-  const listaFiltrada = bancoLeads.filter((lead) => {
-    const numero = limparNumero(lead.numero);
-    const numeroFormatado = formatarNumero(lead.numero).toUpperCase();
-    const status = normalizarStatus(lead.tipo);
-
-    return (
-      numero.includes(termo.replace(/\D/g, "")) ||
-      numeroFormatado.includes(termo) ||
-      status.includes(termo)
-    );
-  });
-
-  renderBanco(listaFiltrada);
+function aplicarFiltrosBanco() {
+  mostrarBanco();
 }
 
 function limparBancoCompleto() {
@@ -363,17 +563,17 @@ function limparBancoCompleto() {
     return;
   }
 
-  const confirmar = confirm(
-    "Tem certeza que deseja apagar todo o banco de leads?\n\nEssa ação não pode ser desfeita."
-  );
-
-  if (!confirmar) return;
+  if (!confirm("Tem certeza que deseja apagar todo o banco de leads?")) return;
 
   bancoLeads = [];
   salvar();
   mostrarBanco();
+  atualizarCampanhas();
 
   if (buscaBanco) buscaBanco.value = "";
+  if (filtroSegmentacaoBanco) filtroSegmentacaoBanco.value = "";
+  if (filtroDiaReed) filtroDiaReed.value = "";
+  if (filtroMesPro) filtroMesPro.value = "";
 
   alert("✅ Banco apagado com sucesso.");
 }
@@ -403,13 +603,14 @@ function editarLeadSelecionado() {
   if (novoNumero === null) return;
 
   const novoStatus = prompt(
-    "Editar status:\n\nUse por exemplo: NOVO, REED1, REED2, REED29, PROM4, DES, LON, FOR, PAT",
-    lead.tipo
+    "Editar status:\n\nExemplos:\nNOVO\nREED D1\nREED D15\nPRO M3\nDES\nLON\nFOR\nPAT",
+    formatarStatusExibicao(lead.tipo)
   );
   if (novoStatus === null) return;
 
   const numeroLimpo = limparNumero(novoNumero);
   const statusNormalizado = normalizarStatus(novoStatus);
+  const info = decomporStatus(statusNormalizado);
 
   if (!numeroLimpo) {
     alert("Número inválido.");
@@ -418,10 +619,13 @@ function editarLeadSelecionado() {
 
   lead.numero = numeroLimpo;
   lead.tipo = statusNormalizado;
+  lead.baseTipo = info.baseTipo;
+  lead.baseValor = info.baseValor;
+  lead.criadoEm = agoraISO();
 
-  ordenarBanco();
-  salvar();
+  atualizarStatusAutomaticos();
   mostrarBanco();
+  atualizarCampanhas();
   fecharModalBanco();
 
   alert("✅ Lead atualizado com sucesso.");
@@ -431,33 +635,44 @@ function excluirLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
-  const confirmar = confirm(
-    `Excluir este lead?\n\n${formatarNumero(lead.numero)} - ${normalizarStatus(lead.tipo)}`
-  );
-
-  if (!confirmar) return;
+  if (!confirm(`Excluir este lead?\n\n${formatarNumero(lead.numero)} - ${formatarStatusExibicao(lead.tipo)}`)) {
+    return;
+  }
 
   bancoLeads.splice(leadSelecionadoIndex, 1);
   salvar();
   mostrarBanco();
+  atualizarCampanhas();
   fecharModalBanco();
 
   alert("✅ Lead excluído com sucesso.");
 }
 
+function copiarBancoEmFileira() {
+  if (!bancoLeads.length) {
+    alert("O banco está vazio.");
+    return;
+  }
+
+  const texto = obterListaBancoFiltrada()
+    .map((lead) => limparNumero(lead.numero))
+    .join("\n");
+
+  copiarTexto(texto, "✅ Banco copiado em fileira.");
+}
+
 function sincronizarAgora() {
   atualizarStatusSync("Sincronização online ainda não configurada");
-  alert(
-    "A estrutura já está pronta, mas a sincronização em tempo real ainda depende de banco online.\n\nNo próximo passo, isso pode ser ligado com Firebase."
-  );
+  alert("A estrutura já está pronta, mas a sincronização em tempo real depende de um banco online.");
 }
 
 // =========================
 // FILTRO
 // =========================
 function filtrarLeads() {
-  const linhas = entradaFiltro.value.split("\n");
+  atualizarStatusAutomaticos();
 
+  const linhas = entradaFiltro.value.split("\n");
   const aprovados = [];
   const bloqueados = [];
   const usados = new Set();
@@ -504,29 +719,29 @@ function filtrarLeads() {
       return;
     }
 
-    const status = normalizarStatus(leadBanco.tipo);
-    const categoria = obterCategoriaStatus(status);
+    const categoria = categoriaDoStatus(leadBanco.tipo);
+    const statusExibido = formatarStatusExibicao(leadBanco.tipo);
 
     if (categoria === "UTIL_AGORA") {
-      aprovados.push(`${numero} - ${status}`);
-      if (status === "NOVO") totalNovos++;
-      if (status === "REED1") totalReed1++;
+      aprovados.push(`${numero} - ${statusExibido}`);
+      if (statusExibido === "NOVO") totalNovos++;
+      if (statusExibido === "REED D1") totalReed1++;
       return;
     }
 
     if (categoria === "IGNORAR_AGORA") {
       totalIgnorados++;
-      bloqueados.push(`${numero} - ${status} - IGNORAR AGORA`);
+      bloqueados.push(`${numero} - ${statusExibido} - IGNORAR AGORA`);
       return;
     }
 
     if (categoria === "DESQUALIFICADO") {
       totalDesqualificados++;
-      bloqueados.push(`${numero} - ${status} - DESQUALIFICADO`);
+      bloqueados.push(`${numero} - ${statusExibido} - DESQUALIFICADO`);
       return;
     }
 
-    aprovados.push(`${numero} - ${status}`);
+    aprovados.push(`${numero} - ${statusExibido}`);
   });
 
   saidaFiltro.value = aprovados.join("\n");
@@ -537,7 +752,7 @@ function filtrarLeads() {
 ====================
 Aprovados: ${aprovados.length}
 - Novos: ${totalNovos}
-- REED1: ${totalReed1}
+- REED D1: ${totalReed1}
 
 Bloqueados: ${bloqueados.length}
 - Duplicados: ${totalDuplicados}
@@ -549,28 +764,26 @@ REGRAS ATIVAS
 ====================
 TRABALHAR AGORA:
 - NOVO
-- REED1
+- REED D1
 
 IGNORAR NO MOMENTO:
-- REED2
-- REED29
-- PROM4
+- REED D2 até D30
+- PRO M1 até M12
 
 DESQUALIFICAR:
 - DES
 - LON
 - FOR
-- PAT`;
+- PAT
+- REED VENCIDO`;
 }
 
 function copiarAprovados() {
   const texto = saidaFiltro.value.trim();
-
   if (!texto) {
     alert("Não há aprovados para copiar.");
     return;
   }
-
   copiarTexto(texto, "✅ Leads aprovados copiados.");
 }
 
@@ -579,6 +792,84 @@ function limparFiltro() {
   if (saidaFiltro) saidaFiltro.value = "";
   if (saidaBloqueados) saidaBloqueados.value = "";
   if (resumoFiltro) resumoFiltro.value = "";
+}
+
+function organizarNumerosEmFileira() {
+  const fonte = (saidaFiltro.value || entradaFiltro.value || "").trim();
+
+  if (!fonte) {
+    alert("Não há números para organizar.");
+    return;
+  }
+
+  const linhas = fonte.split("\n");
+  const numeros = linhas
+    .map((linha) => limparNumero(linha))
+    .filter(Boolean);
+
+  if (!numeros.length) {
+    alert("Nenhum número válido encontrado.");
+    return;
+  }
+
+  saidaFiltro.value = numeros.join("\n");
+  copiarTexto(saidaFiltro.value, "✅ Números organizados em fileira e copiados.");
+}
+
+// =========================
+// CAMPANHAS
+// =========================
+function atualizarCampanhas() {
+  atualizarStatusAutomaticos();
+
+  const reedMap = {};
+  const proMap = {};
+
+  for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
+  for (let i = 1; i <= 12; i++) proMap[`M${i}`] = [];
+
+  bancoLeads.forEach((lead) => {
+    const info = decomporStatus(lead.tipo);
+    const numero = limparNumero(lead.numero);
+
+    if (info.segmento === "REED") {
+      reedMap[`D${info.baseValor}`].push(numero);
+    }
+
+    if (info.segmento === "PRO") {
+      proMap[`M${info.baseValor}`].push(numero);
+    }
+  });
+
+  if (painelReed) {
+    painelReed.value = Object.keys(reedMap)
+      .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
+      .join("\n\n");
+  }
+
+  if (painelPro) {
+    painelPro.value = Object.keys(proMap)
+      .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
+      .join("\n\n");
+  }
+}
+
+function copiarPainelReed() {
+  const texto = painelReed?.value?.trim() || "";
+  if (!texto) {
+    alert("Não há REED para copiar.");
+    return;
+  }
+  copiarTexto(texto, "✅ Painel REED copiado.");
+}
+
+function copiarPainelPro() {
+  const texto = painelPro?.value?.trim() || "";
+  if (!texto) {
+    alert("Não há PRO para copiar.");
+    return;
+  }
+  copiarTexto(texto, "✅ Painel PRO copiado.");
 }
 
 // =========================
@@ -664,7 +955,7 @@ function agendar() {
   const novoAgendamento = {
     ...dados,
     senha: gerarSenha(dados.data),
-    criadoEm: new Date().toISOString()
+    criadoEm: agoraISO()
   };
 
   agendamentos.push(novoAgendamento);
@@ -734,8 +1025,7 @@ function excluir(index) {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
 
-  const confirmar = confirm(`Excluir o agendamento de ${agendamento.nome}?`);
-  if (!confirmar) return;
+  if (!confirm(`Excluir o agendamento de ${agendamento.nome}?`)) return;
 
   agendamentos.splice(index, 1);
   salvar();
@@ -811,10 +1101,21 @@ function gerarRelatorio() {
   resultadoRelatorio.textContent = texto;
 }
 
+function copiarRelatorio() {
+  const texto = resultadoRelatorio.textContent.trim();
+  if (!texto) {
+    alert("Gere um relatório primeiro.");
+    return;
+  }
+  copiarTexto(texto, "✅ Relatório copiado.");
+}
+
 // =========================
 // INICIALIZAÇÃO
 // =========================
+setTheme(temaSalvo);
 setDataHoje();
-ordenarBanco();
+atualizarStatusAutomaticos();
 mostrarBanco();
+atualizarCampanhas();
 atualizarStatusSync("Modo local ativo");
