@@ -1,57 +1,88 @@
 * {margin:0;padding:0;box-sizing:border-box;}
 
 body {
-font-family: Arial;
-background:#0f1115;
-color:#fff;
-padding:20px;
+  font-family: Arial, sans-serif;
+  background: #0f1115;
+  color: #fff;
+  padding: 20px;
+  line-height: 1.5;
 }
 
-header{text-align:center;margin-bottom:20px;}
+header {text-align:center; margin-bottom:20px;}
+h1 {font-size: 2.5em; margin-bottom: 5px;}
+.subtitulo {color: #00c853;}
 
 .menu {
-display:flex;
-gap:10px;
-justify-content:center;
-flex-wrap:wrap;
-margin-bottom:20px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
 }
 
 .menu button {
-background:#1a1d23;
-color:#fff;
-border:none;
-padding:10px;
-cursor:pointer;
-border-radius:6px;
+  background: #1a1d23;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: 0.3s;
 }
 
-.aba {display:none;}
-.ativa {display:block;}
+.menu button:hover {
+  background: #00c853;
+  color: #000;
+}
+
+.aba {display: none;}
+.ativa {display: block;}
 
 .card {
-background:#1a1d23;
-padding:20px;
-border-radius:10px;
-max-width:500px;
-margin:auto;
-display:flex;
-flex-direction:column;
-gap:10px;
+  background: #1a1d23;
+  padding: 25px;
+  border-radius: 12px;
+  max-width: 520px;
+  margin: 20px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-input,select,textarea {
-padding:10px;
-border:none;
-border-radius:6px;
+input, select, textarea {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  background: #252a32;
+  color: #fff;
 }
 
-textarea {height:120px;}
+textarea {height: 140px; resize: vertical;}
 
-.linha {display:flex;gap:10px;}
+.linha {display: flex; gap: 10px;}
+.linha input {flex: 1;}
 
 .btn-principal {
-background:#00c853;
-color:#000;
-font-weight:bold;
+  background: #00c853;
+  color: #000;
+  font-weight: bold;
+  padding: 14px;
+  font-size: 1.1em;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.btn-principal:hover {
+  background: #00e65c;
+}
+
+#listaAgenda p, #listaBanco p {
+  margin: 10px 0;
+  padding: 10px;
+  background: #252a32;
+  border-radius: 6px;
 }
