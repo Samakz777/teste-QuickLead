@@ -9,13 +9,11 @@
 
 <body>
 
-  <!-- HEADER -->
   <header>
     <h1>QuickLead</h1>
     <p class="subtitulo">Sistema inteligente de agendamentos</p>
   </header>
 
-  <!-- MENU -->
   <nav class="menu">
     <button onclick="trocarAba('agendamento')">Agendar</button>
     <button onclick="trocarAba('agenda')">Agenda</button>
@@ -24,10 +22,9 @@
     <button onclick="trocarAba('relatorios')">Relatórios</button>
   </nav>
 
-  <!-- CONTEÚDO -->
   <main>
 
-    <!-- 🔵 AGENDAMENTO -->
+    <!-- AGENDAMENTO -->
     <section id="agendamento" class="aba ativa">
       <h2>Novo Agendamento</h2>
       <div class="card">
@@ -54,7 +51,7 @@
       </div>
     </section>
 
-    <!-- 🟡 AGENDA -->
+    <!-- AGENDA -->
     <section id="agenda" class="aba">
       <h2>Agenda do Dia</h2>
       <div class="card">
@@ -64,7 +61,7 @@
       </div>
     </section>
 
-    <!-- 🟣 FILTRO -->
+    <!-- FILTRO -->
     <section id="filtro" class="aba">
       <h2>Filtro Inteligente de Leads</h2>
       <div class="card">
@@ -74,7 +71,7 @@
       </div>
     </section>
 
-    <!-- 🟢 BANCO -->
+    <!-- BANCO -->
     <section id="banco" class="aba">
       <h2>Banco de Leads</h2>
       <div class="card">
@@ -84,7 +81,7 @@
       </div>
     </section>
 
-    <!-- 🔴 RELATÓRIOS -->
+    <!-- RELATÓRIOS -->
     <section id="relatorios" class="aba">
       <h2>Relatório Diário</h2>
       <div class="card">
@@ -95,6 +92,19 @@
     </section>
 
   </main>
+
+  <!-- 🔥 MODAL DO COMPROVANTE (agora funcional) -->
+  <div id="modalComprovante" class="modal">
+    <div class="modal-content">
+      <h3>Comprovante de Agendamento</h3>
+      <textarea id="textoComprovante" readonly></textarea>
+      <div class="botoes">
+        <button onclick="copiarComprovante()">📋 Copiar</button>
+        <button onclick="enviarWhats()">📱 Enviar WhatsApp</button>
+        <button onclick="fecharModal()">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
 
 <script src="script.js"></script>
 </body>
