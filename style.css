@@ -11,35 +11,19 @@ header {text-align:center; margin-bottom:20px;}
 h1 {font-size: 2.5em;}
 .subtitulo {color: #00c853;}
 
-.menu {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 30px;
-}
-
-.menu button {
-  background: #1a1d23;
-  color: #fff;
-  border: none;
-  padding: 12px 20px;
-  cursor: pointer;
-  border-radius: 6px;
-  font-weight: bold;
-}
-
-.menu button:hover {background: #00c853; color:#000;}
+.menu {display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:30px;}
+.menu button {background:#1a1d23; color:#fff; border:none; padding:12px 20px; cursor:pointer; border-radius:6px; font-weight:bold;}
+.menu button:hover {background:#00c853; color:#000;}
 
 .aba {display:none;}
 .ativa {display:block;}
 
 .card {
-  background: #1a1d23;
-  padding: 25px;
-  border-radius: 12px;
-  max-width: 520px;
-  margin: 20px auto;
+  background:#1a1d23;
+  padding:25px;
+  border-radius:12px;
+  max-width:520px;
+  margin:20px auto;
   display:flex;
   flex-direction:column;
   gap:15px;
@@ -72,44 +56,13 @@ textarea {height:140px; resize:vertical;}
 
 /* MODAL */
 .modal {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.9);
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.9); align-items:center; justify-content:center; z-index:1000;
 }
-
 .modal-content {
-  background: #1a1d23;
-  padding: 25px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 500px;
-  text-align: center;
+  background:#1a1d23; padding:25px; border-radius:12px; width:90%; max-width:500px;
 }
+.modal-content textarea {width:100%; height:420px; margin:15px 0; background:#252a32; color:#fff;}
 
-.modal-content textarea {
-  width: 100%;
-  height: 420px;
-  font-size: 15px;
-  line-height: 1.4;
-  margin: 15px 0;
-  background: #252a32;
-  color: #fff;
-}
-
-.botoes button {
-  padding: 12px 20px;
-  margin: 5px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.botoes button:nth-child(1) {background:#00c853; color:#000;}
-.botoes button:nth-child(2) {background:#00aaff; color:#fff;}
-.botoes button:nth-child(3) {background:#ff4444; color:#fff;}
+/* AGENDA */
+.agenda-item {background:#252a32; padding:15px; border-radius:8px; margin-bottom:12px;}
