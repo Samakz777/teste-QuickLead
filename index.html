@@ -8,19 +8,20 @@
   >
   <meta
     name="description"
-    content="QuickLead - sistema inteligente de agendamentos, filtro de leads, banco e relatórios."
+    content="QuickLead - sistema inteligente de agendamentos, banco de leads, filtro e relatórios."
   >
   <meta name="theme-color" content="#0f1115">
   <title>QuickLead</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
   <div class="app-shell">
     <header class="topo">
       <div class="topo__conteudo">
         <h1>QuickLead</h1>
-        <p class="subtitulo">Sistema inteligente de agendamentos e qualificação de leads</p>
+        <p class="subtitulo">
+          Sistema inteligente de agendamentos e qualificação de leads
+        </p>
       </div>
     </header>
 
@@ -76,7 +77,7 @@
               maxlength="20"
             >
             <small class="texto-ajuda">
-              Pode ser com ou sem +55. O sistema fará a limpeza automaticamente.
+              Pode ser com ou sem +55. O sistema limpa automaticamente.
             </small>
           </div>
 
@@ -121,7 +122,7 @@
           <div class="card__topo">
             <h2 id="titulo-agenda">Agenda do Dia</h2>
             <p class="texto-apoio">
-              Consulte os agendamentos salvos por data.
+              Consulte os agendamentos por data.
             </p>
           </div>
 
@@ -138,11 +139,11 @@
 
       <!-- FILTRO -->
       <section id="filtro" class="aba" aria-labelledby="titulo-filtro">
-        <div class="card">
+        <div class="card card--filtro">
           <div class="card__topo">
             <h2 id="titulo-filtro">Filtro Inteligente de Leads</h2>
             <p class="texto-apoio">
-              Cole os leads para o sistema separar os aproveitáveis e remover os desqualificados.
+              Cole a lista de números para separar os leads aproveitáveis dos bloqueados.
             </p>
           </div>
 
@@ -151,13 +152,15 @@
               <strong>Trabalhar agora:</strong>
               <span>Novos e REED1</span>
             </div>
+
             <div class="status-box status-box--alerta">
               <strong>Ignorar no momento:</strong>
               <span>REED2, REED29 e PROM4</span>
             </div>
+
             <div class="status-box status-box--erro">
               <strong>Desqualificados:</strong>
-              <span>LON e FOR</span>
+              <span>LON, FOR, DES e PAT</span>
             </div>
           </div>
 
@@ -165,19 +168,47 @@
             <label for="entradaFiltro">Entrada de leads</label>
             <textarea
               id="entradaFiltro"
-              placeholder="Cole os leads aqui, um por linha..."
+              placeholder="Cole os números aqui, um por linha..."
             ></textarea>
           </div>
 
-          <button type="button" class="btn-principal" onclick="filtrarLeads()">
-            Filtrar Leads
-          </button>
+          <div class="acoes-filtro">
+            <button type="button" class="btn-principal" onclick="filtrarLeads()">
+              Filtrar Leads
+            </button>
+            <button type="button" onclick="copiarAprovados()">
+              Copiar aprovados
+            </button>
+            <button type="button" onclick="limparFiltro()">
+              Limpar filtro
+            </button>
+          </div>
+
+          <div class="resultados-filtro-grid">
+            <div class="grupo-campos">
+              <label for="saidaFiltro">Leads aprovados</label>
+              <textarea
+                id="saidaFiltro"
+                placeholder="Os leads aprovados aparecerão aqui..."
+                readonly
+              ></textarea>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="saidaBloqueados">Desqualificados / ignorados</label>
+              <textarea
+                id="saidaBloqueados"
+                placeholder="Os números removidos aparecerão aqui para análise..."
+                readonly
+              ></textarea>
+            </div>
+          </div>
 
           <div class="grupo-campos">
-            <label for="saidaFiltro">Resultado</label>
+            <label for="resumoFiltro">Resumo da triagem</label>
             <textarea
-              id="saidaFiltro"
-              placeholder="O resultado aparecerá aqui..."
+              id="resumoFiltro"
+              placeholder="Resumo automático do filtro..."
               readonly
             ></textarea>
           </div>
@@ -190,41 +221,57 @@
           <div class="card__topo">
             <h2 id="titulo-banco">Banco de Leads</h2>
             <p class="texto-apoio">
-              Salve classificações e mantenha a base atualizada para o filtro inteligente.
+              Gerencie sua base principal de segmentação e bloqueio.
             </p>
           </div>
 
+          <div class="barra-operacional">
+            <div class="sync-status" id="syncStatus">
+              <strong>Sincronização:</strong>
+              <span id="syncStatusTexto">Modo local ativo</span>
+            </div>
+
+            <div class="acoes-secundarias">
+              <button type="button" onclick="sincronizarAgora()">
+                Sincronizar agora
+              </button>
+              <button type="button" onclick="limparBancoCompleto()" class="btn-perigo">
+                Limpar todo o banco
+              </button>
+            </div>
+          </div>
+
           <div class="grupo-campos">
-            <label for="entradaBanco">Adicionar leads ao banco</label>
+            <label for="entradaBanco">Adicionar ou atualizar leads no banco</label>
             <textarea
               id="entradaBanco"
-              placeholder="Ex: 91999990000 - REED1"
+              placeholder="Ex:
+91999990000 - REED1
+91988887777 - PROM4
+91977776666 - PAT"
             ></textarea>
             <small class="texto-ajuda">
-              Use um lead por linha, com número e status.
+              Formatos aceitos: REED1, REED2, REED29, PROM4, DES, LON, FOR e PAT.
             </small>
           </div>
 
-          <button type="button" class="btn-principal" onclick="salvarBanco()">
-            Salvar no Banco
-          </button>
-
           <div class="acoes-secundarias">
-            <button type="button" onclick="exportarDados()" style="background:#00aaff">
-              📤 Exportar Dados (JSON)
+            <button type="button" class="btn-principal" onclick="salvarBanco()">
+              Salvar no banco
             </button>
-            <button type="button" onclick="importarDados()" style="background:#ff8800">
-              📥 Importar Dados (JSON)
+            <button type="button" onclick="mostrarBanco()">
+              Atualizar lista
             </button>
           </div>
 
           <div class="grupo-campos">
-            <label for="importarTexto">Importar JSON</label>
-            <textarea
-              id="importarTexto"
-              placeholder="Cole o JSON aqui para importar..."
-              style="margin-top: 0; height: 120px;"
-            ></textarea>
+            <label for="buscaBanco">Buscar no banco</label>
+            <input
+              id="buscaBanco"
+              type="text"
+              placeholder="Buscar por número ou status..."
+              oninput="filtrarBancoManual()"
+            >
           </div>
 
           <div id="listaBanco" aria-live="polite"></div>
@@ -256,9 +303,14 @@
     </main>
   </div>
 
-  <!-- MODAL -->
+  <!-- MODAL COMPROVANTE -->
   <div id="modalComprovante" class="modal" aria-hidden="true">
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-modal">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal"
+    >
       <h3 id="titulo-modal">Comprovante de Agendamento</h3>
       <textarea id="textoComprovante" readonly></textarea>
 
@@ -266,6 +318,30 @@
         <button type="button" onclick="copiarComprovante()">📋 Copiar</button>
         <button type="button" onclick="enviarWhats()">📱 Enviar WhatsApp</button>
         <button type="button" onclick="fecharModal()">✅ OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AÇÕES DO BANCO -->
+  <div id="modalAcoesBanco" class="modal" aria-hidden="true">
+    <div
+      class="modal-content modal-content--pequeno"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-banco"
+    >
+      <h3 id="titulo-modal-banco">Ações do lead</h3>
+
+      <div class="lista-acoes-modal">
+        <button type="button" onclick="editarLeadSelecionado()">
+          Editar lead
+        </button>
+        <button type="button" onclick="excluirLeadSelecionado()" class="btn-perigo">
+          Excluir lead
+        </button>
+        <button type="button" onclick="fecharModalBanco()">
+          Fechar
+        </button>
       </div>
     </div>
   </div>
