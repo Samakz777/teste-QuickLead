@@ -4,6 +4,7 @@ let temaSalvo = localStorage.getItem("quickleadTema") || "dark";
 
 let agendamentoAtual = null;
 let leadSelecionadoIndex = null;
+let tipoComprovanteAtual = "paciente";
 
 // ELEMENTOS
 const nomeInput = document.getElementById("nome");
@@ -11,6 +12,9 @@ const numeroInput = document.getElementById("numero");
 const unidadeInput = document.getElementById("unidade");
 const dataInput = document.getElementById("data");
 const horaInput = document.getElementById("hora");
+const tipoAgendamentoInput = document.getElementById("tipoAgendamento");
+
+const listaPessoas = document.getElementById("listaPessoas");
 
 const entradaFiltro = document.getElementById("entradaFiltro");
 const saidaFiltro = document.getElementById("saidaFiltro");
@@ -21,6 +25,7 @@ const entradaBanco = document.getElementById("entradaBanco");
 const listaBanco = document.getElementById("listaBanco");
 const buscaBanco = document.getElementById("buscaBanco");
 const resumoBanco = document.getElementById("resumoBanco");
+const segmentacaoEmMassa = document.getElementById("segmentacaoEmMassa");
 
 const filtroSegmentacaoBanco = document.getElementById("filtroSegmentacaoBanco");
 const filtroDiaReed = document.getElementById("filtroDiaReed");
@@ -28,6 +33,7 @@ const filtroMesPro = document.getElementById("filtroMesPro");
 
 const painelReed = document.getElementById("painelReed");
 const painelPro = document.getElementById("painelPro");
+const campanhaVisualizacao = document.getElementById("campanhaVisualizacao");
 
 const filtroData = document.getElementById("filtroData");
 const listaAgenda = document.getElementById("listaAgenda");
@@ -118,20 +124,41 @@ function fallbackCopiarTexto(texto, mensagem) {
   alert(mensagem);
 }
 
-function setDataHoje() {
-  if (!dataInput) return;
-
-  if (!dataInput.value) {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
-    const dia = String(hoje.getDate()).padStart(2, "0");
-    dataInput.value = `${ano}-${mes}-${dia}`;
-  }
-}
-
 function agoraISO() {
   return new Date().toISOString();
+}
+
+function formatarDataBR(dataISO) {
+  if (!dataISO) return "";
+  const [ano, mes, dia] = dataISO.split("-");
+  return `${dia}/${mes}`;
+}
+
+function formatarDataBRCompleta(dataISO) {
+  if (!dataISO) return "";
+  const [ano, mes, dia] = dataISO.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function obterNomeDiaSemana(dataISO) {
+  const data = new Date(`${dataISO}T12:00:00`);
+  return data.toLocaleDateString("pt-BR", { weekday: "long" });
+}
+
+function capitalizar(texto = "") {
+  if (!texto) return "";
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("quickleadTema", theme);
+}
+
+function alternarTema() {
+  const atual = document.documentElement.getAttribute("data-theme") || "dark";
+  const novo = atual === "dark" ? "light" : "dark";
+  setTheme(novo);
 }
 
 function diferencaEmDias(inicioISO, fim = new Date()) {
@@ -155,15 +182,182 @@ function diferencaEmMeses(inicioISO, fim = new Date()) {
   return Math.max(0, meses);
 }
 
-function setTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("quickleadTema", theme);
+// =========================
+// REGRAS DE DATA / HORA
+// =========================
+function obterDataHojeISO() {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoje.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
 }
 
-function alternarTema() {
-  const atual = document.documentElement.getAttribute("data-theme") || "dark";
-  const novo = atual === "dark" ? "light" : "dark";
-  setTheme(novo);
+function obterProximoDiaUtilISO() {
+  const data = new Date();
+  data.setDate(data.getDate() + 1);
+
+  const diaSemana = data.getDay(); // 0 domingo, 6 sábado
+  if (diaSemana === 6) {
+    data.setDate(data.getDate() + 2);
+  } else if (diaSemana === 0) {
+    data.setDate(data.getDate() + 1);
+  }
+
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function atualizarDataPadraoPorTipo() {
+  if (!dataInput || !tipoAgendamentoInput) return;
+
+  const tipo = tipoAgendamentoInput.value;
+
+  if (tipo === "inclusao") {
+    dataInput.value = obterDataHojeISO();
+    return;
+  }
+
+  dataInput.value = obterProximoDiaUtilISO();
+}
+
+function preencherHorarios() {
+  if (!horaInput) return;
+
+  const horarios = [];
+  for (let hora = 7; hora <= 19; hora++) {
+    for (let minuto = 0; minuto < 60; minuto += 10) {
+      const h = String(hora).padStart(2, "0");
+      const m = String(minuto).padStart(2, "0");
+      horarios.push(`${h}:${m}`);
+    }
+  }
+
+  horaInput.innerHTML = `<option value="">Selecionar horário</option>` +
+    horarios.map((h) => `<option value="${h}">${h}</option>`).join("");
+}
+
+// =========================
+// MULTI-PACIENTE
+// =========================
+function criarBlocoPessoaHTML(index, pessoa = {}) {
+  const nome = escaparHTML(pessoa.nome || "");
+  const numero = escaparHTML(pessoa.numero || "");
+  const observacao = escaparHTML(pessoa.observacao || "");
+
+  return `
+    <div class="agenda-item pessoa-bloco" data-index="${index}">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
+        <strong>Pessoa ${index + 1}</strong>
+        <button type="button" onclick="removerPessoa(${index})">Remover</button>
+      </div>
+
+      <div class="painel-agendamento-grid">
+        <div class="grupo-campos">
+          <label>Nome</label>
+          <input
+            type="text"
+            class="pessoa-nome"
+            placeholder="Nome do paciente"
+            value="${nome}"
+          >
+        </div>
+
+        <div class="grupo-campos">
+          <label>Número</label>
+          <input
+            type="tel"
+            class="pessoa-numero"
+            placeholder="Número do paciente ou indicação"
+            value="${numero}"
+          >
+        </div>
+      </div>
+
+      <div class="grupo-campos">
+        <label>Observação</label>
+        <textarea
+          class="pessoa-observacao"
+          placeholder="Ex: criança menor — ligar somente para pais responsáveis"
+        >${observacao}</textarea>
+      </div>
+    </div>
+  `;
+}
+
+function adicionarPessoa(pessoa = {}) {
+  if (!listaPessoas) return;
+
+  const index = listaPessoas.children.length;
+  listaPessoas.insertAdjacentHTML("beforeend", criarBlocoPessoaHTML(index, pessoa));
+}
+
+function reindexarPessoas() {
+  if (!listaPessoas) return;
+
+  const blocos = Array.from(listaPessoas.querySelectorAll(".pessoa-bloco"));
+  listaPessoas.innerHTML = "";
+  blocos.forEach((bloco, index) => {
+    const nome = bloco.querySelector(".pessoa-nome")?.value || "";
+    const numero = bloco.querySelector(".pessoa-numero")?.value || "";
+    const observacao = bloco.querySelector(".pessoa-observacao")?.value || "";
+    listaPessoas.insertAdjacentHTML("beforeend", criarBlocoPessoaHTML(index, {
+      nome,
+      numero,
+      observacao
+    }));
+  });
+}
+
+function removerPessoa(index) {
+  if (!listaPessoas) return;
+  const blocos = listaPessoas.querySelectorAll(".pessoa-bloco");
+  if (blocos.length <= 1) {
+    alert("É necessário manter pelo menos uma pessoa no agendamento.");
+    return;
+  }
+
+  const alvo = listaPessoas.querySelector(`.pessoa-bloco[data-index="${index}"]`);
+  if (alvo) {
+    alvo.remove();
+    reindexarPessoas();
+  }
+}
+
+function coletarPessoasFormulario() {
+  if (!listaPessoas) return [];
+
+  const blocos = Array.from(listaPessoas.querySelectorAll(".pessoa-bloco"));
+
+  return blocos.map((bloco) => ({
+    nome: (bloco.querySelector(".pessoa-nome")?.value || "").trim(),
+    numero: limparNumero(bloco.querySelector(".pessoa-numero")?.value || ""),
+    observacao: (bloco.querySelector(".pessoa-observacao")?.value || "").trim()
+  }));
+}
+
+function limparFormularioAgendamento() {
+  if (tipoAgendamentoInput) tipoAgendamentoInput.value = "agendamento";
+  if (unidadeInput) unidadeInput.value = "";
+  if (horaInput) horaInput.value = "";
+  atualizarDataPadraoPorTipo();
+
+  if (listaPessoas) {
+    listaPessoas.innerHTML = "";
+    adicionarPessoa();
+  }
+}
+
+function juntarNomes(pessoas = []) {
+  const nomes = pessoas.map((p) => p.nome).filter(Boolean);
+
+  if (!nomes.length) return "";
+  if (nomes.length === 1) return nomes[0];
+  if (nomes.length === 2) return `${nomes[0]} e ${nomes[1]}`;
+
+  return `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}`;
 }
 
 // =========================
@@ -342,19 +536,26 @@ function atualizarStatusAutomaticos() {
 // =========================
 // BANCO
 // =========================
+function extrairTodosNumerosValidos(texto = "") {
+  const matches = String(texto).match(/(?:\+?55\s*)?\d[\d\s().-]{7,}\d/g) || [];
+
+  return matches
+    .map((item) => limparNumero(item))
+    .filter((numero) => numero.length === 10 || numero.length === 11)
+    .filter((numero, index, arr) => arr.indexOf(numero) === index);
+}
+
 function extrairNumeroEStatusDaLinha(linha = "") {
   const texto = String(linha).trim();
   if (!texto) return null;
 
-  const numeroEncontrado = texto.match(/(?:\+?55\s*)?(\d[\d\s().-]{7,}\d)/);
-  const numero = numeroEncontrado ? limparNumero(numeroEncontrado[0]) : "";
+  const numeros = extrairTodosNumerosValidos(texto);
+  if (!numeros.length) return null;
 
-  if (!numero) return null;
+  const numero = numeros[0];
+  const textoSemNumero = texto.replace(/(?:\+?55\s*)?\d[\d\s().-]{7,}\d/g, " ").replace(/[–—]/g, "-").trim();
 
-  let restante = texto.replace(numeroEncontrado[0], " ");
-  restante = restante.replace(/[–—]/g, "-").trim();
-
-  const partes = restante
+  const partes = textoSemNumero
     .split("-")
     .map((parte) => parte.trim())
     .filter(Boolean);
@@ -362,9 +563,8 @@ function extrairNumeroEStatusDaLinha(linha = "") {
   let statusBruto = "NOVO";
   if (partes.length > 0) {
     statusBruto = partes[partes.length - 1];
-  } else {
-    const fallback = restante.split(/\s+/).filter(Boolean).join(" ");
-    if (fallback) statusBruto = fallback;
+  } else if (textoSemNumero) {
+    statusBruto = textoSemNumero;
   }
 
   const statusNormalizado = normalizarStatus(statusBruto);
@@ -437,6 +637,53 @@ function salvarBanco() {
   );
 }
 
+function salvarBancoEmMassa() {
+  const texto = entradaBanco.value.trim();
+  if (!texto) {
+    alert("Cole uma lista no campo do banco primeiro.");
+    return;
+  }
+
+  const numeros = extrairTodosNumerosValidos(texto);
+  if (!numeros.length) {
+    alert("Nenhum número válido foi encontrado.");
+    return;
+  }
+
+  const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES");
+  const info = decomporStatus(statusSelecionado);
+
+  let adicionados = 0;
+  let mantidos = 0;
+
+  numeros.forEach((numero) => {
+    const existente = buscarLeadNoBancoPorNumero(numero);
+
+    if (existente) {
+      mantidos++;
+      return;
+    }
+
+    bancoLeads.push({
+      numero,
+      tipo: statusSelecionado,
+      baseTipo: info.baseTipo,
+      baseValor: info.baseValor,
+      criadoEm: agoraISO()
+    });
+    adicionados++;
+  });
+
+  atualizarStatusAutomaticos();
+  entradaBanco.value = "";
+  mostrarBanco();
+  atualizarCampanhas();
+
+  alert(
+    `✅ Segmentação em massa aplicada!\n\nNovos inseridos: ${adicionados}\nMantidos sem sobrescrever: ${mantidos}`
+  );
+}
+
 function obterListaBancoFiltrada() {
   const termo = normalizarTexto(buscaBanco?.value || "");
   const segmento = filtroSegmentacaoBanco?.value || "";
@@ -456,17 +703,9 @@ function obterListaBancoFiltrada() {
       statusExibido.includes(termo) ||
       (info.segmento || "").includes(termo);
 
-    const matchSegmento =
-      !segmento ||
-      info.segmento === segmento;
-
-    const matchDia =
-      !diaReed ||
-      (info.segmento === "REED" && `D${info.baseValor}` === diaReed);
-
-    const matchMes =
-      !mesPro ||
-      (info.segmento === "PRO" && `M${info.baseValor}` === mesPro);
+    const matchSegmento = !segmento || info.segmento === segmento;
+    const matchDia = !diaReed || (info.segmento === "REED" && `D${info.baseValor}` === diaReed);
+    const matchMes = !mesPro || (info.segmento === "PRO" && `M${info.baseValor}` === mesPro);
 
     return matchBusca && matchSegmento && matchDia && matchMes;
   });
@@ -667,12 +906,14 @@ function sincronizarAgora() {
 }
 
 // =========================
-// FILTRO
+// FILTRO ANTI-LIXO WHATSAPP
 // =========================
 function filtrarLeads() {
   atualizarStatusAutomaticos();
 
-  const linhas = entradaFiltro.value.split("\n");
+  const textoOriginal = entradaFiltro.value || "";
+  const numerosExtraidos = extrairTodosNumerosValidos(textoOriginal);
+
   const aprovados = [];
   const bloqueados = [];
   const usados = new Set();
@@ -680,28 +921,13 @@ function filtrarLeads() {
   let totalDuplicados = 0;
   let totalIgnorados = 0;
   let totalDesqualificados = 0;
-  let totalInvalidos = 0;
   let totalNovos = 0;
   let totalReed1 = 0;
 
-  linhas.forEach((linha) => {
-    const numero = limparNumero(linha);
-
-    if (!numero) {
-      if (linha.trim()) {
-        totalInvalidos++;
-        bloqueados.push(`${linha.trim()} - INVÁLIDO`);
-      }
-      return;
-    }
-
+  numerosExtraidos.forEach((numero) => {
     const chave = getPhoneKey(numero);
 
-    if (!chave) {
-      totalInvalidos++;
-      bloqueados.push(`${linha.trim()} - INVÁLIDO`);
-      return;
-    }
+    if (!chave) return;
 
     if (usados.has(chave)) {
       totalDuplicados++;
@@ -738,11 +964,13 @@ function filtrarLeads() {
     if (categoria === "DESQUALIFICADO") {
       totalDesqualificados++;
       bloqueados.push(`${numero} - ${statusExibido} - DESQUALIFICADO`);
-      return;
     }
-
-    aprovados.push(`${numero} - ${statusExibido}`);
   });
+
+  const totalLixoIgnorado = Math.max(
+    0,
+    textoOriginal.split(/\n+/).filter((l) => l.trim()).length - numerosExtraidos.length
+  );
 
   saidaFiltro.value = aprovados.join("\n");
   saidaBloqueados.value = bloqueados.join("\n");
@@ -758,7 +986,9 @@ Bloqueados: ${bloqueados.length}
 - Duplicados: ${totalDuplicados}
 - Ignorados no momento: ${totalIgnorados}
 - Desqualificados: ${totalDesqualificados}
-- Inválidos: ${totalInvalidos}
+
+Lixo de WhatsApp ignorado: ${totalLixoIgnorado}
+Números válidos encontrados: ${numerosExtraidos.length}
 
 REGRAS ATIVAS
 ====================
@@ -794,28 +1024,6 @@ function limparFiltro() {
   if (resumoFiltro) resumoFiltro.value = "";
 }
 
-function organizarNumerosEmFileira() {
-  const fonte = (saidaFiltro.value || entradaFiltro.value || "").trim();
-
-  if (!fonte) {
-    alert("Não há números para organizar.");
-    return;
-  }
-
-  const linhas = fonte.split("\n");
-  const numeros = linhas
-    .map((linha) => limparNumero(linha))
-    .filter(Boolean);
-
-  if (!numeros.length) {
-    alert("Nenhum número válido encontrado.");
-    return;
-  }
-
-  saidaFiltro.value = numeros.join("\n");
-  copiarTexto(saidaFiltro.value, "✅ Números organizados em fileira e copiados.");
-}
-
 // =========================
 // CAMPANHAS
 // =========================
@@ -841,14 +1049,16 @@ function atualizarCampanhas() {
     }
   });
 
+  const visualizacao = campanhaVisualizacao?.value || "todas";
+
   if (painelReed) {
-    painelReed.value = Object.keys(reedMap)
+    painelReed.value = visualizacao === "pro" ? "" : Object.keys(reedMap)
       .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
       .join("\n\n");
   }
 
   if (painelPro) {
-    painelPro.value = Object.keys(proMap)
+    painelPro.value = visualizacao === "reed" ? "" : Object.keys(proMap)
       .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
       .join("\n\n");
   }
@@ -885,24 +1095,58 @@ function formatarHorario(hora = "") {
   return `${h}:${m}H ${periodo}`;
 }
 
-function gerarSenha(data) {
-  const totalNoDia = agendamentos.filter((item) => item.data === data).length + 1;
+function gerarSenhasParaAgendamento(data, quantidadePessoas) {
+  const totalBase = agendamentos
+    .filter((item) => item.data === data)
+    .reduce((acc, item) => acc + (item.pessoas?.length || 1), 0);
+
   const [, mes, dia] = data.split("-");
-  return `PJ${dia}${mes}-${String(totalNoDia).padStart(2, "0")}`;
+  const prefixo = `PJ${dia}${mes}`;
+
+  return Array.from({ length: quantidadePessoas }, (_, index) => {
+    return `${prefixo}-${String(totalBase + index + 1).padStart(2, "0")}`;
+  });
 }
 
-function gerarMensagem(agendamento) {
-  const dataFormatada = agendamento.data.split("-").reverse().join("/");
+function validarAgendamento(dados) {
+  if (!dados.unidade || !dados.data || !dados.hora) {
+    alert("Preencha unidade, data e horário.");
+    return false;
+  }
+
+  if (!dados.pessoas.length) {
+    alert("Adicione pelo menos uma pessoa.");
+    return false;
+  }
+
+  for (const pessoa of dados.pessoas) {
+    if (!pessoa.nome || pessoa.nome.length < 3) {
+      alert("Preencha um nome válido para cada pessoa.");
+      return false;
+    }
+
+    if (!pessoa.numero || pessoa.numero.length < 10) {
+      alert("Preencha um número válido para cada pessoa.");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function gerarMensagemPaciente(agendamento) {
+  const dataFormatada = formatarDataBRCompleta(agendamento.data);
   const horaFormatada = formatarHorario(agendamento.hora);
+  const nomes = juntarNomes(agendamento.pessoas);
+  const senhas = agendamento.pessoas.map((p) => p.senha).join(" e ");
 
   return `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
 
 *Consultor: PAULO LOBATO*
 
-*Pacientes: ${agendamento.nome.toUpperCase()}*
+*Pacientes: ${nomes.toUpperCase()}*
 
-Senha:
-*${agendamento.senha}*
+*Senhas: ${senhas}*
 
 *UNIDADE: ${agendamento.unidade}*
 
@@ -913,7 +1157,7 @@ Senha:
 *Não realizam o exame:*
 * Crianças menores de 6 anos
 * Lactantes e Gestantes
-* Menores de idade ir acompanhado(a) com responsável
+* Menores de idade devem ir acompanhados do responsável
 * Atendimento por ordem de chegada
 
 *Tenha um excelente exame!😃*
@@ -921,59 +1165,81 @@ Senha:
 Projeto Enxergar 🌐`;
 }
 
-function validarAgendamento(dados) {
-  if (!dados.nome || !dados.numero || !dados.unidade || !dados.data || !dados.hora) {
-    alert("Preencha todos os campos.");
-    return false;
-  }
+function gerarMensagemCRM(agendamento) {
+  const dataFormatada = formatarDataBRCompleta(agendamento.data);
+  const horaFormatada = formatarHorario(agendamento.hora);
 
-  if (dados.nome.trim().length < 3) {
-    alert("Digite um nome válido.");
-    return false;
-  }
+  let texto = `CRM / CONTROLE INTERNO
 
-  if (limparNumero(dados.numero).length < 10) {
-    alert("Digite um número válido.");
-    return false;
-  }
+Tipo: ${agendamento.tipo.toUpperCase()}
+Unidade: ${agendamento.unidade}
+Data: ${dataFormatada}
+Hora: ${horaFormatada}
 
-  return true;
+Pessoas:
+`;
+
+  agendamento.pessoas.forEach((pessoa, index) => {
+    texto += `
+${index + 1}. ${pessoa.nome}
+Número: ${formatarNumero(pessoa.numero)}
+Senha: ${pessoa.senha}
+Obs: ${pessoa.observacao || "Sem observação"}
+`;
+  });
+
+  texto += `
+TMK: PAULO LOBATO`;
+
+  return texto.trim();
+}
+
+function gerarMensagem(agendamento, tipo = "paciente") {
+  if (tipo === "crm") {
+    return gerarMensagemCRM(agendamento);
+  }
+  return gerarMensagemPaciente(agendamento);
 }
 
 function agendar() {
+  const pessoas = coletarPessoasFormulario();
+  const tipo = tipoAgendamentoInput?.value || "agendamento";
+
   const dados = {
-    nome: nomeInput.value.trim(),
-    numero: limparNumero(numeroInput.value),
+    tipo,
     unidade: unidadeInput.value,
     data: dataInput.value,
-    hora: horaInput.value
+    hora: horaInput.value,
+    pessoas
   };
 
   if (!validarAgendamento(dados)) return;
   if (!confirm("Confirmar agendamento?")) return;
 
+  const senhas = gerarSenhasParaAgendamento(dados.data, dados.pessoas.length);
+
+  const pessoasComSenha = dados.pessoas.map((pessoa, index) => ({
+    ...pessoa,
+    senha: senhas[index]
+  }));
+
   const novoAgendamento = {
     ...dados,
-    senha: gerarSenha(dados.data),
+    pessoas: pessoasComSenha,
     criadoEm: agoraISO()
   };
 
   agendamentos.push(novoAgendamento);
   salvar();
 
-  nomeInput.value = "";
-  numeroInput.value = "";
-  unidadeInput.value = "";
-  dataInput.value = "";
-  horaInput.value = "";
-
-  mostrarModalComprovante(novoAgendamento);
-  setDataHoje();
+  mostrarModalComprovante(novoAgendamento, "paciente");
+  limparFormularioAgendamento();
 }
 
-function mostrarModalComprovante(agendamento) {
+function mostrarModalComprovante(agendamento, tipo = "paciente") {
   agendamentoAtual = agendamento;
-  textoComprovante.value = gerarMensagem(agendamento);
+  tipoComprovanteAtual = tipo;
+  textoComprovante.value = gerarMensagem(agendamento, tipo);
   modal.style.display = "flex";
   modal.setAttribute("aria-hidden", "false");
 }
@@ -987,9 +1253,11 @@ function copiarComprovante() {
 function enviarWhats() {
   if (!agendamentoAtual) return;
 
-  const numero = limparNumero(agendamentoAtual.numero);
-  const mensagem = textoComprovante.value || gerarMensagem(agendamentoAtual);
-  const link = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`;
+  const numeroPrincipal = limparNumero(agendamentoAtual.pessoas?.[0]?.numero || "");
+  if (!numeroPrincipal) return;
+
+  const mensagem = textoComprovante.value || gerarMensagem(agendamentoAtual, tipoComprovanteAtual);
+  const link = `https://wa.me/55${numeroPrincipal}?text=${encodeURIComponent(mensagem)}`;
 
   window.open(link, "_blank");
 }
@@ -1007,25 +1275,40 @@ function copiarNumero(numero) {
   copiarTexto(limparNumero(numero), "✅ Número copiado.");
 }
 
-function verComprovante(index) {
+function verComprovante(index, tipo = "paciente") {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
-  mostrarModalComprovante(agendamento);
+  mostrarModalComprovante(agendamento, tipo);
 }
 
-function reenviarWhats(index) {
+function reenviarWhats(index, tipo = "paciente") {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
 
-  const link = `https://wa.me/55${limparNumero(agendamento.numero)}?text=${encodeURIComponent(gerarMensagem(agendamento))}`;
+  const numero = limparNumero(agendamento.pessoas?.[0]?.numero || "");
+  const mensagem = gerarMensagem(agendamento, tipo);
+  const link = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`;
   window.open(link, "_blank");
+}
+
+function transformarEmReagendamento(index) {
+  const agendamento = agendamentos[index];
+  if (!agendamento) return;
+
+  if (!confirm(`Marcar este registro como reagendamento?\n\n${juntarNomes(agendamento.pessoas)}`)) {
+    return;
+  }
+
+  agendamento.tipo = "reagendamento";
+  salvar();
+  filtrarAgenda();
 }
 
 function excluir(index) {
   const agendamento = agendamentos[index];
   if (!agendamento) return;
 
-  if (!confirm(`Excluir o agendamento de ${agendamento.nome}?`)) return;
+  if (!confirm(`Excluir o registro de ${juntarNomes(agendamento.pessoas)}?`)) return;
 
   agendamentos.splice(index, 1);
   salvar();
@@ -1046,28 +1329,54 @@ function filtrarAgenda() {
     .sort((a, b) => a.hora.localeCompare(b.hora));
 
   if (!listaDoDia.length) {
-    listaAgenda.innerHTML = "<p>Nenhum agendamento para esta data.</p>";
+    listaAgenda.innerHTML = "<p>Nenhum registro para esta data.</p>";
     return;
   }
 
-  listaAgenda.innerHTML = listaDoDia.map((item) => `
-    <div class="agenda-item">
-      <p><strong>${escaparHTML(item.nome)}</strong> — ${escaparHTML(item.unidade)} — ${escaparHTML(item.hora)}</p>
-      <p>Senha: <strong>${escaparHTML(item.senha)}</strong></p>
-      <p>Número: <strong>${escaparHTML(formatarNumero(item.numero))}</strong></p>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-        <button type="button" onclick="copiarNumero('${item.numero}')">Copiar Número</button>
-        <button type="button" onclick="verComprovante(${item.indexOriginal})">📋 Ver Comprovante</button>
-        <button type="button" onclick="reenviarWhats(${item.indexOriginal})">📱 Reenviar WhatsApp</button>
-        <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
+  listaAgenda.innerHTML = listaDoDia.map((item) => {
+    const nomes = juntarNomes(item.pessoas);
+    const numeros = item.pessoas.map((p) => formatarNumero(p.numero)).join(" / ");
+    const senhas = item.pessoas.map((p) => p.senha).join(" / ");
+
+    return `
+      <div class="agenda-item">
+        <p><strong>${escaparHTML(nomes)}</strong> — ${escaparHTML(item.unidade)} — ${escaparHTML(item.hora)}</p>
+        <p>Tipo: <strong>${escaparHTML(item.tipo.toUpperCase())}</strong></p>
+        <p>Senhas: <strong>${escaparHTML(senhas)}</strong></p>
+        <p>Números: <strong>${escaparHTML(numeros)}</strong></p>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">📋 Comprovante Paciente</button>
+          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">📝 Comprovante CRM</button>
+          <button type="button" onclick="reenviarWhats(${item.indexOriginal}, 'paciente')">📱 Reenviar WhatsApp</button>
+          <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">🔁 Marcar Reagendamento</button>
+          <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
+        </div>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 
 // =========================
-// RELATÓRIOS
+// RELATÓRIO DIÁRIO
 // =========================
+function normalizarNomeUnidadeRelatorio(unidade = "") {
+  const mapa = {
+    "Augusto Montenegro": "AUGUSTO",
+    "Marabá": "MARABÁ",
+    "Ananindeua": "ANANINDEUA",
+    "Telégrafo": "TELÉGRAFO",
+    "Marambaia": "MARAMBAIA",
+    "José Bonifácio": "J.BONIFÁCIO",
+    "Cidade Nova": "CIDADE NOVA",
+    "Jurunas": "JURUNAS",
+    "Castanhal": "CASTANHAL",
+    "Capanema": "CAPANEMA"
+  };
+
+  return mapa[unidade] || unidade.toUpperCase();
+}
+
 function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
 
@@ -1076,28 +1385,58 @@ function gerarRelatorio() {
     return;
   }
 
-  const lista = agendamentos.filter((item) => item.data === dataSelecionada);
-  const contagemPorUnidade = {};
+  const registros = agendamentos.filter((item) => item.data === dataSelecionada);
 
-  lista.forEach((item) => {
-    contagemPorUnidade[item.unidade] = (contagemPorUnidade[item.unidade] || 0) + 1;
+  const unidadesOrdem = [
+    "Augusto Montenegro",
+    "Marabá",
+    "Ananindeua",
+    "Telégrafo",
+    "Marambaia",
+    "José Bonifácio",
+    "Cidade Nova",
+    "Jurunas",
+    "Castanhal",
+    "Capanema"
+  ];
+
+  const contagemPorUnidade = {};
+  unidadesOrdem.forEach((u) => { contagemPorUnidade[u] = 0; });
+
+  let totalAgendamentos = 0;
+  let totalReagendamentos = 0;
+  let totalInclusoes = 0;
+
+  registros.forEach((registro) => {
+    const quantidadePessoas = registro.pessoas?.length || 1;
+
+    if (registro.tipo === "agendamento") {
+      totalAgendamentos += quantidadePessoas;
+      contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+    } else if (registro.tipo === "reagendamento") {
+      totalReagendamentos += quantidadePessoas;
+    } else if (registro.tipo === "inclusao") {
+      totalInclusoes += quantidadePessoas;
+    }
   });
 
-  let texto = `Relatório ${dataSelecionada}\n\n`;
+  const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
+  const dataCurta = formatarDataBR(dataSelecionada);
 
-  if (!lista.length) {
-    texto += "Nenhum agendamento encontrado para esta data.";
-    resultadoRelatorio.textContent = texto;
-    return;
-  }
+  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
 
-  Object.keys(contagemPorUnidade)
-    .sort((a, b) => a.localeCompare(b))
-    .forEach((unidade) => {
-      texto += `${unidade}: ${contagemPorUnidade[unidade]}\n`;
-    });
+  unidadesOrdem.forEach((unidade) => {
+    const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
+    const total = contagemPorUnidade[unidade] || 0;
+    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
+  });
 
-  texto += `\nTotal do dia: ${lista.length}`;
+  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
+  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
+  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
+  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
+  texto += `\n*TMK: PAULO LOBATO*`;
+
   resultadoRelatorio.textContent = texto;
 }
 
@@ -1113,8 +1452,17 @@ function copiarRelatorio() {
 // =========================
 // INICIALIZAÇÃO
 // =========================
+function inicializarFormulario() {
+  preencherHorarios();
+  limparFormularioAgendamento();
+
+  if (tipoAgendamentoInput) {
+    tipoAgendamentoInput.addEventListener("change", atualizarDataPadraoPorTipo);
+  }
+}
+
 setTheme(temaSalvo);
-setDataHoje();
+inicializarFormulario();
 atualizarStatusAutomaticos();
 mostrarBanco();
 atualizarCampanhas();
