@@ -7,8 +7,6 @@ let leadSelecionadoIndex = null;
 let tipoComprovanteAtual = "paciente";
 
 // ELEMENTOS
-const nomeInput = document.getElementById("nome");
-const numeroInput = document.getElementById("numero");
 const unidadeInput = document.getElementById("unidade");
 const dataInput = document.getElementById("data");
 const horaInput = document.getElementById("hora");
@@ -45,6 +43,7 @@ const modal = document.getElementById("modalComprovante");
 const textoComprovante = document.getElementById("textoComprovante");
 
 const modalAcoesBanco = document.getElementById("modalAcoesBanco");
+const modalSegmentacaoMassa = document.getElementById("modalSegmentacaoMassa");
 const syncStatusTexto = document.getElementById("syncStatusTexto");
 
 // =========================
@@ -130,7 +129,7 @@ function agoraISO() {
 
 function formatarDataBR(dataISO) {
   if (!dataISO) return "";
-  const [ano, mes, dia] = dataISO.split("-");
+  const [, mes, dia] = dataISO.split("-");
   return `${dia}/${mes}`;
 }
 
@@ -197,7 +196,7 @@ function obterProximoDiaUtilISO() {
   const data = new Date();
   data.setDate(data.getDate() + 1);
 
-  const diaSemana = data.getDay(); // 0 domingo, 6 sábado
+  const diaSemana = data.getDay();
   if (diaSemana === 6) {
     data.setDate(data.getDate() + 2);
   } else if (diaSemana === 0) {
@@ -235,7 +234,8 @@ function preencherHorarios() {
     }
   }
 
-  horaInput.innerHTML = `<option value="">Selecionar horário</option>` +
+  horaInput.innerHTML =
+    `<option value="">Selecionar horário</option>` +
     horarios.map((h) => `<option value="${h}">${h}</option>`).join("");
 }
 
@@ -366,7 +366,7 @@ function juntarNomes(pessoas = []) {
 function normalizarStatus(texto = "") {
   const bruto = normalizarTexto(texto).replace(/[\s._-]+/g, "");
 
-  if (!bruto) return "NOVO";
+  if (!bruto) return null;
 
   if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
   if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) return "DES";
@@ -386,11 +386,11 @@ function normalizarStatus(texto = "") {
     if (mes >= 1 && mes <= 12) return `PROM${mes}`;
   }
 
-  return bruto;
+  return null;
 }
 
 function decomporStatus(status = "") {
-  const s = normalizarStatus(status);
+  const s = normalizarStatus(status) || "NOVO";
 
   if (s === "NOVO" || s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
     return {
@@ -422,9 +422,9 @@ function decomporStatus(status = "") {
   }
 
   return {
-    status: s,
-    segmento: "OUTRO",
-    baseTipo: s,
+    status: "NOVO",
+    segmento: "NOVO",
+    baseTipo: "NOVO",
     baseValor: null
   };
 }
@@ -553,21 +553,33 @@ function extrairNumeroEStatusDaLinha(linha = "") {
   if (!numeros.length) return null;
 
   const numero = numeros[0];
-  const textoSemNumero = texto.replace(/(?:\+?55\s*)?\d[\d\s().-]{7,}\d/g, " ").replace(/[–—]/g, "-").trim();
 
-  const partes = textoSemNumero
-    .split("-")
-    .map((parte) => parte.trim())
-    .filter(Boolean);
+  // Só aceita status explícito no formato " - STATUS"
+  const matchStatusExplicito = texto.match(/-\s*([A-Za-zÀ-ÿ0-9\s]+)\s*$/);
 
-  let statusBruto = "NOVO";
-  if (partes.length > 0) {
-    statusBruto = partes[partes.length - 1];
-  } else if (textoSemNumero) {
-    statusBruto = textoSemNumero;
+  if (!matchStatusExplicito) {
+    return {
+      numero,
+      tipo: null,
+      baseTipo: null,
+      baseValor: null,
+      criadoEm: agoraISO()
+    };
   }
 
+  const statusBruto = matchStatusExplicito[1].trim();
   const statusNormalizado = normalizarStatus(statusBruto);
+
+  if (!statusNormalizado) {
+    return {
+      numero,
+      tipo: null,
+      baseTipo: null,
+      baseValor: null,
+      criadoEm: agoraISO()
+    };
+  }
+
   const info = decomporStatus(statusNormalizado);
 
   return {
@@ -612,6 +624,12 @@ function salvarBanco() {
       return;
     }
 
+    // No salvar normal, só entra se houver status explícito válido
+    if (!dado.tipo) {
+      ignorados++;
+      return;
+    }
+
     const existente = buscarLeadNoBancoPorNumero(dado.numero);
 
     if (existente) {
@@ -637,6 +655,21 @@ function salvarBanco() {
   );
 }
 
+function abrirSegmentacaoEmMassa() {
+  if (!entradaBanco.value.trim()) {
+    alert("Cole uma lista no banco antes de aplicar segmentação em massa.");
+    return;
+  }
+
+  modalSegmentacaoMassa.style.display = "flex";
+  modalSegmentacaoMassa.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalSegmentacao() {
+  modalSegmentacaoMassa.style.display = "none";
+  modalSegmentacaoMassa.setAttribute("aria-hidden", "true");
+}
+
 function salvarBancoEmMassa() {
   const texto = entradaBanco.value.trim();
   if (!texto) {
@@ -651,6 +684,12 @@ function salvarBancoEmMassa() {
   }
 
   const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES");
+
+  if (!statusSelecionado) {
+    alert("Selecione uma segmentação válida.");
+    return;
+  }
+
   const info = decomporStatus(statusSelecionado);
 
   let adicionados = 0;
@@ -659,6 +698,7 @@ function salvarBancoEmMassa() {
   numeros.forEach((numero) => {
     const existente = buscarLeadNoBancoPorNumero(numero);
 
+    // Mantém o que já existe e não sobrescreve
     if (existente) {
       mantidos++;
       return;
@@ -671,6 +711,7 @@ function salvarBancoEmMassa() {
       baseValor: info.baseValor,
       criadoEm: agoraISO()
     });
+
     adicionados++;
   });
 
@@ -678,6 +719,7 @@ function salvarBancoEmMassa() {
   entradaBanco.value = "";
   mostrarBanco();
   atualizarCampanhas();
+  fecharModalSegmentacao();
 
   alert(
     `✅ Segmentação em massa aplicada!\n\nNovos inseridos: ${adicionados}\nMantidos sem sobrescrever: ${mantidos}`
@@ -849,6 +891,12 @@ function editarLeadSelecionado() {
 
   const numeroLimpo = limparNumero(novoNumero);
   const statusNormalizado = normalizarStatus(novoStatus);
+
+  if (!statusNormalizado) {
+    alert("Status inválido.");
+    return;
+  }
+
   const info = decomporStatus(statusNormalizado);
 
   if (!numeroLimpo) {
@@ -1052,15 +1100,19 @@ function atualizarCampanhas() {
   const visualizacao = campanhaVisualizacao?.value || "todas";
 
   if (painelReed) {
-    painelReed.value = visualizacao === "pro" ? "" : Object.keys(reedMap)
-      .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
-      .join("\n\n");
+    painelReed.value = visualizacao === "pro"
+      ? ""
+      : Object.keys(reedMap)
+          .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
+          .join("\n\n");
   }
 
   if (painelPro) {
-    painelPro.value = visualizacao === "reed" ? "" : Object.keys(proMap)
-      .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
-      .join("\n\n");
+    painelPro.value = visualizacao === "reed"
+      ? ""
+      : Object.keys(proMap)
+          .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
+          .join("\n\n");
   }
 }
 
@@ -1412,7 +1464,8 @@ function gerarRelatorio() {
 
     if (registro.tipo === "agendamento") {
       totalAgendamentos += quantidadePessoas;
-      contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+      contagemPorUnidade[registro.unidade] =
+        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
     } else if (registro.tipo === "reagendamento") {
       totalReagendamentos += quantidadePessoas;
     } else if (registro.tipo === "inclusao") {
