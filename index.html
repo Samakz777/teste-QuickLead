@@ -64,7 +64,7 @@
           <div class="card__topo">
             <h2 id="titulo-agendamento">Novo Agendamento</h2>
             <p class="texto-apoio">
-              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão.
+              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão e reagendamento.
             </p>
           </div>
 
@@ -74,6 +74,7 @@
               <select id="tipoAgendamento">
                 <option value="agendamento">Agendamento normal</option>
                 <option value="inclusao">Inclusão no mesmo dia</option>
+                <option value="reagendamento">Reagendamento</option>
               </select>
             </div>
 
@@ -110,7 +111,7 @@
                 <option value="">Selecionar horário</option>
               </select>
               <small class="texto-ajuda">
-                Horários em intervalos de 10 minutos.
+                Minutos em intervalos de 10 em 10, mantendo a escolha da hora normalmente.
               </small>
             </div>
           </div>
@@ -146,7 +147,7 @@
             <input type="date" id="filtroData">
           </div>
 
-          <button type="button" onclick="filtrarAgenda()">Buscar</button>
+          <button type="button" onclick="filtrarAgenda()">Atualizar</button>
 
           <div id="listaAgenda" aria-live="polite"></div>
         </div>
@@ -220,10 +221,10 @@
           </div>
 
           <div class="grupo-campos">
-            <label for="resumoFiltro">Resumo da triagem</label>
+            <label for="resumoFiltro">RESUMO DA EXTRAÇÃO</label>
             <textarea
               id="resumoFiltro"
-              placeholder="Resumo automático do filtro..."
+              placeholder="Resumo automático da extração..."
               readonly
             ></textarea>
           </div>
