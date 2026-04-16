@@ -219,6 +219,7 @@ function atualizarDataPadraoPorTipo() {
     return;
   }
 
+  // agendamento e reagendamento seguem para próximo dia útil por padrão
   dataInput.value = obterProximoDiaUtilISO();
 }
 
@@ -226,7 +227,7 @@ function preencherHorarios() {
   if (!horaInput) return;
 
   const horarios = [];
-  for (let hora = 7; hora <= 19; hora++) {
+  for (let hora = 0; hora <= 23; hora++) {
     for (let minuto = 0; minuto < 60; minuto += 10) {
       const h = String(hora).padStart(2, "0");
       const m = String(minuto).padStart(2, "0");
@@ -554,7 +555,6 @@ function extrairNumeroEStatusDaLinha(linha = "") {
 
   const numero = numeros[0];
 
-  // Só aceita status explícito no formato " - STATUS"
   const matchStatusExplicito = texto.match(/-\s*([A-Za-zÀ-ÿ0-9\s]+)\s*$/);
 
   if (!matchStatusExplicito) {
@@ -624,7 +624,6 @@ function salvarBanco() {
       return;
     }
 
-    // No salvar normal, só entra se houver status explícito válido
     if (!dado.tipo) {
       ignorados++;
       return;
@@ -698,7 +697,6 @@ function salvarBancoEmMassa() {
   numeros.forEach((numero) => {
     const existente = buscarLeadNoBancoPorNumero(numero);
 
-    // Mantém o que já existe e não sobrescreve
     if (existente) {
       mantidos++;
       return;
@@ -1024,7 +1022,7 @@ function filtrarLeads() {
   saidaBloqueados.value = bloqueados.join("\n");
 
   resumoFiltro.value =
-`RESUMO DA TRIAGEM
+`RESUMO DA EXTRAÇÃO
 ====================
 Aprovados: ${aprovados.length}
 - Novos: ${totalNovos}
@@ -1075,44 +1073,64 @@ function limparFiltro() {
 // =========================
 // CAMPANHAS
 // =========================
-function atualizarCampanhas() {
-  atualizarStatusAutomaticos();
-
+function montarTextoCampanhasReed() {
   const reedMap = {};
-  const proMap = {};
-
   for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
+
+  bancoLeads.forEach((lead) => {
+    const info = decomporStatus(lead.tipo);
+    if (info.segmento === "REED") {
+      reedMap[`D${info.baseValor}`].push(limparNumero(lead.numero));
+    }
+  });
+
+  return Object.keys(reedMap)
+    .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
+    .join("\n\n");
+}
+
+function montarTextoCampanhasPro() {
+  const proMap = {};
   for (let i = 1; i <= 12; i++) proMap[`M${i}`] = [];
 
   bancoLeads.forEach((lead) => {
     const info = decomporStatus(lead.tipo);
-    const numero = limparNumero(lead.numero);
-
-    if (info.segmento === "REED") {
-      reedMap[`D${info.baseValor}`].push(numero);
-    }
-
     if (info.segmento === "PRO") {
-      proMap[`M${info.baseValor}`].push(numero);
+      proMap[`M${info.baseValor}`].push(limparNumero(lead.numero));
     }
   });
 
+  return Object.keys(proMap)
+    .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
+    .join("\n\n");
+}
+
+function atualizarCampanhas() {
+  atualizarStatusAutomaticos();
+
+  const textoReed = montarTextoCampanhasReed();
+  const textoPro = montarTextoCampanhasPro();
   const visualizacao = campanhaVisualizacao?.value || "todas";
 
+  // Mantém os dois painéis sempre atualizados para evitar a sensação de que um lado “parou”
   if (painelReed) {
-    painelReed.value = visualizacao === "pro"
-      ? ""
-      : Object.keys(reedMap)
-          .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
-          .join("\n\n");
+    painelReed.value = textoReed;
   }
 
   if (painelPro) {
-    painelPro.value = visualizacao === "reed"
-      ? ""
-      : Object.keys(proMap)
-          .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
-          .join("\n\n");
+    painelPro.value = textoPro;
+  }
+
+  // A visualização passa a funcionar como foco, mas sem apagar o outro painel
+  if (visualizacao === "reed") {
+    if (painelReed) painelReed.placeholder = "Fila REED atualizada";
+    if (painelPro) painelPro.placeholder = "Painel PRO mantido atualizado";
+  } else if (visualizacao === "pro") {
+    if (painelPro) painelPro.placeholder = "Fila PRO atualizada";
+    if (painelReed) painelReed.placeholder = "Painel REED mantido atualizado";
+  } else {
+    if (painelReed) painelReed.placeholder = "Os REED D1 até D30 aparecerão organizados aqui...";
+    if (painelPro) painelPro.placeholder = "Os PRO M1 até M12 aparecerão organizados aqui...";
   }
 }
 
@@ -1284,6 +1302,14 @@ function agendar() {
   agendamentos.push(novoAgendamento);
   salvar();
 
+  // Atualiza imediatamente agenda e relatório visual se estiverem na mesma data
+  if (filtroData?.value === novoAgendamento.data) {
+    filtrarAgenda();
+  }
+  if (dataRelatorio?.value === novoAgendamento.data) {
+    gerarRelatorio();
+  }
+
   mostrarModalComprovante(novoAgendamento, "paciente");
   limparFormularioAgendamento();
 }
@@ -1353,7 +1379,13 @@ function transformarEmReagendamento(index) {
 
   agendamento.tipo = "reagendamento";
   salvar();
-  filtrarAgenda();
+
+  if (filtroData?.value === agendamento.data) {
+    filtrarAgenda();
+  }
+  if (dataRelatorio?.value === agendamento.data) {
+    gerarRelatorio();
+  }
 }
 
 function excluir(index) {
@@ -1362,9 +1394,17 @@ function excluir(index) {
 
   if (!confirm(`Excluir o registro de ${juntarNomes(agendamento.pessoas)}?`)) return;
 
+  const dataExcluida = agendamento.data;
+
   agendamentos.splice(index, 1);
   salvar();
-  filtrarAgenda();
+
+  if (filtroData?.value === dataExcluida) {
+    filtrarAgenda();
+  }
+  if (dataRelatorio?.value === dataExcluida) {
+    gerarRelatorio();
+  }
 }
 
 function filtrarAgenda() {
@@ -1472,51 +1512,3 @@ function gerarRelatorio() {
       totalInclusoes += quantidadePessoas;
     }
   });
-
-  const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
-  const dataCurta = formatarDataBR(dataSelecionada);
-
-  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
-
-  unidadesOrdem.forEach((unidade) => {
-    const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
-    const total = contagemPorUnidade[unidade] || 0;
-    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
-  });
-
-  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
-  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
-  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
-  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
-  texto += `\n*TMK: PAULO LOBATO*`;
-
-  resultadoRelatorio.textContent = texto;
-}
-
-function copiarRelatorio() {
-  const texto = resultadoRelatorio.textContent.trim();
-  if (!texto) {
-    alert("Gere um relatório primeiro.");
-    return;
-  }
-  copiarTexto(texto, "✅ Relatório copiado.");
-}
-
-// =========================
-// INICIALIZAÇÃO
-// =========================
-function inicializarFormulario() {
-  preencherHorarios();
-  limparFormularioAgendamento();
-
-  if (tipoAgendamentoInput) {
-    tipoAgendamentoInput.addEventListener("change", atualizarDataPadraoPorTipo);
-  }
-}
-
-setTheme(temaSalvo);
-inicializarFormulario();
-atualizarStatusAutomaticos();
-mostrarBanco();
-atualizarCampanhas();
-atualizarStatusSync("Modo local ativo");
