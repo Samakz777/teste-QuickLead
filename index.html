@@ -60,66 +60,69 @@
 
       <!-- AGENDAMENTO -->
       <section id="agendamento" class="aba ativa" aria-labelledby="titulo-agendamento">
-        <div class="card">
+        <div class="card card--agendamento">
           <div class="card__topo">
             <h2 id="titulo-agendamento">Novo Agendamento</h2>
             <p class="texto-apoio">
-              Preencha os dados do paciente e confirme o atendimento.
+              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão e reagendamento.
             </p>
           </div>
 
-          <div class="grupo-campos">
-            <label for="nome">Nome do paciente</label>
-            <input
-              id="nome"
-              type="text"
-              placeholder="Digite o nome completo"
-              autocomplete="name"
-              maxlength="120"
-            >
-          </div>
-
-          <div class="grupo-campos">
-            <label for="numero">Número</label>
-            <input
-              id="numero"
-              type="tel"
-              placeholder="Ex: 91999990000"
-              inputmode="numeric"
-              autocomplete="tel"
-              maxlength="20"
-            >
-            <small class="texto-ajuda">
-              Pode ser com ou sem +55. O sistema limpa automaticamente.
-            </small>
-          </div>
-
-          <div class="grupo-campos">
-            <label for="unidade">Unidade</label>
-            <select id="unidade">
-              <option value="">Selecionar unidade</option>
-              <option>Cidade Nova 2</option>
-              <option>Ananindeua</option>
-              <option>Marambaia</option>
-              <option>Jurunas</option>
-              <option>José Bonifácio</option>
-              <option>Augusto Montenegro</option>
-              <option>Telégrafo</option>
-              <option>Castanhal</option>
-              <option>Marabá</option>
-              <option>Capanema</option>
-            </select>
-          </div>
-
-          <div class="linha">
+          <div class="painel-agendamento-grid">
             <div class="grupo-campos">
-              <label for="data">Data</label>
-              <input id="data" type="date">
+              <label for="tipoAgendamento">Tipo do registro</label>
+              <select id="tipoAgendamento">
+                <option value="agendamento">Agendamento normal</option>
+                <option value="inclusao">Inclusão no mesmo dia</option>
+                <option value="reagendamento">Reagendamento</option>
+              </select>
             </div>
 
             <div class="grupo-campos">
-              <label for="hora">Hora</label>
-              <input id="hora" type="time">
+              <label for="unidade">Unidade</label>
+              <select id="unidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="painel-agendamento-grid">
+            <div class="grupo-campos">
+              <label for="data">Data</label>
+              <input id="data" type="date">
+              <small class="texto-ajuda">
+                Padrão: próximo dia útil. Inclusão usa o mesmo dia.
+              </small>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="hora">Horário</label>
+              <select id="hora">
+                <option value="">Selecionar horário</option>
+              </select>
+              <small class="texto-ajuda">
+                Horários em intervalos de 10 minutos.
+              </small>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label>Pessoas do agendamento</label>
+            <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
+            <div class="acoes-secundarias">
+              <button type="button" onclick="adicionarPessoa()">
+                + Adicionar pessoa
+              </button>
             </div>
           </div>
 
@@ -131,11 +134,11 @@
 
       <!-- AGENDA -->
       <section id="agenda" class="aba" aria-labelledby="titulo-agenda">
-        <div class="card">
+        <div class="card card--agenda">
           <div class="card__topo">
             <h2 id="titulo-agenda">Agenda do Dia</h2>
             <p class="texto-apoio">
-              Consulte os agendamentos por data.
+              Consulte os registros por data e gere comprovantes para paciente ou CRM.
             </p>
           </div>
 
@@ -156,19 +159,19 @@
           <div class="card__topo">
             <h2 id="titulo-filtro">Filtro Inteligente de Leads</h2>
             <p class="texto-apoio">
-              Cole a lista para separar aprovados, ignorados e desqualificados.
+              O filtro deve extrair apenas números válidos e ignorar completamente lixo de conversa do WhatsApp.
             </p>
           </div>
 
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>NOVO e REED1</span>
+              <span>NOVO e REED D1</span>
             </div>
 
             <div class="status-box status-box--alerta">
               <strong>Ignorar no momento:</strong>
-              <span>PRO M1 até M12, REED D2 até D30</span>
+              <span>REED D2 até D30, PRO M1 até M12</span>
             </div>
 
             <div class="status-box status-box--erro">
@@ -178,10 +181,10 @@
           </div>
 
           <div class="grupo-campos">
-            <label for="entradaFiltro">Entrada de leads</label>
+            <label for="entradaFiltro">Entrada do filtro</label>
             <textarea
               id="entradaFiltro"
-              placeholder="Cole os números aqui, um por linha..."
+              placeholder="Cole a lista ou o bloco copiado do WhatsApp aqui..."
             ></textarea>
           </div>
 
@@ -195,9 +198,6 @@
             <button type="button" onclick="limparFiltro()">
               Limpar filtro
             </button>
-            <button type="button" onclick="organizarNumerosEmFileira()">
-              Organizar em fileira
-            </button>
           </div>
 
           <div class="resultados-filtro-grid">
@@ -205,7 +205,7 @@
               <label for="saidaFiltro">Leads aprovados</label>
               <textarea
                 id="saidaFiltro"
-                placeholder="Os leads aprovados aparecerão aqui..."
+                placeholder="Só números válidos aprovados aparecerão aqui..."
                 readonly
               ></textarea>
             </div>
@@ -214,7 +214,7 @@
               <label for="saidaBloqueados">Ignorados / desqualificados</label>
               <textarea
                 id="saidaBloqueados"
-                placeholder="Os leads removidos aparecerão aqui..."
+                placeholder="Apenas bloqueios reais e números removidos aparecerão aqui..."
                 readonly
               ></textarea>
             </div>
@@ -237,7 +237,7 @@
           <div class="card__topo">
             <h2 id="titulo-banco">Banco de Leads</h2>
             <p class="texto-apoio">
-              Gerencie a base geral, segmentações e campanhas programadas.
+              Adicione listas grandes com nome + número. O sistema deve guardar só os números e manter segmentações já existentes.
             </p>
           </div>
 
@@ -258,22 +258,39 @@
           </div>
 
           <div class="grupo-campos">
+            <label for="segmentacaoEmMassa">Segmentação para lista em massa</label>
+            <select id="segmentacaoEmMassa">
+              <option value="DES">DES</option>
+              <option value="LON">LON</option>
+              <option value="FOR">FOR</option>
+              <option value="PAT">PAT</option>
+              <option value="NOVO">NOVO</option>
+              <option value="REED D1">REED D1</option>
+              <option value="PRO M1">PRO M1</option>
+            </select>
+            <small class="texto-ajuda">
+              Usada quando você colar uma lista inteira só para marcar os números em massa.
+            </small>
+          </div>
+
+          <div class="grupo-campos">
             <label for="entradaBanco">Adicionar ou atualizar leads</label>
             <textarea
               id="entradaBanco"
-              placeholder="Ex:
+              placeholder="Exemplos:
 91999990000 - REED D1
 91988887777 - PRO M3
-91977776666 - PAT"
+
+ou lista grande com nomes + números."
             ></textarea>
-            <small class="texto-ajuda">
-              Formatos aceitos: NOVO, REED D1 até D30, PRO M1 até M12, DES, LON, FOR e PAT.
-            </small>
           </div>
 
           <div class="acoes-secundarias">
             <button type="button" class="btn-principal" onclick="salvarBanco()">
               Salvar no banco
+            </button>
+            <button type="button" onclick="salvarBancoEmMassa()">
+              Aplicar segmentação em massa
             </button>
             <button type="button" onclick="mostrarBanco()">
               Atualizar lista
@@ -384,8 +401,19 @@
           <div class="card__topo">
             <h2 id="titulo-campanhas">Campanhas Programadas</h2>
             <p class="texto-apoio">
-              Visualize separadamente os REED por dia e os PRO por mês.
+              Visualize REED por dia e PRO por mês com filtros mais claros.
             </p>
+          </div>
+
+          <div class="painel-campanhas-filtros">
+            <div class="grupo-campos">
+              <label for="campanhaVisualizacao">Visualização</label>
+              <select id="campanhaVisualizacao" onchange="atualizarCampanhas()">
+                <option value="todas">Todas</option>
+                <option value="reed">Somente REED</option>
+                <option value="pro">Somente PRO</option>
+              </select>
+            </div>
           </div>
 
           <div class="painel-campanhas-grid">
@@ -424,11 +452,11 @@
 
       <!-- RELATÓRIOS -->
       <section id="relatorios" class="aba" aria-labelledby="titulo-relatorios">
-        <div class="card">
+        <div class="card card--relatorio">
           <div class="card__topo">
             <h2 id="titulo-relatorios">Relatório Diário</h2>
             <p class="texto-apoio">
-              Gere um resumo por data com total e distribuição por unidade.
+              Gera o diário no formato operacional com agendamentos, reagendamentos e inclusões separados.
             </p>
           </div>
 
@@ -460,7 +488,7 @@
       aria-modal="true"
       aria-labelledby="titulo-modal"
     >
-      <h3 id="titulo-modal">Comprovante de Agendamento</h3>
+      <h3 id="titulo-modal">Comprovante</h3>
       <textarea id="textoComprovante" readonly></textarea>
 
       <div class="botoes">
