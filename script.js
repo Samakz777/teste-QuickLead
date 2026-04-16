@@ -196,7 +196,7 @@ function obterProximoDiaUtilISO() {
   const data = new Date();
   data.setDate(data.getDate() + 1);
 
-  const diaSemana = data.getDay();
+  const diaSemana = data.getDay(); // 0 domingo, 6 sábado
   if (diaSemana === 6) {
     data.setDate(data.getDate() + 2);
   } else if (diaSemana === 0) {
@@ -219,7 +219,11 @@ function atualizarDataPadraoPorTipo() {
     return;
   }
 
-  // agendamento e reagendamento seguem para próximo dia útil por padrão
+  if (tipo === "reagendamento") {
+    dataInput.value = obterProximoDiaUtilISO();
+    return;
+  }
+
   dataInput.value = obterProximoDiaUtilISO();
 }
 
@@ -227,7 +231,7 @@ function preencherHorarios() {
   if (!horaInput) return;
 
   const horarios = [];
-  for (let hora = 0; hora <= 23; hora++) {
+  for (let hora = 7; hora <= 19; hora++) {
     for (let minuto = 0; minuto < 60; minuto += 10) {
       const h = String(hora).padStart(2, "0");
       const m = String(minuto).padStart(2, "0");
@@ -516,7 +520,13 @@ function atualizarStatusDinamicoLead(lead) {
 }
 
 function atualizarStatusAutomaticos() {
+  let alterou = false;
+
   bancoLeads = bancoLeads.map((lead) => {
+    const tipoAntes = lead.tipo;
+    const baseTipoAntes = lead.baseTipo;
+    const baseValorAntes = lead.baseValor;
+
     if (!lead.criadoEm) {
       lead.criadoEm = agoraISO();
     }
@@ -527,11 +537,24 @@ function atualizarStatusAutomaticos() {
       lead.baseValor = info.baseValor;
     }
 
-    return atualizarStatusDinamicoLead(lead);
+    const atualizado = atualizarStatusDinamicoLead(lead);
+
+    if (
+      atualizado.tipo !== tipoAntes ||
+      atualizado.baseTipo !== baseTipoAntes ||
+      atualizado.baseValor !== baseValorAntes
+    ) {
+      alterou = true;
+    }
+
+    return atualizado;
   });
 
   ordenarBanco();
-  salvar();
+
+  if (alterou) {
+    salvar();
+  }
 }
 
 // =========================
@@ -648,6 +671,7 @@ function salvarBanco() {
   entradaBanco.value = "";
   mostrarBanco();
   atualizarCampanhas();
+  salvar();
 
   alert(
     `✅ Banco atualizado!\n\nAdicionados: ${adicionados}\nAtualizados: ${atualizados}\nIgnorados: ${ignorados}`
@@ -718,6 +742,7 @@ function salvarBancoEmMassa() {
   mostrarBanco();
   atualizarCampanhas();
   fecharModalSegmentacao();
+  salvar();
 
   alert(
     `✅ Segmentação em massa aplicada!\n\nNovos inseridos: ${adicionados}\nMantidos sem sobrescrever: ${mantidos}`
@@ -912,6 +937,7 @@ function editarLeadSelecionado() {
   mostrarBanco();
   atualizarCampanhas();
   fecharModalBanco();
+  salvar();
 
   alert("✅ Lead atualizado com sucesso.");
 }
@@ -956,6 +982,7 @@ function sincronizarAgora() {
 // =========================
 function filtrarLeads() {
   atualizarStatusAutomaticos();
+  atualizarCampanhas();
 
   const textoOriginal = entradaFiltro.value || "";
   const numerosExtraidos = extrairTodosNumerosValidos(textoOriginal);
@@ -1073,64 +1100,44 @@ function limparFiltro() {
 // =========================
 // CAMPANHAS
 // =========================
-function montarTextoCampanhasReed() {
+function atualizarCampanhas() {
+  atualizarStatusAutomaticos();
+
   const reedMap = {};
-  for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
-
-  bancoLeads.forEach((lead) => {
-    const info = decomporStatus(lead.tipo);
-    if (info.segmento === "REED") {
-      reedMap[`D${info.baseValor}`].push(limparNumero(lead.numero));
-    }
-  });
-
-  return Object.keys(reedMap)
-    .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
-    .join("\n\n");
-}
-
-function montarTextoCampanhasPro() {
   const proMap = {};
+
+  for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
   for (let i = 1; i <= 12; i++) proMap[`M${i}`] = [];
 
   bancoLeads.forEach((lead) => {
     const info = decomporStatus(lead.tipo);
+    const numero = limparNumero(lead.numero);
+
+    if (info.segmento === "REED") {
+      reedMap[`D${info.baseValor}`].push(numero);
+    }
+
     if (info.segmento === "PRO") {
-      proMap[`M${info.baseValor}`].push(limparNumero(lead.numero));
+      proMap[`M${info.baseValor}`].push(numero);
     }
   });
 
-  return Object.keys(proMap)
-    .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
-    .join("\n\n");
-}
-
-function atualizarCampanhas() {
-  atualizarStatusAutomaticos();
-
-  const textoReed = montarTextoCampanhasReed();
-  const textoPro = montarTextoCampanhasPro();
   const visualizacao = campanhaVisualizacao?.value || "todas";
 
-  // Mantém os dois painéis sempre atualizados para evitar a sensação de que um lado “parou”
   if (painelReed) {
-    painelReed.value = textoReed;
+    const textoReed = Object.keys(reedMap)
+      .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
+      .join("\n\n");
+
+    painelReed.value = visualizacao === "pro" ? "" : textoReed;
   }
 
   if (painelPro) {
-    painelPro.value = textoPro;
-  }
+    const textoPro = Object.keys(proMap)
+      .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
+      .join("\n\n");
 
-  // A visualização passa a funcionar como foco, mas sem apagar o outro painel
-  if (visualizacao === "reed") {
-    if (painelReed) painelReed.placeholder = "Fila REED atualizada";
-    if (painelPro) painelPro.placeholder = "Painel PRO mantido atualizado";
-  } else if (visualizacao === "pro") {
-    if (painelPro) painelPro.placeholder = "Fila PRO atualizada";
-    if (painelReed) painelReed.placeholder = "Painel REED mantido atualizado";
-  } else {
-    if (painelReed) painelReed.placeholder = "Os REED D1 até D30 aparecerão organizados aqui...";
-    if (painelPro) painelPro.placeholder = "Os PRO M1 até M12 aparecerão organizados aqui...";
+    painelPro.value = visualizacao === "reed" ? "" : textoPro;
   }
 }
 
@@ -1302,11 +1309,13 @@ function agendar() {
   agendamentos.push(novoAgendamento);
   salvar();
 
-  // Atualiza imediatamente agenda e relatório visual se estiverem na mesma data
-  if (filtroData?.value === novoAgendamento.data) {
+  // Atualiza agenda se a data que está aberta for a mesma
+  if (filtroData && filtroData.value === novoAgendamento.data) {
     filtrarAgenda();
   }
-  if (dataRelatorio?.value === novoAgendamento.data) {
+
+  // Atualiza relatório se a data aberta for a mesma
+  if (dataRelatorio && dataRelatorio.value === novoAgendamento.data) {
     gerarRelatorio();
   }
 
@@ -1379,11 +1388,9 @@ function transformarEmReagendamento(index) {
 
   agendamento.tipo = "reagendamento";
   salvar();
+  filtrarAgenda();
 
-  if (filtroData?.value === agendamento.data) {
-    filtrarAgenda();
-  }
-  if (dataRelatorio?.value === agendamento.data) {
+  if (dataRelatorio && dataRelatorio.value === agendamento.data) {
     gerarRelatorio();
   }
 }
@@ -1398,11 +1405,9 @@ function excluir(index) {
 
   agendamentos.splice(index, 1);
   salvar();
+  filtrarAgenda();
 
-  if (filtroData?.value === dataExcluida) {
-    filtrarAgenda();
-  }
-  if (dataRelatorio?.value === dataExcluida) {
+  if (dataRelatorio && dataRelatorio.value === dataExcluida) {
     gerarRelatorio();
   }
 }
@@ -1512,3 +1517,51 @@ function gerarRelatorio() {
       totalInclusoes += quantidadePessoas;
     }
   });
+
+  const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
+  const dataCurta = formatarDataBR(dataSelecionada);
+
+  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
+
+  unidadesOrdem.forEach((unidade) => {
+    const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
+    const total = contagemPorUnidade[unidade] || 0;
+    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
+  });
+
+  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
+  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
+  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
+  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
+  texto += `\n*TMK: PAULO LOBATO*`;
+
+  resultadoRelatorio.textContent = texto;
+}
+
+function copiarRelatorio() {
+  const texto = resultadoRelatorio.textContent.trim();
+  if (!texto) {
+    alert("Gere um relatório primeiro.");
+    return;
+  }
+  copiarTexto(texto, "✅ Relatório copiado.");
+}
+
+// =========================
+// INICIALIZAÇÃO
+// =========================
+function inicializarFormulario() {
+  preencherHorarios();
+  limparFormularioAgendamento();
+
+  if (tipoAgendamentoInput) {
+    tipoAgendamentoInput.addEventListener("change", atualizarDataPadraoPorTipo);
+  }
+}
+
+setTheme(temaSalvo);
+inicializarFormulario();
+atualizarStatusAutomaticos();
+mostrarBanco();
+atualizarCampanhas();
+atualizarStatusSync("Modo local ativo");
