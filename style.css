@@ -77,7 +77,11 @@ body {
 }
 
 .topo__conteudo {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 96%, #ffffff 4%), color-mix(in srgb, var(--bg-card) 92%, #000000 8%));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--bg-card) 96%, #ffffff 4%),
+    color-mix(in srgb, var(--bg-card) 92%, #000000 8%)
+  );
   border: 1px solid color-mix(in srgb, var(--borda) 55%, transparent 45%);
   border-radius: 22px;
   box-shadow: var(--sombra);
@@ -157,7 +161,11 @@ h1 {
 
 /* CARD */
 .card {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, #ffffff 2%), color-mix(in srgb, var(--bg-card) 94%, #000000 6%));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-card) 98%, #ffffff 2%),
+    color-mix(in srgb, var(--bg-card) 94%, #000000 6%)
+  );
   border: 1px solid color-mix(in srgb, var(--borda) 55%, transparent 45%);
   padding: 24px;
   border-radius: 20px;
@@ -169,12 +177,15 @@ h1 {
   box-shadow: var(--sombra);
 }
 
+.card--agendamento,
 .card--filtro,
-.card--campanhas {
+.card--campanhas,
+.card--relatorio {
   max-width: 980px;
 }
 
-.card--banco {
+.card--banco,
+.card--agenda {
   max-width: 1040px;
 }
 
@@ -263,11 +274,12 @@ textarea:focus {
 }
 
 textarea {
-  min-height: 150px;
+  min-height: 140px;
   resize: vertical;
 }
 
-#entradaFiltro {
+#entradaFiltro,
+#entradaBanco {
   min-height: 180px;
 }
 
@@ -284,6 +296,10 @@ textarea {
 #painelReed,
 #painelPro {
   min-height: 360px;
+}
+
+.pessoa-bloco textarea {
+  min-height: 90px;
 }
 
 pre {
@@ -392,7 +408,7 @@ html[data-theme="light"] .topo__acoes button {
   flex: 1 1 190px;
 }
 
-/* PAINEL DE STATUS */
+/* PAINÉIS */
 .painel-status {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -436,7 +452,8 @@ html[data-theme="light"] .topo__acoes button {
 
 /* GRIDS */
 .resultados-filtro-grid,
-.painel-campanhas-grid {
+.painel-campanhas-grid,
+.painel-agendamento-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
@@ -446,6 +463,23 @@ html[data-theme="light"] .topo__acoes button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
+}
+
+.painel-campanhas-filtros {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* LISTA DE PESSOAS */
+.lista-pessoas-agendamento {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pessoa-bloco {
+  border-left: 4px solid var(--azul);
 }
 
 /* TELAS DE SAÍDA */
@@ -512,7 +546,11 @@ html[data-theme="light"] .topo__acoes button {
 }
 
 .agenda-item {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-input) 96%, #ffffff 4%), color-mix(in srgb, var(--bg-input) 90%, #000000 10%));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-input) 96%, #ffffff 4%),
+    color-mix(in srgb, var(--bg-input) 90%, #000000 10%)
+  );
   border: 1px solid var(--borda);
   padding: 16px;
   border-radius: 16px;
@@ -565,7 +603,11 @@ html[data-theme="light"] .modal {
 }
 
 .modal-content {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, #ffffff 2%), color-mix(in srgb, var(--bg-card) 94%, #000000 6%));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-card) 98%, #ffffff 2%),
+    color-mix(in srgb, var(--bg-card) 94%, #000000 6%)
+  );
   border: 1px solid color-mix(in srgb, var(--borda) 55%, transparent 45%);
   padding: 22px;
   border-radius: 20px;
@@ -625,15 +667,19 @@ html[data-theme="light"] .modal {
 }
 
 @media (max-width: 920px) {
+  .card--agendamento,
   .card--filtro,
   .card--campanhas,
-  .card--banco {
+  .card--banco,
+  .card--agenda,
+  .card--relatorio {
     max-width: 100%;
   }
 
   .painel-status,
   .resultados-filtro-grid,
-  .painel-campanhas-grid {
+  .painel-campanhas-grid,
+  .painel-agendamento-grid {
     grid-template-columns: 1fr;
   }
 }
