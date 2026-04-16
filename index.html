@@ -64,7 +64,7 @@
           <div class="card__topo">
             <h2 id="titulo-agendamento">Novo Agendamento</h2>
             <p class="texto-apoio">
-              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão e reagendamento.
+              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão.
             </p>
           </div>
 
@@ -74,7 +74,6 @@
               <select id="tipoAgendamento">
                 <option value="agendamento">Agendamento normal</option>
                 <option value="inclusao">Inclusão no mesmo dia</option>
-                <option value="reagendamento">Reagendamento</option>
               </select>
             </div>
 
@@ -258,22 +257,6 @@
           </div>
 
           <div class="grupo-campos">
-            <label for="segmentacaoEmMassa">Segmentação para lista em massa</label>
-            <select id="segmentacaoEmMassa">
-              <option value="DES">DES</option>
-              <option value="LON">LON</option>
-              <option value="FOR">FOR</option>
-              <option value="PAT">PAT</option>
-              <option value="NOVO">NOVO</option>
-              <option value="REED D1">REED D1</option>
-              <option value="PRO M1">PRO M1</option>
-            </select>
-            <small class="texto-ajuda">
-              Usada quando você colar uma lista inteira só para marcar os números em massa.
-            </small>
-          </div>
-
-          <div class="grupo-campos">
             <label for="entradaBanco">Adicionar ou atualizar leads</label>
             <textarea
               id="entradaBanco"
@@ -289,7 +272,7 @@ ou lista grande com nomes + números."
             <button type="button" class="btn-principal" onclick="salvarBanco()">
               Salvar no banco
             </button>
-            <button type="button" onclick="salvarBancoEmMassa()">
+            <button type="button" onclick="abrirSegmentacaoEmMassa()">
               Aplicar segmentação em massa
             </button>
             <button type="button" onclick="mostrarBanco()">
@@ -518,6 +501,40 @@ ou lista grande com nomes + números."
         </button>
         <button type="button" onclick="fecharModalBanco()">
           Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SEGMENTAÇÃO EM MASSA -->
+  <div id="modalSegmentacaoMassa" class="modal" aria-hidden="true">
+    <div
+      class="modal-content modal-content--pequeno"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-segmentacao"
+    >
+      <h3 id="titulo-modal-segmentacao">Aplicar segmentação em massa</h3>
+
+      <div class="grupo-campos">
+        <label for="segmentacaoEmMassa">Escolha a segmentação</label>
+        <select id="segmentacaoEmMassa">
+          <option value="DES">DES</option>
+          <option value="LON">LON</option>
+          <option value="FOR">FOR</option>
+          <option value="PAT">PAT</option>
+          <option value="NOVO">NOVO</option>
+          <option value="REED D1">REED D1</option>
+          <option value="PRO M1">PRO M1</option>
+        </select>
+      </div>
+
+      <div class="lista-acoes-modal">
+        <button type="button" class="btn-principal" onclick="salvarBancoEmMassa()">
+          Confirmar segmentação
+        </button>
+        <button type="button" onclick="fecharModalSegmentacao()">
+          Cancelar
         </button>
       </div>
     </div>
