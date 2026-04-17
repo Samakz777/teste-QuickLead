@@ -193,13 +193,19 @@ function obterDataHojeISO() {
 }
 
 function obterProximoDiaUtilISO() {
-  const data = new Date();
-  data.setDate(data.getDate() + 1);
+  const hoje = new Date();
+  const diaSemanaAtual = hoje.getDay(); // 0 domingo, 6 sábado
+  const data = new Date(hoje);
 
-  const diaSemana = data.getDay(); // 0 domingo, 6 sábado
-  if (diaSemana === 6) {
+  // Regra pedida:
+  // sexta -> sábado
+  // sábado -> segunda
+  // domingo -> segunda
+  if (diaSemanaAtual === 6) {
     data.setDate(data.getDate() + 2);
-  } else if (diaSemana === 0) {
+  } else if (diaSemanaAtual === 0) {
+    data.setDate(data.getDate() + 1);
+  } else {
     data.setDate(data.getDate() + 1);
   }
 
@@ -216,11 +222,6 @@ function atualizarDataPadraoPorTipo() {
 
   if (tipo === "inclusao") {
     dataInput.value = obterDataHojeISO();
-    return;
-  }
-
-  if (tipo === "reagendamento") {
-    dataInput.value = obterProximoDiaUtilISO();
     return;
   }
 
@@ -577,7 +578,6 @@ function extrairNumeroEStatusDaLinha(linha = "") {
   if (!numeros.length) return null;
 
   const numero = numeros[0];
-
   const matchStatusExplicito = texto.match(/-\s*([A-Za-zÀ-ÿ0-9\s]+)\s*$/);
 
   if (!matchStatusExplicito) {
@@ -1106,18 +1106,23 @@ function atualizarCampanhas() {
   const reedMap = {};
   const proMap = {};
 
-  for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
-  for (let i = 1; i <= 12; i++) proMap[`M${i}`] = [];
+  for (let i = 1; i <= 30; i++) {
+    reedMap[`D${i}`] = [];
+  }
+
+  for (let i = 1; i <= 12; i++) {
+    proMap[`M${i}`] = [];
+  }
 
   bancoLeads.forEach((lead) => {
     const info = decomporStatus(lead.tipo);
     const numero = limparNumero(lead.numero);
 
-    if (info.segmento === "REED") {
+    if (info.segmento === "REED" && info.baseValor >= 1 && info.baseValor <= 30) {
       reedMap[`D${info.baseValor}`].push(numero);
     }
 
-    if (info.segmento === "PRO") {
+    if (info.segmento === "PRO" && info.baseValor >= 1 && info.baseValor <= 12) {
       proMap[`M${info.baseValor}`].push(numero);
     }
   });
@@ -1309,13 +1314,13 @@ function agendar() {
   agendamentos.push(novoAgendamento);
   salvar();
 
-  // Atualiza agenda se a data que está aberta for a mesma
-  if (filtroData && filtroData.value === novoAgendamento.data) {
-    filtrarAgenda();
+  if (filtroData) {
+    filtroData.value = novoAgendamento.data;
   }
+  filtrarAgenda();
 
-  // Atualiza relatório se a data aberta for a mesma
-  if (dataRelatorio && dataRelatorio.value === novoAgendamento.data) {
+  if (dataRelatorio) {
+    dataRelatorio.value = novoAgendamento.data;
     gerarRelatorio();
   }
 
@@ -1515,6 +1520,8 @@ function gerarRelatorio() {
       totalReagendamentos += quantidadePessoas;
     } else if (registro.tipo === "inclusao") {
       totalInclusoes += quantidadePessoas;
+      contagemPorUnidade[registro.unidade] =
+        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
     }
   });
 
