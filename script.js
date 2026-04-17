@@ -197,16 +197,12 @@ function obterProximoDiaUtilISO() {
   const diaSemanaAtual = hoje.getDay(); // 0 domingo, 6 sábado
   const data = new Date(hoje);
 
-  // Regra pedida:
-  // sexta -> sábado
-  // sábado -> segunda
-  // domingo -> segunda
   if (diaSemanaAtual === 6) {
-    data.setDate(data.getDate() + 2);
+    data.setDate(data.getDate() + 2); // sábado -> segunda
   } else if (diaSemanaAtual === 0) {
-    data.setDate(data.getDate() + 1);
+    data.setDate(data.getDate() + 1); // domingo -> segunda
   } else {
-    data.setDate(data.getDate() + 1);
+    data.setDate(data.getDate() + 1); // sexta -> sábado
   }
 
   const ano = data.getFullYear();
