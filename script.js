@@ -182,6 +182,42 @@ function diferencaEmMeses(inicioISO, fim = new Date()) {
 }
 
 // =========================
+// COMPATIBILIDADE DE REGISTROS ANTIGOS
+// =========================
+function normalizarAgendamento(agendamento = {}) {
+  if (Array.isArray(agendamento.pessoas) && agendamento.pessoas.length) {
+    return {
+      ...agendamento,
+      pessoas: agendamento.pessoas.map((pessoa) => ({
+        nome: (pessoa?.nome || "").trim(),
+        numero: limparNumero(pessoa?.numero || ""),
+        observacao: (pessoa?.observacao || "").trim(),
+        senha: pessoa?.senha || ""
+      }))
+    };
+  }
+
+  // Compatibilidade com formato antigo:
+  // { nome, numero, senha, unidade, data, hora, tipo }
+  const pessoaLegacy = {
+    nome: (agendamento.nome || "").trim(),
+    numero: limparNumero(agendamento.numero || ""),
+    observacao: (agendamento.observacao || "").trim(),
+    senha: agendamento.senha || ""
+  };
+
+  return {
+    ...agendamento,
+    tipo: agendamento.tipo || "agendamento",
+    pessoas: [pessoaLegacy]
+  };
+}
+
+function normalizarAgendamentosExistentes() {
+  agendamentos = agendamentos.map((item) => normalizarAgendamento(item));
+}
+
+// =========================
 // REGRAS DE DATA / HORA
 // =========================
 function obterDataHojeISO() {
@@ -197,12 +233,16 @@ function obterProximoDiaUtilISO() {
   const diaSemanaAtual = hoje.getDay(); // 0 domingo, 6 sábado
   const data = new Date(hoje);
 
+  // Regra pedida:
+  // sexta -> sábado
+  // sábado -> segunda
+  // domingo -> segunda
   if (diaSemanaAtual === 6) {
-    data.setDate(data.getDate() + 2); // sábado -> segunda
+    data.setDate(data.getDate() + 2);
   } else if (diaSemanaAtual === 0) {
-    data.setDate(data.getDate() + 1); // domingo -> segunda
+    data.setDate(data.getDate() + 1);
   } else {
-    data.setDate(data.getDate() + 1); // sexta -> sábado
+    data.setDate(data.getDate() + 1);
   }
 
   const ano = data.getFullYear();
@@ -1175,6 +1215,7 @@ function formatarHorario(hora = "") {
 
 function gerarSenhasParaAgendamento(data, quantidadePessoas) {
   const totalBase = agendamentos
+    .map((item) => normalizarAgendamento(item))
     .filter((item) => item.data === data)
     .reduce((acc, item) => acc + (item.pessoas?.length || 1), 0);
 
@@ -1213,10 +1254,11 @@ function validarAgendamento(dados) {
 }
 
 function gerarMensagemPaciente(agendamento) {
-  const dataFormatada = formatarDataBRCompleta(agendamento.data);
-  const horaFormatada = formatarHorario(agendamento.hora);
-  const nomes = juntarNomes(agendamento.pessoas);
-  const senhas = agendamento.pessoas.map((p) => p.senha).join(" e ");
+  const ag = normalizarAgendamento(agendamento);
+  const dataFormatada = formatarDataBRCompleta(ag.data);
+  const horaFormatada = formatarHorario(ag.hora);
+  const nomes = juntarNomes(ag.pessoas);
+  const senhas = ag.pessoas.map((p) => p.senha).join(" e ");
 
   return `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
 
@@ -1226,7 +1268,7 @@ function gerarMensagemPaciente(agendamento) {
 
 *Senhas: ${senhas}*
 
-*UNIDADE: ${agendamento.unidade}*
+*UNIDADE: ${ag.unidade}*
 
 *DATA: ${dataFormatada} às ${horaFormatada}!*
 
@@ -1244,20 +1286,21 @@ Projeto Enxergar 🌐`;
 }
 
 function gerarMensagemCRM(agendamento) {
-  const dataFormatada = formatarDataBRCompleta(agendamento.data);
-  const horaFormatada = formatarHorario(agendamento.hora);
+  const ag = normalizarAgendamento(agendamento);
+  const dataFormatada = formatarDataBRCompleta(ag.data);
+  const horaFormatada = formatarHorario(ag.hora);
 
   let texto = `CRM / CONTROLE INTERNO
 
-Tipo: ${agendamento.tipo.toUpperCase()}
-Unidade: ${agendamento.unidade}
+Tipo: ${ag.tipo.toUpperCase()}
+Unidade: ${ag.unidade}
 Data: ${dataFormatada}
 Hora: ${horaFormatada}
 
 Pessoas:
 `;
 
-  agendamento.pessoas.forEach((pessoa, index) => {
+  ag.pessoas.forEach((pessoa, index) => {
     texto += `
 ${index + 1}. ${pessoa.nome}
 Número: ${formatarNumero(pessoa.numero)}
@@ -1325,9 +1368,10 @@ function agendar() {
 }
 
 function mostrarModalComprovante(agendamento, tipo = "paciente") {
-  agendamentoAtual = agendamento;
+  const ag = normalizarAgendamento(agendamento);
+  agendamentoAtual = ag;
   tipoComprovanteAtual = tipo;
-  textoComprovante.value = gerarMensagem(agendamento, tipo);
+  textoComprovante.value = gerarMensagem(ag, tipo);
   modal.style.display = "flex";
   modal.setAttribute("aria-hidden", "false");
 }
@@ -1370,7 +1414,7 @@ function verComprovante(index, tipo = "paciente") {
 }
 
 function reenviarWhats(index, tipo = "paciente") {
-  const agendamento = agendamentos[index];
+  const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
   const numero = limparNumero(agendamento.pessoas?.[0]?.numero || "");
@@ -1380,14 +1424,18 @@ function reenviarWhats(index, tipo = "paciente") {
 }
 
 function transformarEmReagendamento(index) {
-  const agendamento = agendamentos[index];
+  const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
   if (!confirm(`Marcar este registro como reagendamento?\n\n${juntarNomes(agendamento.pessoas)}`)) {
     return;
   }
 
-  agendamento.tipo = "reagendamento";
+  agendamentos[index] = {
+    ...agendamento,
+    tipo: "reagendamento"
+  };
+
   salvar();
   filtrarAgenda();
 
@@ -1397,7 +1445,7 @@ function transformarEmReagendamento(index) {
 }
 
 function excluir(index) {
-  const agendamento = agendamentos[index];
+  const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
   if (!confirm(`Excluir o registro de ${juntarNomes(agendamento.pessoas)}?`)) return;
@@ -1422,7 +1470,7 @@ function filtrarAgenda() {
   }
 
   const listaDoDia = agendamentos
-    .map((item, index) => ({ ...item, indexOriginal: index }))
+    .map((item, index) => ({ ...normalizarAgendamento(item), indexOriginal: index }))
     .filter((item) => item.data === dataSelecionada)
     .sort((a, b) => a.hora.localeCompare(b.hora));
 
@@ -1483,7 +1531,7 @@ function gerarRelatorio() {
     return;
   }
 
-  const registros = agendamentos.filter((item) => item.data === dataSelecionada);
+  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
 
   const unidadesOrdem = [
     "Augusto Montenegro",
@@ -1563,6 +1611,8 @@ function inicializarFormulario() {
 }
 
 setTheme(temaSalvo);
+normalizarAgendamentosExistentes();
+salvar();
 inicializarFormulario();
 atualizarStatusAutomaticos();
 mostrarBanco();
