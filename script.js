@@ -1481,21 +1481,68 @@ function filtrarAgenda() {
 
   listaAgenda.innerHTML = listaDoDia.map((item) => {
     const nomes = juntarNomes(item.pessoas);
-    const numeros = item.pessoas.map((p) => formatarNumero(p.numero)).join(" / ");
     const senhas = item.pessoas.map((p) => p.senha).join(" / ");
+
+    // Bloco por pessoa com cópia individual de nome e número
+    const pessoasHTML = item.pessoas.map((p) => {
+      const nomeSafe = escaparHTML(p.nome || "");
+      const numeroFormatado = escaparHTML(formatarNumero(p.numero));
+      const numeroLimpo = limparNumero(p.numero);
+      const nomeLimpo = (p.nome || "").trim().replace(/'/g, "\\'");
+
+      return `
+        <div style="
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+          padding:8px 10px;
+          border-radius:10px;
+          background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%);
+          flex-wrap:wrap;
+        ">
+          <div>
+            <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span>
+            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span>
+            ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button
+              type="button"
+              onclick="copiarTexto('${nomeLimpo}', '✅ Nome copiado.')"
+              style="font-size:0.82rem; padding:6px 10px;"
+            >Copiar nome</button>
+            <button
+              type="button"
+              onclick="copiarTexto('${numeroLimpo}', '✅ Número copiado.')"
+              style="font-size:0.82rem; padding:6px 10px;"
+            >Copiar número</button>
+          </div>
+        </div>
+      `;
+    }).join("");
 
     return `
       <div class="agenda-item">
-        <p><strong>${escaparHTML(nomes)}</strong> — ${escaparHTML(item.unidade)} — ${escaparHTML(item.hora)}</p>
-        <p>Tipo: <strong>${escaparHTML(item.tipo.toUpperCase())}</strong></p>
-        <p>Senhas: <strong>${escaparHTML(senhas)}</strong></p>
-        <p>Números: <strong>${escaparHTML(numeros)}</strong></p>
+        <p>
+          <strong>${escaparHTML(nomes)}</strong>
+          — ${escaparHTML(item.unidade)}
+          — ${escaparHTML(item.hora)}
+        </p>
+        <p style="margin-bottom:10px;">
+          Tipo: <strong>${escaparHTML(item.tipo.toUpperCase())}</strong>
+          &nbsp;|&nbsp; Senhas: <strong>${escaparHTML(senhas)}</strong>
+        </p>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">📋 Comprovante Paciente</button>
-          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">📝 Comprovante CRM</button>
-          <button type="button" onclick="reenviarWhats(${item.indexOriginal}, 'paciente')">📱 Reenviar WhatsApp</button>
-          <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">🔁 Marcar Reagendamento</button>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+          ${pessoasHTML}
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">Comprovante Paciente</button>
+          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>
+          <button type="button" onclick="reenviarWhats(${item.indexOriginal}, 'paciente')">Reenviar WhatsApp</button>
+          <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">Marcar Reagendamento</button>
           <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
         </div>
       </div>
@@ -1599,6 +1646,173 @@ function copiarRelatorio() {
 }
 
 // =========================
+// MÓDULO CLIMA
+// =========================
+const UNIDADES_CLIMA = {
+  "Augusto Montenegro": { lat: -1.3403, lon: -48.4300 },
+  "Marabá":             { lat: -5.3686, lon: -49.1178 },
+  "Ananindeua":         { lat: -1.3700, lon: -48.4010 },
+  "Telégrafo":          { lat: -1.4400, lon: -48.4700 },
+  "Marambaia":          { lat: -1.4300, lon: -48.4650 },
+  "José Bonifácio":     { lat: -1.4580, lon: -48.4700 },
+  "Cidade Nova":        { lat: -1.4050, lon: -48.4300 },
+  "Jurunas":            { lat: -1.4610, lon: -48.4780 },
+  "Castanhal":          { lat: -1.2972, lon: -47.9218 },
+  "Capanema":           { lat: -1.1951, lon: -47.1819 }
+};
+
+function descricaoCodigoClima(codigo) {
+  if (codigo === 0) return "Céu limpo";
+  if (codigo <= 3) return "Nuvens variáveis";
+  if (codigo <= 48) return "Neblina";
+  if (codigo <= 55) return "Garoa";
+  if (codigo <= 65) return "Chuva";
+  if (codigo <= 82) return "Pancadas de chuva";
+  if (codigo <= 99) return "Tempestade";
+  return "Variável";
+}
+
+function riscoClimatico(probMax, precipTotal) {
+  if (probMax >= 70 || precipTotal >= 5) return "ALTO";
+  if (probMax >= 40 || precipTotal >= 2) return "MÉDIO";
+  return "BAIXO";
+}
+
+function analisarPeriodoDia(horly, indices) {
+  const itens = indices.map((i) => ({
+    hora: (horly.time[i] || "").split("T")[1]?.slice(0, 5) || "",
+    temp: horly.temperature_2m[i] || 0,
+    precipProb: horly.precipitation_probability[i] || 0,
+    precip: horly.precipitation[i] || 0,
+    codigo: horly.weathercode[i] || 0
+  }));
+
+  const probMax = Math.max(...itens.map((i) => i.precipProb));
+  const precipTotal = itens.reduce((s, i) => s + i.precip, 0);
+  const tempMedia = Math.round(itens.reduce((s, i) => s + i.temp, 0) / itens.length);
+  const codigoRepresentativo = itens[Math.floor(itens.length / 2)]?.codigo ?? 0;
+  const risco = riscoClimatico(probMax, precipTotal);
+
+  return {
+    probMax,
+    precipTotal: precipTotal.toFixed(1),
+    tempMedia,
+    codigoRepresentativo,
+    risco
+  };
+}
+
+async function buscarClimaUnidade() {
+  const selectUnidade = document.getElementById("climaUnidade");
+  const inputDataClima = document.getElementById("climaData");
+  const resultado = document.getElementById("climaResultado");
+
+  if (!selectUnidade || !resultado) return;
+
+  const unidadeNome = selectUnidade.value;
+  if (!unidadeNome) {
+    alert("Selecione uma unidade.");
+    return;
+  }
+
+  const coords = UNIDADES_CLIMA[unidadeNome];
+  if (!coords) {
+    resultado.innerHTML = "<p>Unidade sem coordenadas cadastradas.</p>";
+    return;
+  }
+
+  const dataAlvo = inputDataClima?.value || obterDataHojeISO();
+
+  resultado.innerHTML = `<p style="color:var(--texto-suave)">Buscando previsão para ${unidadeNome}...</p>`;
+
+  try {
+    const url = [
+      "https://api.open-meteo.com/v1/forecast",
+      `?latitude=${coords.lat}`,
+      `&longitude=${coords.lon}`,
+      "&hourly=temperature_2m,precipitation_probability,precipitation,weathercode",
+      "&timezone=America%2FBelem",
+      `&start_date=${dataAlvo}`,
+      `&end_date=${dataAlvo}`
+    ].join("");
+
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Falha na API");
+    const dados = await resp.json();
+    renderClimaResultado(dados, unidadeNome, dataAlvo);
+  } catch {
+    resultado.innerHTML = `<p style="color:var(--vermelho)">Não foi possível buscar a previsão. Verifique sua conexão.</p>`;
+  }
+}
+
+function renderClimaResultado(dados, unidade, dataISO) {
+  const resultado = document.getElementById("climaResultado");
+  if (!resultado || !dados.hourly) return;
+
+  const h = dados.hourly;
+
+  // Períodos: índices equivalem às horas 0–23 do dia consultado
+  const indicesManha = [7, 8, 9, 10, 11];
+  const indicesTarde = [12, 13, 14, 15, 16, 17];
+
+  const manha = analisarPeriodoDia(h, indicesManha);
+  const tarde = analisarPeriodoDia(h, indicesTarde);
+
+  const melhorPeriodo =
+    manha.probMax <= tarde.probMax ? "MANHÃ" : "TARDE";
+
+  const classeBox = (r) =>
+    r === "ALTO" ? "status-box--erro" : r === "MÉDIO" ? "status-box--alerta" : "status-box--ok";
+
+  const corRisco = (r) =>
+    r === "ALTO" ? "var(--vermelho)" : r === "MÉDIO" ? "var(--amarelo)" : "var(--verde)";
+
+  const dataBR = formatarDataBRCompleta(dataISO);
+
+  resultado.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <p style="font-size:0.94rem; color:var(--texto-suave);">
+        <strong>${escaparHTML(unidade)}</strong> — ${escaparHTML(dataBR)}
+      </p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="status-box ${classeBox(manha.risco)}">
+          <strong>Manhã (7h–11h)</strong>
+          <span>${escaparHTML(descricaoCodigoClima(manha.codigoRepresentativo))}</span>
+          <span>Prob. chuva: ${manha.probMax}%</span>
+          <span>Precip.: ${manha.precipTotal}mm</span>
+          <span>Temp: ~${manha.tempMedia}°C</span>
+          <span style="color:${corRisco(manha.risco)}; font-weight:700; margin-top:4px;">
+            Risco: ${manha.risco}
+          </span>
+        </div>
+
+        <div class="status-box ${classeBox(tarde.risco)}">
+          <strong>Tarde (12h–17h)</strong>
+          <span>${escaparHTML(descricaoCodigoClima(tarde.codigoRepresentativo))}</span>
+          <span>Prob. chuva: ${tarde.probMax}%</span>
+          <span>Precip.: ${tarde.precipTotal}mm</span>
+          <span>Temp: ~${tarde.tempMedia}°C</span>
+          <span style="color:${corRisco(tarde.risco)}; font-weight:700; margin-top:4px;">
+            Risco: ${tarde.risco}
+          </span>
+        </div>
+      </div>
+
+      <div class="status-box" style="border-color:rgba(0,170,255,0.35); background:rgba(0,170,255,0.08);">
+        <strong>Recomendação de horário</strong>
+        <span style="font-size:1.05rem; font-weight:700; color:var(--azul); margin:4px 0;">
+          Priorize agendamentos para a ${melhorPeriodo}
+        </span>
+        <span style="font-size:0.86rem; color:var(--texto-fraco);">
+          Isso não impede agendamentos — apenas indica o período com menor risco climático.
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+// =========================
 // INICIALIZAÇÃO
 // =========================
 function inicializarFormulario() {
@@ -1618,3 +1832,7 @@ atualizarStatusAutomaticos();
 mostrarBanco();
 atualizarCampanhas();
 atualizarStatusSync("Modo local ativo");
+
+// Define data padrão de hoje no campo clima
+const climaDataInput = document.getElementById("climaData");
+if (climaDataInput) climaDataInput.value = obterDataHojeISO();
