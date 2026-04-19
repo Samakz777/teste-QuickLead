@@ -1662,7 +1662,7 @@ const UNIDADES_CLIMA = {
 };
 
 // Horas operacionais analisadas (índices = hora do dia)
-const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const HORAS_ANALISE = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
 function descricaoCodigoClima(codigo) {
   if (codigo === 0) return "Céu limpo";
