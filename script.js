@@ -1661,9 +1661,12 @@ const UNIDADES_CLIMA = {
   "Capanema":           { lat: -1.1951, lon: -47.1819 }
 };
 
+// Horas operacionais analisadas (índices = hora do dia)
+const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
 function descricaoCodigoClima(codigo) {
   if (codigo === 0) return "Céu limpo";
-  if (codigo <= 3) return "Nuvens variáveis";
+  if (codigo <= 3) return "Parcialmente nublado";
   if (codigo <= 48) return "Neblina";
   if (codigo <= 55) return "Garoa";
   if (codigo <= 65) return "Chuva";
@@ -1672,34 +1675,102 @@ function descricaoCodigoClima(codigo) {
   return "Variável";
 }
 
-function riscoClimatico(probMax, precipTotal) {
-  if (probMax >= 70 || precipTotal >= 5) return "ALTO";
-  if (probMax >= 40 || precipTotal >= 2) return "MÉDIO";
+function emojiCodigoClima(codigo) {
+  if (codigo === 0) return "☀";
+  if (codigo <= 3) return "⛅";
+  if (codigo <= 48) return "🌫";
+  if (codigo <= 55) return "🌦";
+  if (codigo <= 65) return "🌧";
+  if (codigo <= 82) return "⛈";
+  if (codigo <= 99) return "⛈";
+  return "🌤";
+}
+
+// Retorna 0=BAIXO, 1=MÉDIO, 2=ALTO — com pontuação contínua para ordenação
+function pontuarHora(precipProb, precip, codigo) {
+  let score = 0;
+  score += precipProb * 0.6;           // peso maior na probabilidade
+  score += Math.min(precip * 20, 40);  // precip em mm, capped
+  if (codigo >= 61) score += 25;       // chuva confirmada no código
+  if (codigo >= 80) score += 20;       // pancadas / tempestade
+  return Math.round(score);
+}
+
+function nivelRisco(score) {
+  if (score >= 60) return "ALTO";
+  if (score >= 30) return "MÉDIO";
   return "BAIXO";
 }
 
-function analisarPeriodoDia(horly, indices) {
-  const itens = indices.map((i) => ({
-    hora: (horly.time[i] || "").split("T")[1]?.slice(0, 5) || "",
-    temp: horly.temperature_2m[i] || 0,
-    precipProb: horly.precipitation_probability[i] || 0,
-    precip: horly.precipitation[i] || 0,
-    codigo: horly.weathercode[i] || 0
-  }));
+function corRiscoCSS(nivel) {
+  if (nivel === "ALTO")  return "var(--vermelho)";
+  if (nivel === "MÉDIO") return "var(--amarelo)";
+  return "var(--verde)";
+}
 
-  const probMax = Math.max(...itens.map((i) => i.precipProb));
-  const precipTotal = itens.reduce((s, i) => s + i.precip, 0);
-  const tempMedia = Math.round(itens.reduce((s, i) => s + i.temp, 0) / itens.length);
-  const codigoRepresentativo = itens[Math.floor(itens.length / 2)]?.codigo ?? 0;
-  const risco = riscoClimatico(probMax, precipTotal);
+function corBarraClima(nivel) {
+  if (nivel === "ALTO")  return "#ff5252";
+  if (nivel === "MÉDIO") return "#ffd54f";
+  return "#00c853";
+}
 
-  return {
-    probMax,
-    precipTotal: precipTotal.toFixed(1),
-    tempMedia,
-    codigoRepresentativo,
-    risco
-  };
+// Encontra as melhores janelas contínuas de horário (mínimo 1 hora de duração)
+// Retorna array de { inicio, fim, scoreMedia } ordenadas por score (melhor primeiro)
+function encontrarJanelasOtimas(horas) {
+  // horas: array de { hora, score, nivel, ... }
+  const baixas = horas.filter((h) => h.nivel === "BAIXO");
+  if (!baixas.length) {
+    // Se não há BAIXO, pega as MÉDIO
+    const medias = horas.filter((h) => h.nivel === "MÉDIO");
+    if (!medias.length) return [];
+    // Janelas a partir das médias
+    return construirJanelas(medias, horas, 1);
+  }
+  return construirJanelas(baixas, horas, 1);
+}
+
+function construirJanelas(horasFiltradas, todasHoras, minHoras) {
+  // Agrupa horas consecutivas
+  const janelas = [];
+  let janela = [horasFiltradas[0]];
+
+  for (let i = 1; i < horasFiltradas.length; i++) {
+    const anterior = horasFiltradas[i - 1].hora;
+    const atual = horasFiltradas[i].hora;
+    if (atual === anterior + 1) {
+      janela.push(horasFiltradas[i]);
+    } else {
+      if (janela.length >= minHoras) janelas.push([...janela]);
+      janela = [horasFiltradas[i]];
+    }
+  }
+  if (janela.length >= minHoras) janelas.push(janela);
+
+  // Se não tem janela com mínimo, aceita janelas de 1 hora
+  if (!janelas.length && minHoras > 1) {
+    return construirJanelas(horasFiltradas, todasHoras, 1);
+  }
+
+  return janelas
+    .map((j) => ({
+      inicio: j[0].hora,
+      fim: j[j.length - 1].hora,
+      scoreMedia: Math.round(j.reduce((s, h) => s + h.score, 0) / j.length),
+      nivel: j[0].nivel
+    }))
+    .sort((a, b) => a.scoreMedia - b.scoreMedia)
+    .slice(0, 3); // top 3 janelas
+}
+
+function formatarJanela(inicio, fim) {
+  const h1 = String(inicio).padStart(2, "0");
+  // Fim = hora seguinte - 30min (ex: janela termina às 11 → exibe "às 11:30")
+  const fimHora = fim + 1;
+  const h2 = String(fimHora).padStart(2, "0");
+  if (inicio === fim) {
+    return `${h1}:00 às ${h1}:30`;
+  }
+  return `${h1}:00 às ${h2}:00`;
 }
 
 async function buscarClimaUnidade() {
@@ -1710,10 +1781,7 @@ async function buscarClimaUnidade() {
   if (!selectUnidade || !resultado) return;
 
   const unidadeNome = selectUnidade.value;
-  if (!unidadeNome) {
-    alert("Selecione uma unidade.");
-    return;
-  }
+  if (!unidadeNome) { alert("Selecione uma unidade."); return; }
 
   const coords = UNIDADES_CLIMA[unidadeNome];
   if (!coords) {
@@ -1722,8 +1790,7 @@ async function buscarClimaUnidade() {
   }
 
   const dataAlvo = inputDataClima?.value || obterDataHojeISO();
-
-  resultado.innerHTML = `<p style="color:var(--texto-suave)">Buscando previsão para ${unidadeNome}...</p>`;
+  resultado.innerHTML = `<p style="color:var(--texto-suave)">Buscando previsão horária para ${escaparHTML(unidadeNome)}...</p>`;
 
   try {
     const url = [
@@ -1751,63 +1818,236 @@ function renderClimaResultado(dados, unidade, dataISO) {
 
   const h = dados.hourly;
 
-  // Períodos: índices equivalem às horas 0–23 do dia consultado
-  const indicesManha = [7, 8, 9, 10, 11];
-  const indicesTarde = [12, 13, 14, 15, 16, 17];
+  // Monta array de horas analisadas com score e nível
+  const horasAnalisadas = HORAS_ANALISE.map((hora) => {
+    const i = hora; // índice = hora do dia para consulta de 1 dia
+    const precipProb = h.precipitation_probability[i] || 0;
+    const precip     = h.precipitation[i] || 0;
+    const temp       = h.temperature_2m[i] || 0;
+    const codigo     = h.weathercode[i] || 0;
+    const score      = pontuarHora(precipProb, precip, codigo);
+    const nivel      = nivelRisco(score);
 
-  const manha = analisarPeriodoDia(h, indicesManha);
-  const tarde = analisarPeriodoDia(h, indicesTarde);
+    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel };
+  });
 
-  const melhorPeriodo =
-    manha.probMax <= tarde.probMax ? "MANHÃ" : "TARDE";
+  // Divide em período manhã e tarde para resumo
+  const manha = horasAnalisadas.filter((h) => h.hora <= 11);
+  const tarde  = horasAnalisadas.filter((h) => h.hora >= 12);
 
-  const classeBox = (r) =>
-    r === "ALTO" ? "status-box--erro" : r === "MÉDIO" ? "status-box--alerta" : "status-box--ok";
+  const resumoPeriodo = (lista) => {
+    const scoreMax = Math.max(...lista.map((h) => h.score));
+    const probMax  = Math.max(...lista.map((h) => h.precipProb));
+    const tempMedia = Math.round(lista.reduce((s, h) => s + h.temp, 0) / lista.length);
+    const nivel = nivelRisco(scoreMax);
+    return { scoreMax, probMax, tempMedia, nivel };
+  };
 
-  const corRisco = (r) =>
-    r === "ALTO" ? "var(--vermelho)" : r === "MÉDIO" ? "var(--amarelo)" : "var(--verde)";
+  const resumoManha = resumoPeriodo(manha);
+  const resumoTarde  = resumoPeriodo(tarde);
+
+  // Janelas ideais
+  const janelas = encontrarJanelasOtimas(horasAnalisadas);
+
+  // Melhor hora individual (menor score)
+  const melhorHora = [...horasAnalisadas].sort((a, b) => a.score - b.score)[0];
 
   const dataBR = formatarDataBRCompleta(dataISO);
 
+  // ---- HTML ----
+  // 1. Linha do tempo hora a hora
+  const timelineHTML = horasAnalisadas.map((item) => {
+    const cor = corBarraClima(item.nivel);
+    const altura = Math.max(20, Math.round((item.score / 100) * 72) + 8);
+    const label = `${String(item.hora).padStart(2, "0")}h`;
+    const title = `${label}: ${descricaoCodigoClima(item.codigo)} · ${item.precipProb}% chuva · ${item.temp}°C`;
+
+    return `
+      <div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0;"
+           title="${escaparHTML(title)}">
+        <span style="font-size:10px; color:var(--texto-fraco); white-space:nowrap;">${item.precipProb}%</span>
+        <div style="
+          width:100%;
+          height:${altura}px;
+          background:${cor};
+          border-radius:4px 4px 0 0;
+          opacity:0.85;
+          min-height:8px;
+          position:relative;
+        "></div>
+        <span style="font-size:10px; color:var(--texto-suave);">${label}</span>
+        <span style="font-size:11px;">${emojiCodigoClima(item.codigo)}</span>
+      </div>
+    `;
+  }).join("");
+
+  // 2. Tabela detalhada hora a hora
+  const tabelaHTML = horasAnalisadas.map((item) => {
+    const cor = corRiscoCSS(item.nivel);
+    const bgOpac = item.nivel === "BAIXO"
+      ? "rgba(0,200,83,0.06)"
+      : item.nivel === "MÉDIO"
+      ? "rgba(255,213,79,0.06)"
+      : "rgba(255,82,82,0.06)";
+
+    return `
+      <tr style="background:${bgOpac}; border-bottom:1px solid var(--borda);">
+        <td style="padding:7px 10px; font-weight:700; white-space:nowrap;">
+          ${String(item.hora).padStart(2, "0")}:00
+        </td>
+        <td style="padding:7px 10px; font-size:1rem;">${emojiCodigoClima(item.codigo)}</td>
+        <td style="padding:7px 10px; color:var(--texto-suave); font-size:0.88rem;">
+          ${escaparHTML(descricaoCodigoClima(item.codigo))}
+        </td>
+        <td style="padding:7px 10px; text-align:center;">${item.precipProb}%</td>
+        <td style="padding:7px 10px; text-align:center; font-size:0.86rem; color:var(--texto-suave);">
+          ${item.precip.toFixed(1)}mm
+        </td>
+        <td style="padding:7px 10px; text-align:center; color:var(--texto-suave);">${item.temp}°C</td>
+        <td style="padding:7px 10px; text-align:center;">
+          <span style="
+            color:${cor};
+            font-weight:700;
+            font-size:0.82rem;
+            background:${bgOpac};
+            border:1px solid ${cor};
+            border-radius:6px;
+            padding:2px 8px;
+          ">${item.nivel}</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  // 3. Janelas recomendadas
+  const janelasPrincipal = janelas[0];
+  const janelasBlocos = janelas.map((j, idx) => {
+    const destaque = idx === 0;
+    const cor = corRiscoCSS(j.nivel);
+    const bg = destaque
+      ? "rgba(0,170,255,0.10)"
+      : "color-mix(in srgb, var(--bg-card) 90%, transparent 10%)";
+    const borda = destaque
+      ? "rgba(0,170,255,0.45)"
+      : "var(--borda)";
+    const prefixo = idx === 0 ? "Melhor janela" : idx === 1 ? "2ª opção" : "3ª opção";
+
+    return `
+      <div style="
+        border:1px solid ${borda};
+        border-radius:12px;
+        padding:12px 14px;
+        background:${bg};
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+      ">
+        <span style="font-size:0.78rem; color:var(--texto-fraco); text-transform:uppercase; letter-spacing:0.5px;">
+          ${prefixo}
+        </span>
+        <span style="font-size:1.08rem; font-weight:700; color:${destaque ? "var(--azul)" : "var(--texto)"};">
+          ${formatarJanela(j.inicio, j.fim)}
+        </span>
+        <span style="font-size:0.84rem; color:${cor};">Risco ${j.nivel}</span>
+      </div>
+    `;
+  }).join("");
+
+  // 4. Resumo manhã/tarde
+  const classeBox = (n) =>
+    n === "ALTO" ? "status-box--erro" : n === "MÉDIO" ? "status-box--alerta" : "status-box--ok";
+
   resultado.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:14px;">
-      <p style="font-size:0.94rem; color:var(--texto-suave);">
-        <strong>${escaparHTML(unidade)}</strong> — ${escaparHTML(dataBR)}
+    <div style="display:flex; flex-direction:column; gap:18px; padding-top:4px;">
+
+      <!-- Cabeçalho -->
+      <p style="font-size:0.94rem; color:var(--texto-suave); margin:0;">
+        <strong style="color:var(--texto);">${escaparHTML(unidade)}</strong> — ${escaparHTML(dataBR)}
       </p>
 
+      <!-- Linha do tempo visual -->
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Probabilidade de chuva por hora
+        </p>
+        <div style="
+          display:flex;
+          align-items:flex-end;
+          gap:4px;
+          padding:12px 10px 0;
+          background:color-mix(in srgb, var(--bg-input) 80%, transparent 20%);
+          border:1px solid var(--borda);
+          border-radius:14px;
+          overflow:hidden;
+        ">
+          ${timelineHTML}
+        </div>
+      </div>
+
+      <!-- Resumo manhã/tarde -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="status-box ${classeBox(manha.risco)}">
+        <div class="status-box ${classeBox(resumoManha.nivel)}">
           <strong>Manhã (7h–11h)</strong>
-          <span>${escaparHTML(descricaoCodigoClima(manha.codigoRepresentativo))}</span>
-          <span>Prob. chuva: ${manha.probMax}%</span>
-          <span>Precip.: ${manha.precipTotal}mm</span>
-          <span>Temp: ~${manha.tempMedia}°C</span>
-          <span style="color:${corRisco(manha.risco)}; font-weight:700; margin-top:4px;">
-            Risco: ${manha.risco}
+          <span>Pico de chuva: ${resumoManha.probMax}%</span>
+          <span>Temp. média: ~${resumoManha.tempMedia}°C</span>
+          <span style="color:${corRiscoCSS(resumoManha.nivel)}; font-weight:700; margin-top:4px;">
+            Risco geral: ${resumoManha.nivel}
           </span>
         </div>
-
-        <div class="status-box ${classeBox(tarde.risco)}">
-          <strong>Tarde (12h–17h)</strong>
-          <span>${escaparHTML(descricaoCodigoClima(tarde.codigoRepresentativo))}</span>
-          <span>Prob. chuva: ${tarde.probMax}%</span>
-          <span>Precip.: ${tarde.precipTotal}mm</span>
-          <span>Temp: ~${tarde.tempMedia}°C</span>
-          <span style="color:${corRisco(tarde.risco)}; font-weight:700; margin-top:4px;">
-            Risco: ${tarde.risco}
+        <div class="status-box ${classeBox(resumoTarde.nivel)}">
+          <strong>Tarde (12h–18h)</strong>
+          <span>Pico de chuva: ${resumoTarde.probMax}%</span>
+          <span>Temp. média: ~${resumoTarde.tempMedia}°C</span>
+          <span style="color:${corRiscoCSS(resumoTarde.nivel)}; font-weight:700; margin-top:4px;">
+            Risco geral: ${resumoTarde.nivel}
           </span>
         </div>
       </div>
 
-      <div class="status-box" style="border-color:rgba(0,170,255,0.35); background:rgba(0,170,255,0.08);">
-        <strong>Recomendação de horário</strong>
-        <span style="font-size:1.05rem; font-weight:700; color:var(--azul); margin:4px 0;">
-          Priorize agendamentos para a ${melhorPeriodo}
-        </span>
-        <span style="font-size:0.86rem; color:var(--texto-fraco);">
-          Isso não impede agendamentos — apenas indica o período com menor risco climático.
-        </span>
+      <!-- Janelas recomendadas -->
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Janelas ideais para agendamentos
+        </p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+          ${janelas.length ? janelasBlocos : `
+            <div class="status-box status-box--erro">
+              <strong>Dia de alto risco</strong>
+              <span>Nenhum período com risco baixo identificado.</span>
+              <span style="font-size:0.84rem; color:var(--texto-fraco);">
+                Melhor horário disponível: ${String(melhorHora.hora).padStart(2, "0")}:00
+              </span>
+            </div>
+          `}
+        </div>
       </div>
+
+      <!-- Tabela analítica hora a hora -->
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Análise detalhada hora a hora
+        </p>
+        <div style="overflow-x:auto; border-radius:12px; border:1px solid var(--borda);">
+          <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+            <thead>
+              <tr style="background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%);">
+                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Hora</th>
+                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;"></th>
+                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Condição</th>
+                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Chuva</th>
+                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Precip.</th>
+                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Temp.</th>
+                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Risco</th>
+              </tr>
+            </thead>
+            <tbody>${tabelaHTML}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0; padding-top:4px;">
+        Fonte: Open-Meteo · Dados horários · Não impede agendamentos, apenas orienta o melhor horário.
+      </p>
     </div>
   `;
 }
