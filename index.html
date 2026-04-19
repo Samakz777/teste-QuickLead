@@ -54,6 +54,9 @@
       <button type="button" onclick="trocarAba('relatorios')" aria-controls="relatorios">
         Relatórios
       </button>
+      <button type="button" onclick="trocarAba('clima')" aria-controls="clima">
+        Clima
+      </button>
     </nav>
 
     <main class="conteudo-principal">
@@ -459,6 +462,48 @@ ou lista grande com nomes + números."
           </div>
 
           <pre id="resultadoRelatorio" aria-live="polite"></pre>
+        </div>
+      </section>
+      <!-- CLIMA -->
+      <section id="clima" class="aba" aria-labelledby="titulo-clima">
+        <div class="card card--relatorio">
+          <div class="card__topo">
+            <h2 id="titulo-clima">Previsão do Tempo por Unidade</h2>
+            <p class="texto-apoio">
+              Consulte o clima por unidade e veja qual período do dia tem menor risco de chuva para agendamentos.
+            </p>
+          </div>
+
+          <div class="painel-agendamento-grid">
+            <div class="grupo-campos">
+              <label for="climaUnidade">Unidade</label>
+              <select id="climaUnidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="climaData">Data</label>
+              <input type="date" id="climaData">
+              <small class="texto-ajuda">Padrão: hoje. Use para consultar previsão de amanhã também.</small>
+            </div>
+          </div>
+
+          <button type="button" class="btn-principal" onclick="buscarClimaUnidade()">
+            Buscar Previsão
+          </button>
+
+          <div id="climaResultado"></div>
         </div>
       </section>
     </main>
