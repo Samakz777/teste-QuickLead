@@ -45,6 +45,110 @@ const textoComprovante = document.getElementById("textoComprovante");
 const modalAcoesBanco = document.getElementById("modalAcoesBanco");
 const modalSegmentacaoMassa = document.getElementById("modalSegmentacaoMassa");
 const syncStatusTexto = document.getElementById("syncStatusTexto");
+const toastContainer = document.getElementById("toastContainer");
+const modalConfirmacao = document.getElementById("modalConfirmacao");
+const modalConfirmacaoMensagem = document.getElementById("modalConfirmacaoMensagem");
+const modalConfirmacaoDetalhe = document.getElementById("modalConfirmacaoDetalhe");
+const btnConfirmarModalAcao = document.getElementById("btnConfirmarModalAcao");
+const modalEntrada = document.getElementById("modalEntrada");
+const modalEntradaInput = document.getElementById("modalEntradaInput");
+const modalEntradaLabel = document.getElementById("modalEntradaLabel");
+
+let resolverModalConfirmacao = null;
+let resolverModalEntrada = null;
+
+function mostrarToast(texto, tipo = "ok", subtexto = "") {
+  if (!toastContainer) {
+    console.log(texto);
+    return;
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast--${tipo}`;
+  toast.innerHTML = `
+    <div class="toast__corpo">
+      <div class="toast__texto">${escaparHTML(texto)}</div>
+      ${subtexto ? `<div class="toast__sub">${escaparHTML(subtexto)}</div>` : ""}
+    </div>
+    <button type="button" class="toast__fechar" aria-label="Fechar">×</button>
+  `;
+
+  const remover = () => {
+    toast.classList.add("saindo");
+    setTimeout(() => toast.remove(), 180);
+  };
+
+  toast.querySelector(".toast__fechar")?.addEventListener("click", remover);
+  toastContainer.appendChild(toast);
+  setTimeout(remover, 2800);
+}
+
+function abrirModalBase(modalEl) {
+  if (!modalEl) return;
+  modalEl.style.display = "flex";
+  modalEl.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalBase(modalEl) {
+  if (!modalEl) return;
+  modalEl.style.display = "none";
+  modalEl.setAttribute("aria-hidden", "true");
+}
+
+function confirmarAcao(mensagem, detalhe = "", textoConfirmar = "Confirmar") {
+  return new Promise((resolve) => {
+    if (!modalConfirmacao) {
+      resolve(window.confirm(mensagem));
+      return;
+    }
+
+    resolverModalConfirmacao = resolve;
+    if (modalConfirmacaoMensagem) modalConfirmacaoMensagem.textContent = mensagem;
+    if (modalConfirmacaoDetalhe) modalConfirmacaoDetalhe.textContent = detalhe || "";
+    if (btnConfirmarModalAcao) btnConfirmarModalAcao.textContent = textoConfirmar;
+    abrirModalBase(modalConfirmacao);
+  });
+}
+
+function fecharModalConfirmacao(confirmado = false) {
+  fecharModalBase(modalConfirmacao);
+  if (resolverModalConfirmacao) {
+    const fn = resolverModalConfirmacao;
+    resolverModalConfirmacao = null;
+    fn(confirmado);
+  }
+}
+
+function solicitarEntrada(label, valorInicial = "", titulo = "Editar campo") {
+  return new Promise((resolve) => {
+    if (!modalEntrada || !modalEntradaInput) {
+      resolve(window.prompt(label, valorInicial));
+      return;
+    }
+
+    resolverModalEntrada = resolve;
+    const tituloEl = document.getElementById("titulo-modal-entrada");
+    if (tituloEl) tituloEl.textContent = titulo;
+    if (modalEntradaLabel) modalEntradaLabel.textContent = label;
+    modalEntradaInput.value = valorInicial || "";
+    abrirModalBase(modalEntrada);
+    setTimeout(() => modalEntradaInput.focus(), 30);
+  });
+}
+
+function confirmarModalEntrada() {
+  fecharModalEntrada(modalEntradaInput?.value ?? "");
+}
+
+function fecharModalEntrada(valor = null) {
+  fecharModalBase(modalEntrada);
+  if (resolverModalEntrada) {
+    const fn = resolverModalEntrada;
+    resolverModalEntrada = null;
+    fn(valor);
+  }
+}
+
 
 // =========================
 // BASE / UTILIDADES
@@ -63,6 +167,13 @@ function trocarAba(id) {
   document.querySelectorAll(".aba").forEach((aba) => aba.classList.remove("ativa"));
   const abaDestino = document.getElementById(id);
   if (abaDestino) abaDestino.classList.add("ativa");
+
+  document.querySelectorAll("nav.menu button").forEach((btn) => btn.classList.remove("ativo"));
+  const botaoAtivo = Array.from(document.querySelectorAll("nav.menu button")).find((btn) => {
+    const destino = btn.getAttribute("aria-controls") || "";
+    return destino === id || btn.getAttribute("onclick")?.includes(`'${id}'`);
+  });
+  if (botaoAtivo) botaoAtivo.classList.add("ativo");
 }
 
 function limparNumero(texto = "") {
@@ -105,7 +216,7 @@ function copiarTexto(texto, mensagem = "✅ Copiado com sucesso!") {
 
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(texto)
-      .then(() => alert(mensagem))
+      .then(() => mostrarToast(mensagem, "ok"))
       .catch(() => fallbackCopiarTexto(texto, mensagem));
     return;
   }
@@ -120,7 +231,7 @@ function fallbackCopiarTexto(texto, mensagem) {
   area.select();
   document.execCommand("copy");
   document.body.removeChild(area);
-  alert(mensagem);
+  mostrarToast(mensagem, "ok");
 }
 
 function agoraISO() {
@@ -357,7 +468,7 @@ function removerPessoa(index) {
   if (!listaPessoas) return;
   const blocos = listaPessoas.querySelectorAll(".pessoa-bloco");
   if (blocos.length <= 1) {
-    alert("É necessário manter pelo menos uma pessoa no agendamento.");
+    mostrarToast("É necessário manter pelo menos uma pessoa no agendamento.", "aviso");
     return;
   }
 
@@ -716,7 +827,7 @@ function salvarBanco() {
 
 function abrirSegmentacaoEmMassa() {
   if (!entradaBanco.value.trim()) {
-    alert("Cole uma lista no banco antes de aplicar segmentação em massa.");
+    mostrarToast("Cole uma lista no banco antes de aplicar segmentação em massa.", "aviso");
     return;
   }
 
@@ -732,20 +843,20 @@ function fecharModalSegmentacao() {
 function salvarBancoEmMassa() {
   const texto = entradaBanco.value.trim();
   if (!texto) {
-    alert("Cole uma lista no campo do banco primeiro.");
+    mostrarToast("Cole uma lista no campo do banco primeiro.", "aviso");
     return;
   }
 
   const numeros = extrairTodosNumerosValidos(texto);
   if (!numeros.length) {
-    alert("Nenhum número válido foi encontrado.");
+    mostrarToast("Nenhum número válido foi encontrado.", "erro");
     return;
   }
 
   const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES");
 
   if (!statusSelecionado) {
-    alert("Selecione uma segmentação válida.");
+    mostrarToast("Selecione uma segmentação válida.", "aviso");
     return;
   }
 
@@ -897,13 +1008,13 @@ function aplicarFiltrosBanco() {
   mostrarBanco();
 }
 
-function limparBancoCompleto() {
+async function limparBancoCompleto() {
   if (!bancoLeads.length) {
-    alert("O banco já está vazio.");
+    mostrarToast("O banco já está vazio.", "info");
     return;
   }
 
-  if (!confirm("Tem certeza que deseja apagar todo o banco de leads?")) return;
+  if (!(await confirmarAcao("Tem certeza que deseja apagar todo o banco de leads?", "Essa ação remove todos os leads salvos localmente.", "Apagar tudo"))) return;
 
   bancoLeads = [];
   salvar();
@@ -915,7 +1026,7 @@ function limparBancoCompleto() {
   if (filtroDiaReed) filtroDiaReed.value = "";
   if (filtroMesPro) filtroMesPro.value = "";
 
-  alert("✅ Banco apagado com sucesso.");
+  mostrarToast("Banco apagado com sucesso.", "ok");
 }
 
 function abrirAcoesBanco(index) {
@@ -934,12 +1045,12 @@ function fecharModalBanco() {
   }
 }
 
-function editarLeadSelecionado() {
+async function editarLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
 
-  const novoNumero = prompt("Editar número:", lead.numero);
+  const novoNumero = await solicitarEntrada("Editar número", lead.numero, "Editar lead");
   if (novoNumero === null) return;
 
   const novoStatus = prompt(
@@ -952,14 +1063,14 @@ function editarLeadSelecionado() {
   const statusNormalizado = normalizarStatus(novoStatus);
 
   if (!statusNormalizado) {
-    alert("Status inválido.");
+    mostrarToast("Status inválido.", "erro");
     return;
   }
 
   const info = decomporStatus(statusNormalizado);
 
   if (!numeroLimpo) {
-    alert("Número inválido.");
+    mostrarToast("Número inválido.", "erro");
     return;
   }
 
@@ -975,10 +1086,10 @@ function editarLeadSelecionado() {
   fecharModalBanco();
   salvar();
 
-  alert("✅ Lead atualizado com sucesso.");
+  mostrarToast("Lead atualizado com sucesso.", "ok");
 }
 
-function excluirLeadSelecionado() {
+async function excluirLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
@@ -992,12 +1103,12 @@ function excluirLeadSelecionado() {
   atualizarCampanhas();
   fecharModalBanco();
 
-  alert("✅ Lead excluído com sucesso.");
+  mostrarToast("Lead excluído com sucesso.", "ok");
 }
 
 function copiarBancoEmFileira() {
   if (!bancoLeads.length) {
-    alert("O banco está vazio.");
+    mostrarToast("O banco está vazio.", "info");
     return;
   }
 
@@ -1010,7 +1121,7 @@ function copiarBancoEmFileira() {
 
 function sincronizarAgora() {
   atualizarStatusSync("Sincronização online ainda não configurada");
-  alert("A estrutura já está pronta, mas a sincronização em tempo real depende de um banco online.");
+  mostrarToast("A sincronização em tempo real ainda não está configurada.", "info", "A base local já está pronta para evolução futura.");
 }
 
 // =========================
@@ -1120,7 +1231,7 @@ DESQUALIFICAR:
 function copiarAprovados() {
   const texto = saidaFiltro.value.trim();
   if (!texto) {
-    alert("Não há aprovados para copiar.");
+    mostrarToast("Não há aprovados para copiar.", "info");
     return;
   }
   copiarTexto(texto, "✅ Leads aprovados copiados.");
@@ -1185,7 +1296,7 @@ function atualizarCampanhas() {
 function copiarPainelReed() {
   const texto = painelReed?.value?.trim() || "";
   if (!texto) {
-    alert("Não há REED para copiar.");
+    mostrarToast("Não há REED para copiar.", "info");
     return;
   }
   copiarTexto(texto, "✅ Painel REED copiado.");
@@ -1194,7 +1305,7 @@ function copiarPainelReed() {
 function copiarPainelPro() {
   const texto = painelPro?.value?.trim() || "";
   if (!texto) {
-    alert("Não há PRO para copiar.");
+    mostrarToast("Não há PRO para copiar.", "info");
     return;
   }
   copiarTexto(texto, "✅ Painel PRO copiado.");
@@ -1229,23 +1340,23 @@ function gerarSenhasParaAgendamento(data, quantidadePessoas) {
 
 function validarAgendamento(dados) {
   if (!dados.unidade || !dados.data || !dados.hora) {
-    alert("Preencha unidade, data e horário.");
+    mostrarToast("Preencha unidade, data e horário.", "aviso");
     return false;
   }
 
   if (!dados.pessoas.length) {
-    alert("Adicione pelo menos uma pessoa.");
+    mostrarToast("Adicione pelo menos uma pessoa.", "aviso");
     return false;
   }
 
   for (const pessoa of dados.pessoas) {
     if (!pessoa.nome || pessoa.nome.length < 3) {
-      alert("Preencha um nome válido para cada pessoa.");
+      mostrarToast("Preencha um nome válido para cada pessoa.", "aviso");
       return false;
     }
 
     if (!pessoa.numero || pessoa.numero.length < 10) {
-      alert("Preencha um número válido para cada pessoa.");
+      mostrarToast("Preencha um número válido para cada pessoa.", "aviso");
       return false;
     }
   }
@@ -1322,7 +1433,7 @@ function gerarMensagem(agendamento, tipo = "paciente") {
   return gerarMensagemPaciente(agendamento);
 }
 
-function agendar() {
+async function agendar() {
   const pessoas = coletarPessoasFormulario();
   const tipo = tipoAgendamentoInput?.value || "agendamento";
 
@@ -1335,7 +1446,7 @@ function agendar() {
   };
 
   if (!validarAgendamento(dados)) return;
-  if (!confirm("Confirmar agendamento?")) return;
+  if (!(await confirmarAcao("Confirmar agendamento?", "As senhas serão geradas e o comprovante será aberto.", "Confirmar"))) return;
 
   const senhas = gerarSenhasParaAgendamento(dados.data, dados.pessoas.length);
 
@@ -1423,7 +1534,7 @@ function reenviarWhats(index, tipo = "paciente") {
   window.open(link, "_blank");
 }
 
-function transformarEmReagendamento(index) {
+async function transformarEmReagendamento(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
@@ -1444,11 +1555,11 @@ function transformarEmReagendamento(index) {
   }
 }
 
-function excluir(index) {
+async function excluir(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
-  if (!confirm(`Excluir o registro de ${juntarNomes(agendamento.pessoas)}?`)) return;
+  if (!(await confirmarAcao("Excluir este registro?", juntarNomes(agendamento.pessoas), "Excluir"))) return;
 
   const dataExcluida = agendamento.data;
 
@@ -1465,7 +1576,7 @@ function filtrarAgenda() {
   const dataSelecionada = filtroData.value;
 
   if (!dataSelecionada) {
-    alert("Selecione uma data.");
+    mostrarToast("Selecione uma data.", "aviso");
     return;
   }
 
@@ -1574,7 +1685,7 @@ function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
 
   if (!dataSelecionada) {
-    alert("Selecione uma data.");
+    mostrarToast("Selecione uma data.", "aviso");
     return;
   }
 
@@ -1639,7 +1750,7 @@ function gerarRelatorio() {
 function copiarRelatorio() {
   const texto = resultadoRelatorio.textContent.trim();
   if (!texto) {
-    alert("Gere um relatório primeiro.");
+    mostrarToast("Gere um relatório primeiro.", "aviso");
     return;
   }
   copiarTexto(texto, "✅ Relatório copiado.");
@@ -1781,7 +1892,7 @@ async function buscarClimaUnidade() {
   if (!selectUnidade || !resultado) return;
 
   const unidadeNome = selectUnidade.value;
-  if (!unidadeNome) { alert("Selecione uma unidade."); return; }
+  if (!unidadeNome) { mostrarToast("Selecione uma unidade.", "aviso"); return; }
 
   const coords = UNIDADES_CLIMA[unidadeNome];
   if (!coords) {
@@ -2076,3 +2187,28 @@ atualizarStatusSync("Modo local ativo");
 // Define data padrão de hoje no campo clima
 const climaDataInput = document.getElementById("climaData");
 if (climaDataInput) climaDataInput.value = obterDataHojeISO();
+
+
+document.querySelectorAll(".modal").forEach((modalEl) => {
+  modalEl.addEventListener("click", (event) => {
+    if (event.target === modalEl) {
+      if (modalEl === modalConfirmacao) fecharModalConfirmacao(false);
+      else if (modalEl === modalEntrada) fecharModalEntrada(null);
+      else if (modalEl === modalAcoesBanco) fecharModalBanco();
+      else if (modalEl === modalSegmentacaoMassa) fecharModalSegmentacao();
+      else if (modalEl === modal) fecharModal();
+    }
+  });
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (modalConfirmacao?.style.display === "flex") fecharModalConfirmacao(false);
+    if (modalEntrada?.style.display === "flex") fecharModalEntrada(null);
+  }
+  if (event.key === "Enter" && modalEntrada?.style.display === "flex" && document.activeElement === modalEntradaInput) {
+    confirmarModalEntrada();
+  }
+});
+
+trocarAba("agendamento");
