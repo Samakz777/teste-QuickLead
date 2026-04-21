@@ -264,15 +264,36 @@ function capitalizar(texto = "") {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-function definirDataRapida(campoId, tipo = "hoje") {
+function criarListaDatas(qtdDias = 45) {
+  const lista = [];
+  const base = new Date();
+  for (let i = 0; i < qtdDias; i++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const label = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} · ${capitalizar(d.toLocaleDateString("pt-BR", { weekday: "short" }).replace('.', ''))}`;
+    lista.push({ value: iso, label });
+  }
+  return lista;
+}
+
+function preencherSelectData(campoId, qtdDias = 45, valorPadrao = "") {
   const campo = document.getElementById(campoId);
   if (!campo) return;
-  if (tipo === "hoje") campo.value = obterDataHojeISO();
-  else if (tipo === "amanha") {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    campo.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  } else if (tipo === "proximoUtil") campo.value = obterProximoDiaUtilISO();
+  const opcoes = criarListaDatas(qtdDias);
+  campo.innerHTML = opcoes.map((item) => `<option value="${item.value}">${item.label}</option>`).join("");
+  if (valorPadrao && opcoes.some((item) => item.value === valorPadrao)) {
+    campo.value = valorPadrao;
+  } else if (!campo.value && opcoes.length) {
+    campo.value = opcoes[0].value;
+  }
+}
+
+function atualizarSelectsDeData() {
+  preencherSelectData("data", 45, tipoAgendamentoInput?.value === "inclusao" ? obterDataHojeISO() : obterProximoDiaUtilISO());
+  preencherSelectData("filtroData", 45, filtroData?.value || obterDataHojeISO());
+  preencherSelectData("dataRelatorio", 45, dataRelatorio?.value || obterDataHojeISO());
+  preencherSelectData("climaData", 10, document.getElementById("climaData")?.value || obterDataHojeISO());
 }
 
 function normalizarHorarioDigitado(valor = "") {
@@ -402,13 +423,9 @@ function atualizarDataPadraoPorTipo() {
   if (!dataInput || !tipoAgendamentoInput) return;
 
   const tipo = tipoAgendamentoInput.value;
-
-  if (tipo === "inclusao") {
-    dataInput.value = obterDataHojeISO();
-    return;
-  }
-
-  dataInput.value = obterProximoDiaUtilISO();
+  const valor = tipo === "inclusao" ? obterDataHojeISO() : obterProximoDiaUtilISO();
+  atualizarSelectsDeData();
+  dataInput.value = valor;
 }
 
 function preencherHorarios() {
@@ -1678,7 +1695,7 @@ function filtrarAgenda() {
     const senhas = item.pessoas.map((p) => p.senha).join(" / ");
 
     // Bloco por pessoa com cópia individual de nome e número
-    const pessoasHTML = item.pessoas.map((p) => {
+    const pessoasHTML = item.pessoas.map((p, indexPessoa) => {
       const nomeSafe = escaparHTML(p.nome || "");
       const numeroFormatado = escaparHTML(formatarNumero(p.numero));
       const numeroLimpo = limparNumero(p.numero);
@@ -1701,6 +1718,13 @@ function filtrarAgenda() {
             ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button
+              type="button"
+              class="btn-lapis"
+              onclick="editarNomeAgendado(${item.indexOriginal}, ${indexPessoa})"
+              title="Editar nome do paciente"
+              style="font-size:0.82rem; padding:6px 10px;"
+            >✏</button>
             <button
               type="button"
               onclick="copiarTexto('${nomeLimpo}', '✅ Nome copiado.')"
@@ -1793,7 +1817,9 @@ function gerarRelatorio() {
     return;
   }
 
-  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
+  const registros = agendamentos
+    .map(normalizarAgendamento)
+    .filter((item) => item.data === dataSelecionada && item.tipo === "agendamento");
 
   const unidadesOrdem = [
     "Augusto Montenegro",
@@ -1812,41 +1838,36 @@ function gerarRelatorio() {
   unidadesOrdem.forEach((u) => { contagemPorUnidade[u] = 0; });
 
   let totalAgendamentos = 0;
-  let totalReagendamentos = 0;
-  let totalInclusoes = 0;
 
   registros.forEach((registro) => {
     const quantidadePessoas = registro.pessoas?.length || 1;
-
-    if (registro.tipo === "agendamento") {
-      totalAgendamentos += quantidadePessoas;
-      contagemPorUnidade[registro.unidade] =
-        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
-    } else if (registro.tipo === "reagendamento") {
-      totalReagendamentos += quantidadePessoas;
-    } else if (registro.tipo === "inclusao") {
-      totalInclusoes += quantidadePessoas;
-      contagemPorUnidade[registro.unidade] =
-        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
-    }
+    totalAgendamentos += quantidadePessoas;
+    contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
   });
 
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
 
-  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
+  let texto = `*DIÁRIO*
+_*${nomeDia} ${dataCurta}*_
+`;
 
-  unidadesOrdem.forEach((unidade) => {
+  unidadesOrdem.forEach((unidade, idx) => {
     const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
     const total = contagemPorUnidade[unidade] || 0;
-    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
+    texto += `
+DIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
+    if (idx < unidadesOrdem.length - 1) texto += `
+`;
   });
 
-  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
-  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
-  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
-  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
-  texto += `\n*TMK: PAULO LOBATO*`;
+  texto += `
+
+*${totalAgendamentos} AGENDAMENTOS*`;
+  texto += `
+*TOTAL = ${totalAgendamentos}*`;
+  texto += `
+*TMK: PAULO LOBATO*`;
 
   resultadoRelatorio.textContent = texto;
 }
@@ -2265,6 +2286,7 @@ function renderClimaResultado(dados, unidade, dataISO) {
 // =========================
 function inicializarFormulario() {
   preencherHorarios();
+  atualizarSelectsDeData();
   limparFormularioAgendamento();
 
   if (tipoAgendamentoInput) {
