@@ -73,7 +73,7 @@ function mostrarToast(texto, tipo = "ok", subtexto = "") {
       <div class="toast__texto">${escaparHTML(texto)}</div>
       ${subtexto ? `<div class="toast__sub">${escaparHTML(subtexto)}</div>` : ""}
     </div>
-    <button type="button" class="toast__fechar" aria-label="Fechar">×</button>
+    <button type="button" class="toast__fechar" aria-label="Fechar">x</button>
   `;
 
   const remover = () => {
