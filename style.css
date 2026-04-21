@@ -745,3 +745,47 @@ input[list]::-webkit-calendar-picker-indicator { opacity: 0; }
 .agenda-card-acoes { display:flex; gap:8px; flex-wrap:wrap; }
 #listaBanco .agenda-item p, #painelBancoLista .agenda-item p { margin-bottom:6px; }
 @media (max-width: 860px) { .banco-paineis-acoes { flex-direction:column; } .agenda-paciente-linha { align-items:flex-start; } }
+
+
+/* ===== Ajustes finais focados no fluxo ===== */
+.atalhos-data { display: none !important; }
+.barra-operacional,
+#entradaBanco,
+#resumoBanco,
+#listaBanco .agenda-item,
+.banco-paineis-acoes > button,
+#painelBancoLista .agenda-item,
+.lista-compacta-aviso {
+  border-radius: var(--r-md) !important;
+}
+
+.barra-operacional .acoes-secundarias {
+  align-items: stretch;
+}
+
+.barra-operacional .acoes-secundarias > button {
+  border-radius: var(--r-md) !important;
+}
+
+select#data,
+select#filtroData,
+select#dataRelatorio,
+select#climaData {
+  cursor: pointer;
+}
+
+html[data-theme="light"] .barra-operacional,
+html[data-theme="light"] #entradaBanco,
+html[data-theme="light"] #resumoBanco,
+html[data-theme="light"] #listaBanco .agenda-item,
+html[data-theme="light"] #painelBancoLista .agenda-item,
+html[data-theme="light"] .lista-compacta-aviso {
+  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(247,251,255,0.96)) !important;
+  border-color: rgba(20,34,49,0.10) !important;
+  box-shadow: 0 12px 28px rgba(20,34,49,0.08) !important;
+}
+
+html[data-theme="light"] .banco-paineis-acoes > button,
+html[data-theme="light"] .barra-operacional .acoes-secundarias > button {
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(238,245,251,0.95)) !important;
+}
