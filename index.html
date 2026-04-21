@@ -83,19 +83,8 @@
 
             <div class="grupo-campos">
               <label for="unidade">Unidade</label>
-              <select id="unidade">
-                <option value="">Selecionar unidade</option>
-                <option>Augusto Montenegro</option>
-                <option>Marabá</option>
-                <option>Ananindeua</option>
-                <option>Telégrafo</option>
-                <option>Marambaia</option>
-                <option>José Bonifácio</option>
-                <option>Cidade Nova</option>
-                <option>Jurunas</option>
-                <option>Castanhal</option>
-                <option>Capanema</option>
-              </select>
+              <input id="unidade" list="listaUnidades" placeholder="Digite ou selecione a unidade">
+              <small class="texto-ajuda">Campo digitável para agilizar a seleção da unidade.</small>
             </div>
           </div>
 
@@ -103,6 +92,11 @@
             <div class="grupo-campos">
               <label for="data">Data</label>
               <input id="data" type="date">
+              <div class="atalhos-data">
+                <button type="button" class="btn-chip" onclick="definirDataRapida('data','hoje')">Hoje</button>
+                <button type="button" class="btn-chip" onclick="definirDataRapida('data','amanha')">Amanhã</button>
+                <button type="button" class="btn-chip" onclick="definirDataRapida('data','proximoUtil')">Próx. útil</button>
+              </div>
               <small class="texto-ajuda">
                 Padrão: próximo dia útil. Inclusão usa o mesmo dia.
               </small>
@@ -110,21 +104,20 @@
 
             <div class="grupo-campos">
               <label for="hora">Horário</label>
-              <select id="hora">
-                <option value="">Selecionar horário</option>
-              </select>
+              <input id="hora" type="text" list="listaHorarios" inputmode="numeric" placeholder="Digite ou selecione ex: 14:30">
+              <datalist id="listaHorarios"></datalist>
               <small class="texto-ajuda">
-                Minutos em intervalos de 10 em 10, mantendo a escolha da hora normalmente.
+                Você pode digitar seu horário manualmente ou aproveitar as sugestões de 10 em 10 minutos.
               </small>
             </div>
           </div>
 
           <div class="grupo-campos">
-            <label>Pessoas do agendamento</label>
+            <label>Pacientes do agendamento</label>
             <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
             <div class="acoes-secundarias">
               <button type="button" onclick="adicionarPessoa()">
-                + Adicionar pessoa
+                + Adicionar paciente
               </button>
             </div>
           </div>
@@ -148,6 +141,10 @@
           <div class="grupo-campos">
             <label for="filtroData">Selecionar data</label>
             <input type="date" id="filtroData">
+            <div class="atalhos-data">
+              <button type="button" class="btn-chip" onclick="definirDataRapida('filtroData','hoje')">Hoje</button>
+              <button type="button" class="btn-chip" onclick="definirDataRapida('filtroData','amanha')">Amanhã</button>
+            </div>
           </div>
 
           <button type="button" onclick="filtrarAgenda()">Atualizar</button>
@@ -169,7 +166,7 @@
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>NOVO e REED D1</span>
+              <span>REED D1</span>
             </div>
 
             <div class="status-box status-box--alerta">
@@ -302,7 +299,6 @@ ou lista grande com nomes + números."
               <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
               <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
                 <option value="">Todas</option>
-                <option value="NOVO">NOVO</option>
                 <option value="REED">REED</option>
                 <option value="PRO">PRO</option>
                 <option value="DES">DES</option>
@@ -378,6 +374,18 @@ ou lista grande com nomes + números."
             ></textarea>
           </div>
 
+          <div class="banco-paineis-acoes">
+            <button type="button" onclick="abrirPainelBanco('UTIL_AGORA')">Ver trabalháveis</button>
+            <button type="button" onclick="abrirPainelBanco('IGNORAR_AGORA')">Ver ignorar agora</button>
+            <button type="button" onclick="abrirPainelBanco('DESQUALIFICADO')">Ver desqualificados</button>
+            <button type="button" onclick="abrirPainelBanco('TODOS')">Ver todos em janela</button>
+          </div>
+
+          <div class="grupo-campos">
+            <label>Lista compacta do banco</label>
+            <small class="texto-ajuda">A área principal mostra uma visão resumida para não pesar a tela. Use os botões acima para abrir listas completas em janela.</small>
+          </div>
+
           <div id="listaBanco" aria-live="polite"></div>
         </div>
       </section>
@@ -450,6 +458,10 @@ ou lista grande com nomes + números."
           <div class="grupo-campos">
             <label for="dataRelatorio">Selecionar data</label>
             <input type="date" id="dataRelatorio">
+            <div class="atalhos-data">
+              <button type="button" class="btn-chip" onclick="definirDataRapida('dataRelatorio','hoje')">Hoje</button>
+              <button type="button" class="btn-chip" onclick="definirDataRapida('dataRelatorio','amanha')">Amanhã</button>
+            </div>
           </div>
 
           <div class="acoes-secundarias">
@@ -470,32 +482,24 @@ ou lista grande com nomes + números."
           <div class="card__topo">
             <h2 id="titulo-clima">Previsão do Tempo por Unidade</h2>
             <p class="texto-apoio">
-              Consulte o clima por região da unidade, veja a análise de 07h às 19h e identifique as melhores janelas para agendamento com base no risco de chuva.
+              Consulte o clima por unidade e veja qual período do dia tem menor risco de chuva para agendamentos.
             </p>
           </div>
 
           <div class="painel-agendamento-grid">
             <div class="grupo-campos">
               <label for="climaUnidade">Unidade</label>
-              <select id="climaUnidade">
-                <option value="">Selecionar unidade</option>
-                <option>Augusto Montenegro</option>
-                <option>Marabá</option>
-                <option>Ananindeua</option>
-                <option>Telégrafo</option>
-                <option>Marambaia</option>
-                <option>José Bonifácio</option>
-                <option>Cidade Nova</option>
-                <option>Jurunas</option>
-                <option>Castanhal</option>
-                <option>Capanema</option>
-              </select>
+              <input id="climaUnidade" list="listaUnidades" placeholder="Digite ou selecione a unidade">
             </div>
 
             <div class="grupo-campos">
               <label for="climaData">Data</label>
               <input type="date" id="climaData">
-              <small class="texto-ajuda">Faixa analisada: 07h às 19h. O clima funciona como apoio operacional para escolher os melhores horários.</small>
+              <div class="atalhos-data">
+                <button type="button" class="btn-chip" onclick="definirDataRapida('climaData','hoje')">Hoje</button>
+                <button type="button" class="btn-chip" onclick="definirDataRapida('climaData','amanha')">Amanhã</button>
+              </div>
+              <small class="texto-ajuda">Padrão: hoje. O risco mostra a chuva e, ao lado, a porcentagem estimada de confiança da leitura.</small>
             </div>
           </div>
 
@@ -503,7 +507,7 @@ ou lista grande com nomes + números."
             Buscar Previsão
           </button>
 
-          <div id="climaResultado" class="clima-resultado" aria-live="polite"></div>
+          <div id="climaResultado"></div>
         </div>
       </section>
     </main>
@@ -521,9 +525,9 @@ ou lista grande com nomes + números."
       <textarea id="textoComprovante" readonly></textarea>
 
       <div class="botoes">
-        <button type="button" onclick="copiarComprovante()">📋 Copiar</button>
-        <button type="button" onclick="enviarWhats()">📱 Enviar WhatsApp</button>
-        <button type="button" onclick="fecharModal()">✅ OK</button>
+        <button type="button" onclick="copiarComprovante()">Copiar</button>
+        <button type="button" onclick="enviarWhats()">Enviar WhatsApp</button>
+        <button type="button" onclick="fecharModal()">Fechar</button>
       </div>
     </div>
   </div>
@@ -569,7 +573,6 @@ ou lista grande com nomes + números."
           <option value="LON">LON</option>
           <option value="FOR">FOR</option>
           <option value="PAT">PAT</option>
-          <option value="NOVO">NOVO</option>
           <option value="REED D1">REED D1</option>
           <option value="PRO M1">PRO M1</option>
         </select>
@@ -582,6 +585,70 @@ ou lista grande com nomes + números."
         <button type="button" onclick="fecharModalSegmentacao()">
           Cancelar
         </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="modalConfirmacao" class="modal" aria-hidden="true">
+    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-confirmacao">
+      <div class="modal__header">
+        <h3 id="titulo-modal-confirmacao" class="modal__titulo">Confirmar ação</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalConfirmacao()">×</button>
+      </div>
+      <div class="modal-confirmacao__corpo">
+        <p id="modalConfirmacaoMensagem" class="modal-confirmacao__mensagem">Deseja continuar?</p>
+        <p id="modalConfirmacaoDetalhe" class="modal-confirmacao__detail"></p>
+      </div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalConfirmacao(false)">Cancelar</button>
+        <button type="button" class="btn-principal" id="btnConfirmarModalAcao" onclick="fecharModalConfirmacao(true)">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEntrada" class="modal" aria-hidden="true">
+    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-entrada">
+      <div class="modal__header">
+        <h3 id="titulo-modal-entrada" class="modal__titulo">Editar campo</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalEntrada(null)">×</button>
+      </div>
+      <div class="grupo-campos">
+        <label for="modalEntradaInput" id="modalEntradaLabel">Valor</label>
+        <input type="text" id="modalEntradaInput">
+      </div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalEntrada(null)">Cancelar</button>
+        <button type="button" class="btn-principal" onclick="confirmarModalEntrada()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="listaUnidades">
+    <option value="Augusto Montenegro"></option>
+    <option value="Marabá"></option>
+    <option value="Ananindeua"></option>
+    <option value="Telégrafo"></option>
+    <option value="Marambaia"></option>
+    <option value="José Bonifácio"></option>
+    <option value="Cidade Nova"></option>
+    <option value="Jurunas"></option>
+    <option value="Castanhal"></option>
+    <option value="Capanema"></option>
+  </datalist>
+
+  <div id="modalPainelBanco" class="modal" aria-hidden="true">
+    <div class="modal-content modal-content--grande" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-painel-banco">
+      <div class="modal__header">
+        <h3 id="titulo-modal-painel-banco" class="modal__titulo">Painel do banco</h3>
+        <button type="button" class="modal__fechar" onclick="fecharPainelBanco()">×</button>
+      </div>
+      <div id="painelBancoResumo" class="texto-apoio" style="margin-bottom:12px;"></div>
+      <div id="painelBancoLista" class="painel-banco-lista"></div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharPainelBanco()">Fechar</button>
       </div>
     </div>
   </div>
