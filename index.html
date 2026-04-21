@@ -470,7 +470,7 @@ ou lista grande com nomes + números."
           <div class="card__topo">
             <h2 id="titulo-clima">Previsão do Tempo por Unidade</h2>
             <p class="texto-apoio">
-              Consulte o clima por unidade e veja qual período do dia tem menor risco de chuva para agendamentos.
+              Consulte o clima por região da unidade, veja a análise de 07h às 19h e identifique as melhores janelas para agendamento com base no risco de chuva.
             </p>
           </div>
 
@@ -495,7 +495,7 @@ ou lista grande com nomes + números."
             <div class="grupo-campos">
               <label for="climaData">Data</label>
               <input type="date" id="climaData">
-              <small class="texto-ajuda">Padrão: hoje. Use para consultar previsão de amanhã também.</small>
+              <small class="texto-ajuda">Faixa analisada: 07h às 19h. O clima funciona como apoio operacional para escolher os melhores horários.</small>
             </div>
           </div>
 
@@ -503,7 +503,7 @@ ou lista grande com nomes + números."
             Buscar Previsão
           </button>
 
-          <div id="climaResultado"></div>
+          <div id="climaResultado" class="clima-resultado" aria-live="polite"></div>
         </div>
       </section>
     </main>
@@ -521,9 +521,9 @@ ou lista grande com nomes + números."
       <textarea id="textoComprovante" readonly></textarea>
 
       <div class="botoes">
-        <button type="button" onclick="copiarComprovante()">Copiar</button>
-        <button type="button" onclick="enviarWhats()">Enviar WhatsApp</button>
-        <button type="button" onclick="fecharModal()">Fechar</button>
+        <button type="button" onclick="copiarComprovante()">📋 Copiar</button>
+        <button type="button" onclick="enviarWhats()">📱 Enviar WhatsApp</button>
+        <button type="button" onclick="fecharModal()">✅ OK</button>
       </div>
     </div>
   </div>
@@ -582,43 +582,6 @@ ou lista grande com nomes + números."
         <button type="button" onclick="fecharModalSegmentacao()">
           Cancelar
         </button>
-      </div>
-    </div>
-  </div>
-
-
-  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-  <div id="modalConfirmacao" class="modal" aria-hidden="true">
-    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-confirmacao">
-      <div class="modal__header">
-        <h3 id="titulo-modal-confirmacao" class="modal__titulo">Confirmar ação</h3>
-        <button type="button" class="modal__fechar" onclick="fecharModalConfirmacao()">×</button>
-      </div>
-      <div class="modal-confirmacao__corpo">
-        <p id="modalConfirmacaoMensagem" class="modal-confirmacao__mensagem">Deseja continuar?</p>
-        <p id="modalConfirmacaoDetalhe" class="modal-confirmacao__detail"></p>
-      </div>
-      <div class="modal-confirmacao__acoes">
-        <button type="button" class="btn-ghost" onclick="fecharModalConfirmacao(false)">Cancelar</button>
-        <button type="button" class="btn-principal" id="btnConfirmarModalAcao" onclick="fecharModalConfirmacao(true)">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalEntrada" class="modal" aria-hidden="true">
-    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-entrada">
-      <div class="modal__header">
-        <h3 id="titulo-modal-entrada" class="modal__titulo">Editar campo</h3>
-        <button type="button" class="modal__fechar" onclick="fecharModalEntrada(null)">×</button>
-      </div>
-      <div class="grupo-campos">
-        <label for="modalEntradaInput" id="modalEntradaLabel">Valor</label>
-        <input type="text" id="modalEntradaInput">
-      </div>
-      <div class="modal-confirmacao__acoes">
-        <button type="button" class="btn-ghost" onclick="fecharModalEntrada(null)">Cancelar</button>
-        <button type="button" class="btn-principal" onclick="confirmarModalEntrada()">Salvar</button>
       </div>
     </div>
   </div>
