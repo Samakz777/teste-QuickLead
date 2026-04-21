@@ -83,22 +83,29 @@
 
             <div class="grupo-campos">
               <label for="unidade">Unidade</label>
-              <input id="unidade" list="listaUnidades" placeholder="Digite ou selecione a unidade">
-              <small class="texto-ajuda">Campo digitável para agilizar a seleção da unidade.</small>
+              <select id="unidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
+              <small class="texto-ajuda">Seleção direta da unidade para ganhar tempo e evitar erro de digitação.</small>
             </div>
           </div>
 
           <div class="painel-agendamento-grid">
             <div class="grupo-campos">
               <label for="data">Data</label>
-              <input id="data" type="date">
-              <div class="atalhos-data">
-                <button type="button" class="btn-chip" onclick="definirDataRapida('data','hoje')">Hoje</button>
-                <button type="button" class="btn-chip" onclick="definirDataRapida('data','amanha')">Amanhã</button>
-                <button type="button" class="btn-chip" onclick="definirDataRapida('data','proximoUtil')">Próx. útil</button>
-              </div>
+              <select id="data"></select>
               <small class="texto-ajuda">
-                Padrão: próximo dia útil. Inclusão usa o mesmo dia.
+                Selecione rapidamente a data pela lista. Inclusão continua usando o mesmo dia.
               </small>
             </div>
 
@@ -140,11 +147,7 @@
 
           <div class="grupo-campos">
             <label for="filtroData">Selecionar data</label>
-            <input type="date" id="filtroData">
-            <div class="atalhos-data">
-              <button type="button" class="btn-chip" onclick="definirDataRapida('filtroData','hoje')">Hoje</button>
-              <button type="button" class="btn-chip" onclick="definirDataRapida('filtroData','amanha')">Amanhã</button>
-            </div>
+            <select id="filtroData"></select>
           </div>
 
           <button type="button" onclick="filtrarAgenda()">Atualizar</button>
@@ -402,18 +405,18 @@ ou lista grande com nomes + números."
 
           <div class="painel-campanhas-filtros">
             <div class="grupo-campos">
-              <label for="campanhaVisualizacao">Visualização</label>
+              <label for="campanhaVisualizacao">Tipo de operação</label>
               <select id="campanhaVisualizacao" onchange="atualizarCampanhas()">
                 <option value="todas">Todas</option>
-                <option value="reed">Somente REED</option>
-                <option value="pro">Somente PRO</option>
+                <option value="reed">Somente reengajamento (REED)</option>
+                <option value="pro">Somente programados (PRO)</option>
               </select>
             </div>
           </div>
 
           <div class="painel-campanhas-grid">
             <div class="grupo-campos">
-              <label for="painelReed">Fila REED por dia</label>
+              <label for="painelReed">Fila de reengajamento (REED) por dia</label>
               <textarea
                 id="painelReed"
                 placeholder="Os REED D1 até D30 aparecerão organizados aqui..."
@@ -422,7 +425,7 @@ ou lista grande com nomes + números."
             </div>
 
             <div class="grupo-campos">
-              <label for="painelPro">Fila PRO por mês</label>
+              <label for="painelPro">Fila de programados (PRO) por mês</label>
               <textarea
                 id="painelPro"
                 placeholder="Os PRO M1 até M12 aparecerão organizados aqui..."
@@ -436,10 +439,10 @@ ou lista grande com nomes + números."
               Atualizar campanhas
             </button>
             <button type="button" onclick="copiarPainelReed()">
-              Copiar REED
+              Copiar reengajamento
             </button>
             <button type="button" onclick="copiarPainelPro()">
-              Copiar PRO
+              Copiar programados
             </button>
           </div>
         </div>
@@ -457,11 +460,7 @@ ou lista grande com nomes + números."
 
           <div class="grupo-campos">
             <label for="dataRelatorio">Selecionar data</label>
-            <input type="date" id="dataRelatorio">
-            <div class="atalhos-data">
-              <button type="button" class="btn-chip" onclick="definirDataRapida('dataRelatorio','hoje')">Hoje</button>
-              <button type="button" class="btn-chip" onclick="definirDataRapida('dataRelatorio','amanha')">Amanhã</button>
-            </div>
+            <select id="dataRelatorio"></select>
           </div>
 
           <div class="acoes-secundarias">
@@ -489,16 +488,24 @@ ou lista grande com nomes + números."
           <div class="painel-agendamento-grid">
             <div class="grupo-campos">
               <label for="climaUnidade">Unidade</label>
-              <input id="climaUnidade" list="listaUnidades" placeholder="Digite ou selecione a unidade">
+              <select id="climaUnidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
             </div>
 
             <div class="grupo-campos">
               <label for="climaData">Data</label>
-              <input type="date" id="climaData">
-              <div class="atalhos-data">
-                <button type="button" class="btn-chip" onclick="definirDataRapida('climaData','hoje')">Hoje</button>
-                <button type="button" class="btn-chip" onclick="definirDataRapida('climaData','amanha')">Amanhã</button>
-              </div>
+              <select id="climaData"></select>
               <small class="texto-ajuda">Padrão: hoje. O risco mostra a chuva e, ao lado, a porcentagem estimada de confiança da leitura.</small>
             </div>
           </div>
@@ -625,19 +632,6 @@ ou lista grande com nomes + números."
       </div>
     </div>
   </div>
-
-  <datalist id="listaUnidades">
-    <option value="Augusto Montenegro"></option>
-    <option value="Marabá"></option>
-    <option value="Ananindeua"></option>
-    <option value="Telégrafo"></option>
-    <option value="Marambaia"></option>
-    <option value="José Bonifácio"></option>
-    <option value="Cidade Nova"></option>
-    <option value="Jurunas"></option>
-    <option value="Castanhal"></option>
-    <option value="Capanema"></option>
-  </datalist>
 
   <div id="modalPainelBanco" class="modal" aria-hidden="true">
     <div class="modal-content modal-content--grande" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-painel-banco">
