@@ -724,68 +724,65 @@ hr.divisor,
 }
 
 
-/* ===== Evolução focada no fluxo real ===== */
-.atalhos-data { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
-.btn-chip { min-height:34px; padding:6px 12px; border-radius:999px; border:1px solid var(--borda); background:var(--bg-soft); color:var(--texto-suave); box-shadow:none; }
-.btn-chip:hover { background:var(--bg-hover); color:var(--texto); }
-input[list]::-webkit-calendar-picker-indicator { opacity: 0; }
-.banco-paineis-acoes { display:flex; gap:10px; flex-wrap:wrap; }
-.banco-paineis-acoes > button { flex:1 1 180px; }
-.lista-compacta-aviso { margin-top:10px; padding:12px 14px; border-radius:14px; border:1px dashed var(--borda); color:var(--texto-suave); background:var(--bg-soft); }
-.painel-banco-lista { display:flex; flex-direction:column; gap:10px; max-height:58vh; overflow:auto; padding-right:4px; }
-.agenda-card-real { gap:14px; }
-.agenda-pacientes-lista { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
-.agenda-paciente-linha { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:12px; background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%); border:1px solid var(--borda-soft); flex-wrap:wrap; }
-.agenda-paciente-identidade { display:flex; flex-direction:column; gap:4px; min-width:220px; }
-.agenda-paciente-titulo { display:flex; align-items:center; gap:8px; }
-.agenda-paciente-nome { font-weight:700; color:var(--texto); }
-.agenda-paciente-meta { display:flex; gap:10px; flex-wrap:wrap; color:var(--texto-suave); font-size:.88rem; }
-.agenda-paciente-acoes { display:flex; gap:6px; flex-wrap:wrap; }
-.btn-lapis { min-width:30px !important; min-height:30px !important; padding:0 8px !important; border-radius:10px !important; font-size:.84rem !important; box-shadow:none !important; }
-.agenda-card-acoes { display:flex; gap:8px; flex-wrap:wrap; }
-#listaBanco .agenda-item p, #painelBancoLista .agenda-item p { margin-bottom:6px; }
-@media (max-width: 860px) { .banco-paineis-acoes { flex-direction:column; } .agenda-paciente-linha { align-items:flex-start; } }
-
-
-/* ===== Ajustes finais focados no fluxo ===== */
-.atalhos-data { display: none !important; }
-.barra-operacional,
-#entradaBanco,
-#resumoBanco,
-#listaBanco .agenda-item,
-.banco-paineis-acoes > button,
-#painelBancoLista .agenda-item,
-.lista-compacta-aviso {
-  border-radius: var(--r-md) !important;
-}
-
-.barra-operacional .acoes-secundarias {
-  align-items: stretch;
-}
-
-.barra-operacional .acoes-secundarias > button {
-  border-radius: var(--r-md) !important;
-}
-
-select#data,
-select#filtroData,
-select#dataRelatorio,
-select#climaData {
+/* =============================================================
+   CALENDÁRIO NATIVO — VISUAL MELHORADO
+   ============================================================= */
+input[type="date"] {
+  min-height: 50px;
+  padding-right: 52px;
+  position: relative;
   cursor: pointer;
 }
 
-html[data-theme="light"] .barra-operacional,
-html[data-theme="light"] #entradaBanco,
-html[data-theme="light"] #resumoBanco,
-html[data-theme="light"] #listaBanco .agenda-item,
-html[data-theme="light"] #painelBancoLista .agenda-item,
-html[data-theme="light"] .lista-compacta-aviso {
-  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(247,251,255,0.96)) !important;
-  border-color: rgba(20,34,49,0.10) !important;
-  box-shadow: 0 12px 28px rgba(20,34,49,0.08) !important;
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--texto);
+  font-weight: 600;
 }
 
-html[data-theme="light"] .banco-paineis-acoes > button,
-html[data-theme="light"] .barra-operacional .acoes-secundarias > button {
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(238,245,251,0.95)) !important;
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.92;
+  padding: 8px;
+  margin-right: -4px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+    var(--bg-soft);
+  transition: transform var(--t-rapida), background var(--t-normal), box-shadow var(--t-normal), opacity var(--t-normal);
+}
+
+input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)),
+    var(--bg-hover);
+}
+
+input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  box-shadow: 0 0 0 3px rgba(32,227,148,0.12);
+}
+
+html[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  background:
+    linear-gradient(180deg, rgba(20,34,49,0.05), rgba(20,34,49,0.02)),
+    rgba(255,255,255,0.72);
+}
+
+html[data-theme="light"] input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  background:
+    linear-gradient(180deg, rgba(20,34,49,0.08), rgba(20,34,49,0.03)),
+    rgba(255,255,255,0.92);
+}
+
+/* bloco visual leve para datas em cards */
+.grupo-campos input[type="date"] {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012));
+}
+
+html[data-theme="light"] .grupo-campos input[type="date"] {
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(247,250,255,0.95));
 }
