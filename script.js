@@ -45,110 +45,6 @@ const textoComprovante = document.getElementById("textoComprovante");
 const modalAcoesBanco = document.getElementById("modalAcoesBanco");
 const modalSegmentacaoMassa = document.getElementById("modalSegmentacaoMassa");
 const syncStatusTexto = document.getElementById("syncStatusTexto");
-const toastContainer = document.getElementById("toastContainer");
-const modalConfirmacao = document.getElementById("modalConfirmacao");
-const modalConfirmacaoMensagem = document.getElementById("modalConfirmacaoMensagem");
-const modalConfirmacaoDetalhe = document.getElementById("modalConfirmacaoDetalhe");
-const btnConfirmarModalAcao = document.getElementById("btnConfirmarModalAcao");
-const modalEntrada = document.getElementById("modalEntrada");
-const modalEntradaInput = document.getElementById("modalEntradaInput");
-const modalEntradaLabel = document.getElementById("modalEntradaLabel");
-
-let resolverModalConfirmacao = null;
-let resolverModalEntrada = null;
-
-function mostrarToast(texto, tipo = "ok", subtexto = "") {
-  if (!toastContainer) {
-    console.log(texto);
-    return;
-  }
-
-  const toast = document.createElement("div");
-  toast.className = `toast toast--${tipo}`;
-  toast.innerHTML = `
-    <div class="toast__corpo">
-      <div class="toast__texto">${escaparHTML(texto)}</div>
-      ${subtexto ? `<div class="toast__sub">${escaparHTML(subtexto)}</div>` : ""}
-    </div>
-    <button type="button" class="toast__fechar" aria-label="Fechar">×</button>
-  `;
-
-  const remover = () => {
-    toast.classList.add("saindo");
-    setTimeout(() => toast.remove(), 180);
-  };
-
-  toast.querySelector(".toast__fechar")?.addEventListener("click", remover);
-  toastContainer.appendChild(toast);
-  setTimeout(remover, 2800);
-}
-
-function abrirModalBase(modalEl) {
-  if (!modalEl) return;
-  modalEl.style.display = "flex";
-  modalEl.setAttribute("aria-hidden", "false");
-}
-
-function fecharModalBase(modalEl) {
-  if (!modalEl) return;
-  modalEl.style.display = "none";
-  modalEl.setAttribute("aria-hidden", "true");
-}
-
-function confirmarAcao(mensagem, detalhe = "", textoConfirmar = "Confirmar") {
-  return new Promise((resolve) => {
-    if (!modalConfirmacao) {
-      resolve(window.confirm(mensagem));
-      return;
-    }
-
-    resolverModalConfirmacao = resolve;
-    if (modalConfirmacaoMensagem) modalConfirmacaoMensagem.textContent = mensagem;
-    if (modalConfirmacaoDetalhe) modalConfirmacaoDetalhe.textContent = detalhe || "";
-    if (btnConfirmarModalAcao) btnConfirmarModalAcao.textContent = textoConfirmar;
-    abrirModalBase(modalConfirmacao);
-  });
-}
-
-function fecharModalConfirmacao(confirmado = false) {
-  fecharModalBase(modalConfirmacao);
-  if (resolverModalConfirmacao) {
-    const fn = resolverModalConfirmacao;
-    resolverModalConfirmacao = null;
-    fn(confirmado);
-  }
-}
-
-function solicitarEntrada(label, valorInicial = "", titulo = "Editar campo") {
-  return new Promise((resolve) => {
-    if (!modalEntrada || !modalEntradaInput) {
-      resolve(window.prompt(label, valorInicial));
-      return;
-    }
-
-    resolverModalEntrada = resolve;
-    const tituloEl = document.getElementById("titulo-modal-entrada");
-    if (tituloEl) tituloEl.textContent = titulo;
-    if (modalEntradaLabel) modalEntradaLabel.textContent = label;
-    modalEntradaInput.value = valorInicial || "";
-    abrirModalBase(modalEntrada);
-    setTimeout(() => modalEntradaInput.focus(), 30);
-  });
-}
-
-function confirmarModalEntrada() {
-  fecharModalEntrada(modalEntradaInput?.value ?? "");
-}
-
-function fecharModalEntrada(valor = null) {
-  fecharModalBase(modalEntrada);
-  if (resolverModalEntrada) {
-    const fn = resolverModalEntrada;
-    resolverModalEntrada = null;
-    fn(valor);
-  }
-}
-
 
 // =========================
 // BASE / UTILIDADES
@@ -167,13 +63,6 @@ function trocarAba(id) {
   document.querySelectorAll(".aba").forEach((aba) => aba.classList.remove("ativa"));
   const abaDestino = document.getElementById(id);
   if (abaDestino) abaDestino.classList.add("ativa");
-
-  document.querySelectorAll("nav.menu button").forEach((btn) => btn.classList.remove("ativo"));
-  const botaoAtivo = Array.from(document.querySelectorAll("nav.menu button")).find((btn) => {
-    const destino = btn.getAttribute("aria-controls") || "";
-    return destino === id || btn.getAttribute("onclick")?.includes(`'${id}'`);
-  });
-  if (botaoAtivo) botaoAtivo.classList.add("ativo");
 }
 
 function limparNumero(texto = "") {
@@ -216,7 +105,7 @@ function copiarTexto(texto, mensagem = "✅ Copiado com sucesso!") {
 
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(texto)
-      .then(() => mostrarToast(mensagem, "ok"))
+      .then(() => alert(mensagem))
       .catch(() => fallbackCopiarTexto(texto, mensagem));
     return;
   }
@@ -231,7 +120,7 @@ function fallbackCopiarTexto(texto, mensagem) {
   area.select();
   document.execCommand("copy");
   document.body.removeChild(area);
-  mostrarToast(mensagem, "ok");
+  alert(mensagem);
 }
 
 function agoraISO() {
@@ -468,7 +357,7 @@ function removerPessoa(index) {
   if (!listaPessoas) return;
   const blocos = listaPessoas.querySelectorAll(".pessoa-bloco");
   if (blocos.length <= 1) {
-    mostrarToast("É necessário manter pelo menos uma pessoa no agendamento.", "aviso");
+    alert("É necessário manter pelo menos uma pessoa no agendamento.");
     return;
   }
 
@@ -827,7 +716,7 @@ function salvarBanco() {
 
 function abrirSegmentacaoEmMassa() {
   if (!entradaBanco.value.trim()) {
-    mostrarToast("Cole uma lista no banco antes de aplicar segmentação em massa.", "aviso");
+    alert("Cole uma lista no banco antes de aplicar segmentação em massa.");
     return;
   }
 
@@ -843,20 +732,20 @@ function fecharModalSegmentacao() {
 function salvarBancoEmMassa() {
   const texto = entradaBanco.value.trim();
   if (!texto) {
-    mostrarToast("Cole uma lista no campo do banco primeiro.", "aviso");
+    alert("Cole uma lista no campo do banco primeiro.");
     return;
   }
 
   const numeros = extrairTodosNumerosValidos(texto);
   if (!numeros.length) {
-    mostrarToast("Nenhum número válido foi encontrado.", "erro");
+    alert("Nenhum número válido foi encontrado.");
     return;
   }
 
   const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES");
 
   if (!statusSelecionado) {
-    mostrarToast("Selecione uma segmentação válida.", "aviso");
+    alert("Selecione uma segmentação válida.");
     return;
   }
 
@@ -1008,13 +897,13 @@ function aplicarFiltrosBanco() {
   mostrarBanco();
 }
 
-async function limparBancoCompleto() {
+function limparBancoCompleto() {
   if (!bancoLeads.length) {
-    mostrarToast("O banco já está vazio.", "info");
+    alert("O banco já está vazio.");
     return;
   }
 
-  if (!(await confirmarAcao("Tem certeza que deseja apagar todo o banco de leads?", "Essa ação remove todos os leads salvos localmente.", "Apagar tudo"))) return;
+  if (!confirm("Tem certeza que deseja apagar todo o banco de leads?")) return;
 
   bancoLeads = [];
   salvar();
@@ -1026,7 +915,7 @@ async function limparBancoCompleto() {
   if (filtroDiaReed) filtroDiaReed.value = "";
   if (filtroMesPro) filtroMesPro.value = "";
 
-  mostrarToast("Banco apagado com sucesso.", "ok");
+  alert("✅ Banco apagado com sucesso.");
 }
 
 function abrirAcoesBanco(index) {
@@ -1045,12 +934,12 @@ function fecharModalBanco() {
   }
 }
 
-async function editarLeadSelecionado() {
+function editarLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
 
-  const novoNumero = await solicitarEntrada("Editar número", lead.numero, "Editar lead");
+  const novoNumero = prompt("Editar número:", lead.numero);
   if (novoNumero === null) return;
 
   const novoStatus = prompt(
@@ -1063,14 +952,14 @@ async function editarLeadSelecionado() {
   const statusNormalizado = normalizarStatus(novoStatus);
 
   if (!statusNormalizado) {
-    mostrarToast("Status inválido.", "erro");
+    alert("Status inválido.");
     return;
   }
 
   const info = decomporStatus(statusNormalizado);
 
   if (!numeroLimpo) {
-    mostrarToast("Número inválido.", "erro");
+    alert("Número inválido.");
     return;
   }
 
@@ -1086,10 +975,10 @@ async function editarLeadSelecionado() {
   fecharModalBanco();
   salvar();
 
-  mostrarToast("Lead atualizado com sucesso.", "ok");
+  alert("✅ Lead atualizado com sucesso.");
 }
 
-async function excluirLeadSelecionado() {
+function excluirLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
@@ -1103,12 +992,12 @@ async function excluirLeadSelecionado() {
   atualizarCampanhas();
   fecharModalBanco();
 
-  mostrarToast("Lead excluído com sucesso.", "ok");
+  alert("✅ Lead excluído com sucesso.");
 }
 
 function copiarBancoEmFileira() {
   if (!bancoLeads.length) {
-    mostrarToast("O banco está vazio.", "info");
+    alert("O banco está vazio.");
     return;
   }
 
@@ -1121,7 +1010,7 @@ function copiarBancoEmFileira() {
 
 function sincronizarAgora() {
   atualizarStatusSync("Sincronização online ainda não configurada");
-  mostrarToast("A sincronização em tempo real ainda não está configurada.", "info", "A base local já está pronta para evolução futura.");
+  alert("A estrutura já está pronta, mas a sincronização em tempo real depende de um banco online.");
 }
 
 // =========================
@@ -1231,7 +1120,7 @@ DESQUALIFICAR:
 function copiarAprovados() {
   const texto = saidaFiltro.value.trim();
   if (!texto) {
-    mostrarToast("Não há aprovados para copiar.", "info");
+    alert("Não há aprovados para copiar.");
     return;
   }
   copiarTexto(texto, "✅ Leads aprovados copiados.");
@@ -1296,7 +1185,7 @@ function atualizarCampanhas() {
 function copiarPainelReed() {
   const texto = painelReed?.value?.trim() || "";
   if (!texto) {
-    mostrarToast("Não há REED para copiar.", "info");
+    alert("Não há REED para copiar.");
     return;
   }
   copiarTexto(texto, "✅ Painel REED copiado.");
@@ -1305,7 +1194,7 @@ function copiarPainelReed() {
 function copiarPainelPro() {
   const texto = painelPro?.value?.trim() || "";
   if (!texto) {
-    mostrarToast("Não há PRO para copiar.", "info");
+    alert("Não há PRO para copiar.");
     return;
   }
   copiarTexto(texto, "✅ Painel PRO copiado.");
@@ -1340,23 +1229,23 @@ function gerarSenhasParaAgendamento(data, quantidadePessoas) {
 
 function validarAgendamento(dados) {
   if (!dados.unidade || !dados.data || !dados.hora) {
-    mostrarToast("Preencha unidade, data e horário.", "aviso");
+    alert("Preencha unidade, data e horário.");
     return false;
   }
 
   if (!dados.pessoas.length) {
-    mostrarToast("Adicione pelo menos uma pessoa.", "aviso");
+    alert("Adicione pelo menos uma pessoa.");
     return false;
   }
 
   for (const pessoa of dados.pessoas) {
     if (!pessoa.nome || pessoa.nome.length < 3) {
-      mostrarToast("Preencha um nome válido para cada pessoa.", "aviso");
+      alert("Preencha um nome válido para cada pessoa.");
       return false;
     }
 
     if (!pessoa.numero || pessoa.numero.length < 10) {
-      mostrarToast("Preencha um número válido para cada pessoa.", "aviso");
+      alert("Preencha um número válido para cada pessoa.");
       return false;
     }
   }
@@ -1433,7 +1322,7 @@ function gerarMensagem(agendamento, tipo = "paciente") {
   return gerarMensagemPaciente(agendamento);
 }
 
-async function agendar() {
+function agendar() {
   const pessoas = coletarPessoasFormulario();
   const tipo = tipoAgendamentoInput?.value || "agendamento";
 
@@ -1446,7 +1335,7 @@ async function agendar() {
   };
 
   if (!validarAgendamento(dados)) return;
-  if (!(await confirmarAcao("Confirmar agendamento?", "As senhas serão geradas e o comprovante será aberto.", "Confirmar"))) return;
+  if (!confirm("Confirmar agendamento?")) return;
 
   const senhas = gerarSenhasParaAgendamento(dados.data, dados.pessoas.length);
 
@@ -1534,7 +1423,7 @@ function reenviarWhats(index, tipo = "paciente") {
   window.open(link, "_blank");
 }
 
-async function transformarEmReagendamento(index) {
+function transformarEmReagendamento(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
@@ -1555,11 +1444,11 @@ async function transformarEmReagendamento(index) {
   }
 }
 
-async function excluir(index) {
+function excluir(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
-  if (!(await confirmarAcao("Excluir este registro?", juntarNomes(agendamento.pessoas), "Excluir"))) return;
+  if (!confirm(`Excluir o registro de ${juntarNomes(agendamento.pessoas)}?`)) return;
 
   const dataExcluida = agendamento.data;
 
@@ -1576,7 +1465,7 @@ function filtrarAgenda() {
   const dataSelecionada = filtroData.value;
 
   if (!dataSelecionada) {
-    mostrarToast("Selecione uma data.", "aviso");
+    alert("Selecione uma data.");
     return;
   }
 
@@ -1685,7 +1574,7 @@ function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
 
   if (!dataSelecionada) {
-    mostrarToast("Selecione uma data.", "aviso");
+    alert("Selecione uma data.");
     return;
   }
 
@@ -1750,37 +1639,78 @@ function gerarRelatorio() {
 function copiarRelatorio() {
   const texto = resultadoRelatorio.textContent.trim();
   if (!texto) {
-    mostrarToast("Gere um relatório primeiro.", "aviso");
+    alert("Gere um relatório primeiro.");
     return;
   }
   copiarTexto(texto, "✅ Relatório copiado.");
 }
 
+
 // =========================
 // MÓDULO CLIMA
 // =========================
 const UNIDADES_CLIMA = {
-  "Augusto Montenegro": { lat: -1.3403, lon: -48.4300 },
-  "Marabá":             { lat: -5.3686, lon: -49.1178 },
-  "Ananindeua":         { lat: -1.3700, lon: -48.4010 },
-  "Telégrafo":          { lat: -1.4400, lon: -48.4700 },
-  "Marambaia":          { lat: -1.4300, lon: -48.4650 },
-  "José Bonifácio":     { lat: -1.4580, lon: -48.4700 },
-  "Cidade Nova":        { lat: -1.4050, lon: -48.4300 },
-  "Jurunas":            { lat: -1.4610, lon: -48.4780 },
-  "Castanhal":          { lat: -1.2972, lon: -47.9218 },
-  "Capanema":           { lat: -1.1951, lon: -47.1819 }
+  "Augusto Montenegro": {
+    lat: -1.3403,
+    lon: -48.4300,
+    regiao: "Av. Augusto Montenegro · Parque Verde / Cidade Jardim"
+  },
+  "Marabá": {
+    lat: -5.3686,
+    lon: -49.1178,
+    regiao: "Av. Antônio Maia · Velha Marabá"
+  },
+  "Ananindeua": {
+    lat: -1.3746,
+    lon: -48.4038,
+    regiao: "Av. Cláudio Sanders · Centro de Ananindeua"
+  },
+  "Telégrafo": {
+    lat: -1.4386,
+    lon: -48.4752,
+    regiao: "Av. Senador Lemos · Telégrafo"
+  },
+  "Marambaia": {
+    lat: -1.4268,
+    lon: -48.4562,
+    regiao: "Av. Rodolfo Chermont · Marambaia"
+  },
+  "José Bonifácio": {
+    lat: -1.4517,
+    lon: -48.4728,
+    regiao: "Av. José Bonifácio · entre Domingos Marreiros e Antônio Baena"
+  },
+  "Cidade Nova": {
+    lat: -1.3936,
+    lon: -48.4327,
+    regiao: "Cidade Nova II · eixo SN3 / área comercial"
+  },
+  "Jurunas": {
+    lat: -1.4628,
+    lon: -48.4903,
+    regiao: "Av. Fernando Guilhon · Jurunas"
+  },
+  "Castanhal": {
+    lat: -1.2958,
+    lon: -47.9242,
+    regiao: "Av. Senador Antônio Lemos · Centro de Castanhal"
+  },
+  "Capanema": {
+    lat: -1.1951,
+    lon: -47.1819,
+    regiao: "Rua João Pessoa · Centro de Capanema"
+  }
 };
 
-// Horas operacionais analisadas (índices = hora do dia)
-const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+// Horas operacionais analisadas
+const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
 function descricaoCodigoClima(codigo) {
   if (codigo === 0) return "Céu limpo";
   if (codigo <= 3) return "Parcialmente nublado";
   if (codigo <= 48) return "Neblina";
-  if (codigo <= 55) return "Garoa";
-  if (codigo <= 65) return "Chuva";
+  if (codigo <= 57) return "Garoa";
+  if (codigo <= 67) return "Chuva";
   if (codigo <= 82) return "Pancadas de chuva";
   if (codigo <= 99) return "Tempestade";
   return "Variável";
@@ -1790,98 +1720,165 @@ function emojiCodigoClima(codigo) {
   if (codigo === 0) return "☀";
   if (codigo <= 3) return "⛅";
   if (codigo <= 48) return "🌫";
-  if (codigo <= 55) return "🌦";
-  if (codigo <= 65) return "🌧";
+  if (codigo <= 57) return "🌦";
+  if (codigo <= 67) return "🌧";
   if (codigo <= 82) return "⛈";
   if (codigo <= 99) return "⛈";
   return "🌤";
 }
 
-// Retorna 0=BAIXO, 1=MÉDIO, 2=ALTO — com pontuação contínua para ordenação
-function pontuarHora(precipProb, precip, codigo) {
+function pontuarHora(precipProb, precip, codigo, temp) {
   let score = 0;
-  score += precipProb * 0.6;           // peso maior na probabilidade
-  score += Math.min(precip * 20, 40);  // precip em mm, capped
-  if (codigo >= 61) score += 25;       // chuva confirmada no código
-  if (codigo >= 80) score += 20;       // pancadas / tempestade
+  score += precipProb * 0.62;
+  score += Math.min(precip * 24, 42);
+  if (codigo >= 51 && codigo <= 57) score += 8;
+  if (codigo >= 61 && codigo <= 67) score += 22;
+  if (codigo >= 80 && codigo <= 82) score += 28;
+  if (codigo >= 95) score += 35;
+
+  // Temperatura apenas como apoio operacional.
+  // Não domina a decisão, mas ajuda a marcar horas muito abafadas como ligeiramente menos confortáveis.
+  if (temp >= 33) score += 4;
+  else if (temp >= 31) score += 2;
+
   return Math.round(score);
 }
 
 function nivelRisco(score) {
-  if (score >= 60) return "ALTO";
-  if (score >= 30) return "MÉDIO";
+  if (score >= 65) return "ALTO";
+  if (score >= 35) return "MÉDIO";
   return "BAIXO";
 }
 
 function corRiscoCSS(nivel) {
-  if (nivel === "ALTO")  return "var(--vermelho)";
+  if (nivel === "ALTO") return "var(--vermelho)";
   if (nivel === "MÉDIO") return "var(--amarelo)";
   return "var(--verde)";
 }
 
 function corBarraClima(nivel) {
-  if (nivel === "ALTO")  return "#ff5252";
-  if (nivel === "MÉDIO") return "#ffd54f";
-  return "#00c853";
+  if (nivel === "ALTO") return "#ff5a5a";
+  if (nivel === "MÉDIO") return "#ffd357";
+  return "#16c172";
 }
 
-// Encontra as melhores janelas contínuas de horário (mínimo 1 hora de duração)
-// Retorna array de { inicio, fim, scoreMedia } ordenadas por score (melhor primeiro)
-function encontrarJanelasOtimas(horas) {
-  // horas: array de { hora, score, nivel, ... }
-  const baixas = horas.filter((h) => h.nivel === "BAIXO");
-  if (!baixas.length) {
-    // Se não há BAIXO, pega as MÉDIO
-    const medias = horas.filter((h) => h.nivel === "MÉDIO");
-    if (!medias.length) return [];
-    // Janelas a partir das médias
-    return construirJanelas(medias, horas, 1);
+function bgRiscoInline(nivel) {
+  if (nivel === "ALTO") return "rgba(255,82,82,0.08)";
+  if (nivel === "MÉDIO") return "rgba(255,213,79,0.10)";
+  return "rgba(0,200,83,0.08)";
+}
+
+function calcularConfiancaOperacional(horas) {
+  if (!horas.length) return { percentual: 0, nivel: "BAIXA", texto: "Sem dados suficientes." };
+
+  const decisivas = horas.map((item) => {
+    let sinais = 0;
+    if (item.precipProb >= 55) sinais += 1;
+    if (item.precip >= 0.5) sinais += 1;
+    if (item.codigo >= 61) sinais += 1;
+    if (item.precipProb <= 20 && item.precip < 0.1 && item.codigo < 51) sinais += 1;
+    return Math.min(sinais, 3);
+  });
+
+  const mediaSinais = decisivas.reduce((s, n) => s + n, 0) / decisivas.length;
+  const extremos = horas.filter((item) => item.nivel !== "MÉDIO").length / horas.length;
+  const variacao = Math.max(...horas.map((item) => item.score)) - Math.min(...horas.map((item) => item.score));
+
+  let percentual = 48 + (mediaSinais * 8) + (extremos * 22) + Math.min(12, variacao * 0.15);
+  percentual = Math.max(52, Math.min(92, Math.round(percentual)));
+
+  let nivel = "MÉDIA";
+  let texto = "Leitura razoavelmente consistente para operação.";
+  if (percentual >= 80) {
+    nivel = "ALTA";
+    texto = "Os sinais de chuva estão bem consistentes ao longo do período.";
+  } else if (percentual < 65) {
+    nivel = "BAIXA";
+    texto = "Há mais oscilação entre os sinais; use como orientação, não como certeza.";
   }
-  return construirJanelas(baixas, horas, 1);
+
+  return { percentual, nivel, texto };
 }
 
-function construirJanelas(horasFiltradas, todasHoras, minHoras) {
-  // Agrupa horas consecutivas
-  const janelas = [];
-  let janela = [horasFiltradas[0]];
+function encontrarMelhorJanelaPorPeriodo(horas, inicio, fim) {
+  const filtradas = horas.filter((item) => item.hora >= inicio && item.hora <= fim);
+  return encontrarJanelasOtimas(filtradas, 1)[0] || null;
+}
 
-  for (let i = 1; i < horasFiltradas.length; i++) {
-    const anterior = horasFiltradas[i - 1].hora;
-    const atual = horasFiltradas[i].hora;
+function encontrarPiorHorario(horas) {
+  return [...horas].sort((a, b) => b.score - a.score || b.precipProb - a.precipProb)[0] || null;
+}
+
+function encontrarJanelasOtimas(horas, minHoras = 1) {
+  const baixas = horas.filter((h) => h.nivel === "BAIXO");
+  if (baixas.length) return construirJanelas(baixas, minHoras);
+
+  const medias = horas.filter((h) => h.nivel === "MÉDIO");
+  if (medias.length) return construirJanelas(medias, minHoras);
+
+  const ordenadas = [...horas].sort((a, b) => a.score - b.score).slice(0, 3);
+  return ordenadas.map((h) => ({
+    inicio: h.hora,
+    fim: h.hora,
+    scoreMedia: h.score,
+    nivel: h.nivel
+  }));
+}
+
+function construirJanelas(horasFiltradas, minHoras) {
+  if (!horasFiltradas.length) return [];
+
+  const ordenadas = [...horasFiltradas].sort((a, b) => a.hora - b.hora);
+  const janelas = [];
+  let janela = [ordenadas[0]];
+
+  for (let i = 1; i < ordenadas.length; i++) {
+    const anterior = ordenadas[i - 1].hora;
+    const atual = ordenadas[i].hora;
     if (atual === anterior + 1) {
-      janela.push(horasFiltradas[i]);
+      janela.push(ordenadas[i]);
     } else {
       if (janela.length >= minHoras) janelas.push([...janela]);
-      janela = [horasFiltradas[i]];
+      janela = [ordenadas[i]];
     }
   }
   if (janela.length >= minHoras) janelas.push(janela);
 
-  // Se não tem janela com mínimo, aceita janelas de 1 hora
-  if (!janelas.length && minHoras > 1) {
-    return construirJanelas(horasFiltradas, todasHoras, 1);
-  }
+  if (!janelas.length && minHoras > 1) return construirJanelas(ordenadas, 1);
 
   return janelas
     .map((j) => ({
       inicio: j[0].hora,
       fim: j[j.length - 1].hora,
       scoreMedia: Math.round(j.reduce((s, h) => s + h.score, 0) / j.length),
-      nivel: j[0].nivel
+      nivel: nivelRisco(Math.round(j.reduce((s, h) => s + h.score, 0) / j.length))
     }))
     .sort((a, b) => a.scoreMedia - b.scoreMedia)
-    .slice(0, 3); // top 3 janelas
+    .slice(0, 3);
 }
 
 function formatarJanela(inicio, fim) {
   const h1 = String(inicio).padStart(2, "0");
-  // Fim = hora seguinte - 30min (ex: janela termina às 11 → exibe "às 11:30")
-  const fimHora = fim + 1;
-  const h2 = String(fimHora).padStart(2, "0");
-  if (inicio === fim) {
-    return `${h1}:00 às ${h1}:30`;
-  }
+  const h2 = String(fim + 1).padStart(2, "0");
+  if (inicio === fim) return `${h1}:00 às ${h1}:59`;
   return `${h1}:00 às ${h2}:00`;
+}
+
+function gerarObservacaoOperacional(unidadeNome, confianca, melhorManha, melhorTarde, piorHorario) {
+  const partes = [];
+
+  if (melhorManha) {
+    partes.push(`Na manhã, a melhor faixa ficou em ${formatarJanela(melhorManha.inicio, melhorManha.fim)}.`);
+  }
+  if (melhorTarde) {
+    partes.push(`Na tarde, a janela mais segura ficou em ${formatarJanela(melhorTarde.inicio, melhorTarde.fim)}.`);
+  }
+  if (piorHorario) {
+    partes.push(`O horário mais delicado foi ${String(piorHorario.hora).padStart(2, "0")}:00, com risco ${piorHorario.nivel.toLowerCase()}.`);
+  }
+  partes.push(`A confiança operacional da leitura ficou em ${confianca.percentual}% (${confianca.nivel.toLowerCase()}).`);
+
+  return partes.join(" ");
 }
 
 async function buscarClimaUnidade() {
@@ -1892,23 +1889,31 @@ async function buscarClimaUnidade() {
   if (!selectUnidade || !resultado) return;
 
   const unidadeNome = selectUnidade.value;
-  if (!unidadeNome) { mostrarToast("Selecione uma unidade.", "aviso"); return; }
+  if (!unidadeNome) {
+    alert("Selecione uma unidade.");
+    return;
+  }
 
   const coords = UNIDADES_CLIMA[unidadeNome];
   if (!coords) {
-    resultado.innerHTML = "<p>Unidade sem coordenadas cadastradas.</p>";
+    resultado.innerHTML = '<div class="clima-bloco"><p style="color:var(--vermelho);">Unidade sem coordenadas regionais cadastradas.</p></div>';
     return;
   }
 
   const dataAlvo = inputDataClima?.value || obterDataHojeISO();
-  resultado.innerHTML = `<p style="color:var(--texto-suave)">Buscando previsão horária para ${escaparHTML(unidadeNome)}...</p>`;
+  resultado.innerHTML = `
+    <div class="clima-bloco">
+      <p style="color:var(--texto-suave); margin:0;">Buscando previsão de 07h às 19h para <strong style="color:var(--texto);">${escaparHTML(unidadeNome)}</strong>...</p>
+      <p style="color:var(--texto-fraco); margin:8px 0 0; font-size:0.82rem;">Referência regional: ${escaparHTML(coords.regiao)}</p>
+    </div>
+  `;
 
   try {
     const url = [
       "https://api.open-meteo.com/v1/forecast",
       `?latitude=${coords.lat}`,
       `&longitude=${coords.lon}`,
-      "&hourly=temperature_2m,precipitation_probability,precipitation,weathercode",
+      "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code",
       "&timezone=America%2FBelem",
       `&start_date=${dataAlvo}`,
       `&end_date=${dataAlvo}`
@@ -1917,238 +1922,175 @@ async function buscarClimaUnidade() {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error("Falha na API");
     const dados = await resp.json();
-    renderClimaResultado(dados, unidadeNome, dataAlvo);
+    renderClimaResultado(dados, unidadeNome, dataAlvo, coords);
   } catch {
-    resultado.innerHTML = `<p style="color:var(--vermelho)">Não foi possível buscar a previsão. Verifique sua conexão.</p>`;
+    resultado.innerHTML = `
+      <div class="clima-bloco">
+        <p style="color:var(--vermelho); margin:0;">Não foi possível buscar a previsão agora.</p>
+        <p style="color:var(--texto-fraco); margin:8px 0 0; font-size:0.84rem;">Verifique a conexão e tente novamente.</p>
+      </div>
+    `;
   }
 }
 
-function renderClimaResultado(dados, unidade, dataISO) {
+function renderClimaResultado(dados, unidade, dataISO, coords) {
   const resultado = document.getElementById("climaResultado");
   if (!resultado || !dados.hourly) return;
 
   const h = dados.hourly;
 
-  // Monta array de horas analisadas com score e nível
   const horasAnalisadas = HORAS_ANALISE.map((hora) => {
-    const i = hora; // índice = hora do dia para consulta de 1 dia
-    const precipProb = h.precipitation_probability[i] || 0;
-    const precip     = h.precipitation[i] || 0;
-    const temp       = h.temperature_2m[i] || 0;
-    const codigo     = h.weathercode[i] || 0;
-    const score      = pontuarHora(precipProb, precip, codigo);
-    const nivel      = nivelRisco(score);
-
-    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel };
+    const i = hora;
+    const precipProb = Number(h.precipitation_probability?.[i] ?? 0);
+    const precip = Number(h.precipitation?.[i] ?? 0);
+    const temp = Math.round(Number(h.temperature_2m?.[i] ?? 0));
+    const codigo = Number(h.weather_code?.[i] ?? h.weathercode?.[i] ?? 0);
+    const score = pontuarHora(precipProb, precip, codigo, temp);
+    const nivel = nivelRisco(score);
+    return { hora, precipProb, precip, temp, codigo, score, nivel };
   });
 
-  // Divide em período manhã e tarde para resumo
-  const manha = horasAnalisadas.filter((h) => h.hora <= 11);
-  const tarde  = horasAnalisadas.filter((h) => h.hora >= 12);
+  const manha = horasAnalisadas.filter((item) => item.hora >= 7 && item.hora <= 11);
+  const tarde = horasAnalisadas.filter((item) => item.hora >= 12 && item.hora <= 19);
 
   const resumoPeriodo = (lista) => {
-    const scoreMax = Math.max(...lista.map((h) => h.score));
-    const probMax  = Math.max(...lista.map((h) => h.precipProb));
-    const tempMedia = Math.round(lista.reduce((s, h) => s + h.temp, 0) / lista.length);
-    const nivel = nivelRisco(scoreMax);
-    return { scoreMax, probMax, tempMedia, nivel };
+    const scoreMedio = Math.round(lista.reduce((s, item) => s + item.score, 0) / Math.max(lista.length, 1));
+    const probMax = Math.max(...lista.map((item) => item.precipProb));
+    const tempMedia = Math.round(lista.reduce((s, item) => s + item.temp, 0) / Math.max(lista.length, 1));
+    const chuvaMm = lista.reduce((s, item) => s + item.precip, 0).toFixed(1);
+    return {
+      scoreMedio,
+      probMax,
+      tempMedia,
+      chuvaMm,
+      nivel: nivelRisco(scoreMedio)
+    };
   };
 
   const resumoManha = resumoPeriodo(manha);
-  const resumoTarde  = resumoPeriodo(tarde);
-
-  // Janelas ideais
-  const janelas = encontrarJanelasOtimas(horasAnalisadas);
-
-  // Melhor hora individual (menor score)
-  const melhorHora = [...horasAnalisadas].sort((a, b) => a.score - b.score)[0];
-
+  const resumoTarde = resumoPeriodo(tarde);
+  const janelasTop = encontrarJanelasOtimas(horasAnalisadas, 1);
+  const melhorManha = encontrarMelhorJanelaPorPeriodo(horasAnalisadas, 7, 11);
+  const melhorTarde = encontrarMelhorJanelaPorPeriodo(horasAnalisadas, 12, 19);
+  const piorHorario = encontrarPiorHorario(horasAnalisadas);
+  const melhorHorario = [...horasAnalisadas].sort((a, b) => a.score - b.score || a.precipProb - b.precipProb)[0];
+  const confianca = calcularConfiancaOperacional(horasAnalisadas);
   const dataBR = formatarDataBRCompleta(dataISO);
+  const observacao = gerarObservacaoOperacional(unidade, confianca, melhorManha, melhorTarde, piorHorario);
 
-  // ---- HTML ----
-  // 1. Linha do tempo hora a hora
   const timelineHTML = horasAnalisadas.map((item) => {
     const cor = corBarraClima(item.nivel);
-    const altura = Math.max(20, Math.round((item.score / 100) * 72) + 8);
+    const altura = Math.max(18, Math.round((item.score / 100) * 70) + 8);
     const label = `${String(item.hora).padStart(2, "0")}h`;
-    const title = `${label}: ${descricaoCodigoClima(item.codigo)} · ${item.precipProb}% chuva · ${item.temp}°C`;
-
+    const title = `${label}: ${descricaoCodigoClima(item.codigo)} · ${item.precipProb}% de chuva · ${item.precip.toFixed(1)}mm · ${item.temp}°C`;
     return `
-      <div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0;"
-           title="${escaparHTML(title)}">
-        <span style="font-size:10px; color:var(--texto-fraco); white-space:nowrap;">${item.precipProb}%</span>
-        <div style="
-          width:100%;
-          height:${altura}px;
-          background:${cor};
-          border-radius:4px 4px 0 0;
-          opacity:0.85;
-          min-height:8px;
-          position:relative;
-        "></div>
-        <span style="font-size:10px; color:var(--texto-suave);">${label}</span>
+      <div class="clima-timeline__item" title="${escaparHTML(title)}">
+        <span class="clima-timeline__topo">${item.precipProb}%</span>
+        <div class="clima-timeline__barra" style="height:${altura}px; background:${cor};"></div>
+        <span class="clima-timeline__hora">${label}</span>
         <span style="font-size:11px;">${emojiCodigoClima(item.codigo)}</span>
+        <span class="clima-timeline__temp">${item.temp}°</span>
       </div>
     `;
   }).join("");
 
-  // 2. Tabela detalhada hora a hora
-  const tabelaHTML = horasAnalisadas.map((item) => {
-    const cor = corRiscoCSS(item.nivel);
-    const bgOpac = item.nivel === "BAIXO"
-      ? "rgba(0,200,83,0.06)"
-      : item.nivel === "MÉDIO"
-      ? "rgba(255,213,79,0.06)"
-      : "rgba(255,82,82,0.06)";
+  const tabelaHTML = horasAnalisadas.map((item) => `
+    <tr style="background:${bgRiscoInline(item.nivel)};">
+      <td style="font-weight:700;">${String(item.hora).padStart(2, "0")}:00</td>
+      <td style="font-size:1rem;">${emojiCodigoClima(item.codigo)}</td>
+      <td style="color:var(--texto-suave);">${escaparHTML(descricaoCodigoClima(item.codigo))}</td>
+      <td style="text-align:center;">${item.precipProb}%</td>
+      <td style="text-align:center; color:var(--texto-suave);">${item.precip.toFixed(1)}mm</td>
+      <td style="text-align:center; color:var(--texto-suave);">${item.temp}°C</td>
+      <td style="text-align:center;">
+        <span class="clima-badge" style="color:${corRiscoCSS(item.nivel)}; background:${bgRiscoInline(item.nivel)};">${item.nivel}</span>
+      </td>
+    </tr>
+  `).join("");
 
-    return `
-      <tr style="background:${bgOpac}; border-bottom:1px solid var(--borda);">
-        <td style="padding:7px 10px; font-weight:700; white-space:nowrap;">
-          ${String(item.hora).padStart(2, "0")}:00
-        </td>
-        <td style="padding:7px 10px; font-size:1rem;">${emojiCodigoClima(item.codigo)}</td>
-        <td style="padding:7px 10px; color:var(--texto-suave); font-size:0.88rem;">
-          ${escaparHTML(descricaoCodigoClima(item.codigo))}
-        </td>
-        <td style="padding:7px 10px; text-align:center;">${item.precipProb}%</td>
-        <td style="padding:7px 10px; text-align:center; font-size:0.86rem; color:var(--texto-suave);">
-          ${item.precip.toFixed(1)}mm
-        </td>
-        <td style="padding:7px 10px; text-align:center; color:var(--texto-suave);">${item.temp}°C</td>
-        <td style="padding:7px 10px; text-align:center;">
-          <span style="
-            color:${cor};
-            font-weight:700;
-            font-size:0.82rem;
-            background:${bgOpac};
-            border:1px solid ${cor};
-            border-radius:6px;
-            padding:2px 8px;
-          ">${item.nivel}</span>
-        </td>
-      </tr>
-    `;
-  }).join("");
-
-  // 3. Janelas recomendadas
-  const janelasPrincipal = janelas[0];
-  const janelasBlocos = janelas.map((j, idx) => {
-    const destaque = idx === 0;
-    const cor = corRiscoCSS(j.nivel);
-    const bg = destaque
-      ? "rgba(0,170,255,0.10)"
-      : "color-mix(in srgb, var(--bg-card) 90%, transparent 10%)";
-    const borda = destaque
-      ? "rgba(0,170,255,0.45)"
-      : "var(--borda)";
-    const prefixo = idx === 0 ? "Melhor janela" : idx === 1 ? "2ª opção" : "3ª opção";
-
-    return `
-      <div style="
-        border:1px solid ${borda};
-        border-radius:12px;
-        padding:12px 14px;
-        background:${bg};
-        display:flex;
-        flex-direction:column;
-        gap:4px;
-      ">
-        <span style="font-size:0.78rem; color:var(--texto-fraco); text-transform:uppercase; letter-spacing:0.5px;">
-          ${prefixo}
-        </span>
-        <span style="font-size:1.08rem; font-weight:700; color:${destaque ? "var(--azul)" : "var(--texto)"};">
-          ${formatarJanela(j.inicio, j.fim)}
-        </span>
-        <span style="font-size:0.84rem; color:${cor};">Risco ${j.nivel}</span>
-      </div>
-    `;
-  }).join("");
-
-  // 4. Resumo manhã/tarde
-  const classeBox = (n) =>
-    n === "ALTO" ? "status-box--erro" : n === "MÉDIO" ? "status-box--alerta" : "status-box--ok";
+  const janelasHTML = janelasTop.map((janela, idx) => `
+    <div class="clima-janela ${idx === 0 ? "clima-janela--melhor" : ""}">
+      <span class="clima-kpi__rotulo">${idx === 0 ? "Melhor janela do dia" : idx === 1 ? "2ª opção" : "3ª opção"}</span>
+      <span class="clima-kpi__valor">${formatarJanela(janela.inicio, janela.fim)}</span>
+      <span class="clima-kpi__sub" style="color:${corRiscoCSS(janela.nivel)};">Risco ${janela.nivel.toLowerCase()} · score médio ${janela.scoreMedia}</span>
+    </div>
+  `).join("");
 
   resultado.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:18px; padding-top:4px;">
+    <div class="clima-bloco" style="display:flex; flex-direction:column; gap:18px;">
+      <div class="clima-cabecalho">
+        <div class="clima-titulo">
+          <p style="font-size:1rem; color:var(--texto); margin:0; font-weight:700;">${escaparHTML(unidade)} — ${escaparHTML(dataBR)}</p>
+          <p style="font-size:0.86rem; color:var(--texto-suave); margin:0;">Referência regional usada na previsão: ${escaparHTML(coords.regiao)}</p>
+        </div>
+        <span class="clima-badge clima-badge--confianca" style="color:${confianca.nivel === "ALTA" ? "var(--verde)" : confianca.nivel === "MÉDIA" ? "var(--amarelo)" : "var(--vermelho)"}; background:${confianca.nivel === "ALTA" ? "var(--verde-bg)" : confianca.nivel === "MÉDIA" ? "var(--amarelo-bg)" : "var(--vermelho-bg)"};">
+          Confiança estimada: ${confianca.percentual}%
+        </span>
+      </div>
 
-      <!-- Cabeçalho -->
-      <p style="font-size:0.94rem; color:var(--texto-suave); margin:0;">
-        <strong style="color:var(--texto);">${escaparHTML(unidade)}</strong> — ${escaparHTML(dataBR)}
-      </p>
-
-      <!-- Linha do tempo visual -->
-      <div>
-        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
-          Probabilidade de chuva por hora
-        </p>
-        <div style="
-          display:flex;
-          align-items:flex-end;
-          gap:4px;
-          padding:12px 10px 0;
-          background:color-mix(in srgb, var(--bg-input) 80%, transparent 20%);
-          border:1px solid var(--borda);
-          border-radius:14px;
-          overflow:hidden;
-        ">
-          ${timelineHTML}
+      <div class="clima-kpis">
+        <div class="clima-kpi">
+          <span class="clima-kpi__rotulo">Melhor hora individual</span>
+          <span class="clima-kpi__valor">${String(melhorHorario.hora).padStart(2, "0")}:00</span>
+          <span class="clima-kpi__sub">${melhorHorario.precipProb}% de chuva · ${melhorHorario.temp}°C · risco ${melhorHorario.nivel.toLowerCase()}</span>
+        </div>
+        <div class="clima-kpi">
+          <span class="clima-kpi__rotulo">Pior horário do dia</span>
+          <span class="clima-kpi__valor">${String(piorHorario.hora).padStart(2, "0")}:00</span>
+          <span class="clima-kpi__sub">${piorHorario.precipProb}% de chuva · ${piorHorario.precip.toFixed(1)}mm · risco ${piorHorario.nivel.toLowerCase()}</span>
+        </div>
+        <div class="clima-kpi">
+          <span class="clima-kpi__rotulo">Leitura operacional</span>
+          <span class="clima-kpi__valor">07h às 19h</span>
+          <span class="clima-kpi__sub">Chuva pesa mais; temperatura entra como apoio visual.</span>
         </div>
       </div>
 
-      <!-- Resumo manhã/tarde -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div class="status-box ${classeBox(resumoManha.nivel)}">
-          <strong>Manhã (7h–11h)</strong>
-          <span>Pico de chuva: ${resumoManha.probMax}%</span>
-          <span>Temp. média: ~${resumoManha.tempMedia}°C</span>
-          <span style="color:${corRiscoCSS(resumoManha.nivel)}; font-weight:700; margin-top:4px;">
-            Risco geral: ${resumoManha.nivel}
-          </span>
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">Probabilidade de chuva por hora</p>
+        <div class="clima-timeline">${timelineHTML}</div>
+      </div>
+
+      <div class="clima-faixas">
+        <div class="clima-faixa">
+          <span class="clima-kpi__rotulo">Manhã (07h–11h)</span>
+          <span class="clima-kpi__valor" style="color:${corRiscoCSS(resumoManha.nivel)};">Risco ${resumoManha.nivel.toLowerCase()}</span>
+          <span class="clima-kpi__sub">Pico de chuva: ${resumoManha.probMax}% · chuva acumulada: ${resumoManha.chuvaMm}mm</span>
+          <span class="clima-kpi__sub">Temperatura média: ${resumoManha.tempMedia}°C${melhorManha ? ` · melhor faixa: ${formatarJanela(melhorManha.inicio, melhorManha.fim)}` : ""}</span>
         </div>
-        <div class="status-box ${classeBox(resumoTarde.nivel)}">
-          <strong>Tarde (12h–18h)</strong>
-          <span>Pico de chuva: ${resumoTarde.probMax}%</span>
-          <span>Temp. média: ~${resumoTarde.tempMedia}°C</span>
-          <span style="color:${corRiscoCSS(resumoTarde.nivel)}; font-weight:700; margin-top:4px;">
-            Risco geral: ${resumoTarde.nivel}
-          </span>
+        <div class="clima-faixa">
+          <span class="clima-kpi__rotulo">Tarde (12h–19h)</span>
+          <span class="clima-kpi__valor" style="color:${corRiscoCSS(resumoTarde.nivel)};">Risco ${resumoTarde.nivel.toLowerCase()}</span>
+          <span class="clima-kpi__sub">Pico de chuva: ${resumoTarde.probMax}% · chuva acumulada: ${resumoTarde.chuvaMm}mm</span>
+          <span class="clima-kpi__sub">Temperatura média: ${resumoTarde.tempMedia}°C${melhorTarde ? ` · melhor faixa: ${formatarJanela(melhorTarde.inicio, melhorTarde.fim)}` : ""}</span>
         </div>
       </div>
 
-      <!-- Janelas recomendadas -->
       <div>
-        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
-          Janelas ideais para agendamentos
-        </p>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-          ${janelas.length ? janelasBlocos : `
-            <div class="status-box status-box--erro">
-              <strong>Dia de alto risco</strong>
-              <span>Nenhum período com risco baixo identificado.</span>
-              <span style="font-size:0.84rem; color:var(--texto-fraco);">
-                Melhor horário disponível: ${String(melhorHora.hora).padStart(2, "0")}:00
-              </span>
-            </div>
-          `}
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">Janelas ideais para agendamento</p>
+        <div class="clima-janelas">
+          ${janelasHTML || `<div class="clima-janela"><span class="clima-kpi__valor">Sem janela ideal clara</span><span class="clima-kpi__sub">O dia ficou mais instável; use o melhor horário individual como apoio.</span></div>`}
         </div>
       </div>
 
-      <!-- Tabela analítica hora a hora -->
+      <div class="clima-insight">
+        <strong>Leitura operacional:</strong> ${escaparHTML(observacao)}<br>
+        <span style="font-size:0.84rem; color:var(--texto-fraco);">${escaparHTML(confianca.texto)}</span>
+      </div>
+
       <div>
-        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
-          Análise detalhada hora a hora
-        </p>
-        <div style="overflow-x:auto; border-radius:12px; border:1px solid var(--borda);">
-          <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">Análise detalhada hora a hora</p>
+        <div class="clima-tabela">
+          <table>
             <thead>
-              <tr style="background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%);">
-                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Hora</th>
-                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;"></th>
-                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Condição</th>
-                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Chuva</th>
-                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Precip.</th>
-                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Temp.</th>
-                <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Risco</th>
+              <tr>
+                <th>Hora</th>
+                <th></th>
+                <th>Condição</th>
+                <th style="text-align:center;">Chuva</th>
+                <th style="text-align:center;">Precip.</th>
+                <th style="text-align:center;">Temp.</th>
+                <th style="text-align:center;">Risco</th>
               </tr>
             </thead>
             <tbody>${tabelaHTML}</tbody>
@@ -2156,8 +2098,8 @@ function renderClimaResultado(dados, unidade, dataISO) {
         </div>
       </div>
 
-      <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0; padding-top:4px;">
-        Fonte: Open-Meteo · Dados horários · Não impede agendamentos, apenas orienta o melhor horário.
+      <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0;">
+        Fonte: Open-Meteo · Leitura regional por unidade · A confiança exibida é uma estimativa operacional baseada na consistência dos sinais de chuva ao longo do dia.
       </p>
     </div>
   `;
@@ -2187,28 +2129,3 @@ atualizarStatusSync("Modo local ativo");
 // Define data padrão de hoje no campo clima
 const climaDataInput = document.getElementById("climaData");
 if (climaDataInput) climaDataInput.value = obterDataHojeISO();
-
-
-document.querySelectorAll(".modal").forEach((modalEl) => {
-  modalEl.addEventListener("click", (event) => {
-    if (event.target === modalEl) {
-      if (modalEl === modalConfirmacao) fecharModalConfirmacao(false);
-      else if (modalEl === modalEntrada) fecharModalEntrada(null);
-      else if (modalEl === modalAcoesBanco) fecharModalBanco();
-      else if (modalEl === modalSegmentacaoMassa) fecharModalSegmentacao();
-      else if (modalEl === modal) fecharModal();
-    }
-  });
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    if (modalConfirmacao?.style.display === "flex") fecharModalConfirmacao(false);
-    if (modalEntrada?.style.display === "flex") fecharModalEntrada(null);
-  }
-  if (event.key === "Enter" && modalEntrada?.style.display === "flex" && document.activeElement === modalEntradaInput) {
-    confirmarModalEntrada();
-  }
-});
-
-trocarAba("agendamento");
