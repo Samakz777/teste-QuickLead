@@ -53,10 +53,6 @@ const btnConfirmarModalAcao = document.getElementById("btnConfirmarModalAcao");
 const modalEntrada = document.getElementById("modalEntrada");
 const modalEntradaInput = document.getElementById("modalEntradaInput");
 const modalEntradaLabel = document.getElementById("modalEntradaLabel");
-const modalPainelBanco = document.getElementById("modalPainelBanco");
-const painelBancoTitulo = document.getElementById("titulo-modal-painel-banco");
-const painelBancoResumo = document.getElementById("painelBancoResumo");
-const painelBancoLista = document.getElementById("painelBancoLista");
 
 let resolverModalConfirmacao = null;
 let resolverModalEntrada = null;
@@ -264,59 +260,6 @@ function capitalizar(texto = "") {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-function criarListaDatas(qtdDias = 45) {
-  const lista = [];
-  const base = new Date();
-  for (let i = 0; i < qtdDias; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    const label = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} · ${capitalizar(d.toLocaleDateString("pt-BR", { weekday: "short" }).replace('.', ''))}`;
-    lista.push({ value: iso, label });
-  }
-  return lista;
-}
-
-function preencherSelectData(campoId, qtdDias = 45, valorPadrao = "") {
-  const campo = document.getElementById(campoId);
-  if (!campo) return;
-  const opcoes = criarListaDatas(qtdDias);
-  campo.innerHTML = opcoes.map((item) => `<option value="${item.value}">${item.label}</option>`).join("");
-  if (valorPadrao && opcoes.some((item) => item.value === valorPadrao)) {
-    campo.value = valorPadrao;
-  } else if (!campo.value && opcoes.length) {
-    campo.value = opcoes[0].value;
-  }
-}
-
-function atualizarSelectsDeData() {
-  preencherSelectData("data", 45, tipoAgendamentoInput?.value === "inclusao" ? obterDataHojeISO() : obterProximoDiaUtilISO());
-  preencherSelectData("filtroData", 45, filtroData?.value || obterDataHojeISO());
-  preencherSelectData("dataRelatorio", 45, dataRelatorio?.value || obterDataHojeISO());
-  preencherSelectData("climaData", 10, document.getElementById("climaData")?.value || obterDataHojeISO());
-}
-
-function normalizarHorarioDigitado(valor = "") {
-  let v = String(valor).trim();
-  if (!v) return "";
-  if (/^\d{1,2}:\d{2}$/.test(v)) {
-    let [h,m] = v.split(':').map(Number);
-    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-  }
-  const dig = v.replace(/\D/g, '');
-  if (dig.length === 3) {
-    const h = Number(dig.slice(0,1));
-    const m = Number(dig.slice(1));
-    if (h <= 23 && m <= 59) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-  }
-  if (dig.length === 4) {
-    const h = Number(dig.slice(0,2));
-    const m = Number(dig.slice(2));
-    if (h <= 23 && m <= 59) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-  }
-  return v;
-}
-
 function setTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("quickleadTema", theme);
@@ -423,9 +366,13 @@ function atualizarDataPadraoPorTipo() {
   if (!dataInput || !tipoAgendamentoInput) return;
 
   const tipo = tipoAgendamentoInput.value;
-  const valor = tipo === "inclusao" ? obterDataHojeISO() : obterProximoDiaUtilISO();
-  atualizarSelectsDeData();
-  dataInput.value = valor;
+
+  if (tipo === "inclusao") {
+    dataInput.value = obterDataHojeISO();
+    return;
+  }
+
+  dataInput.value = obterProximoDiaUtilISO();
 }
 
 function preencherHorarios() {
@@ -440,16 +387,9 @@ function preencherHorarios() {
     }
   }
 
-  const listaHorarios = document.getElementById("listaHorarios");
-  if (listaHorarios) {
-    listaHorarios.innerHTML = horarios.map((h) => `<option value="${h}"></option>`).join("");
-  }
-
-  horaInput.placeholder = "Ex: 14:30";
-  horaInput.addEventListener("blur", () => {
-    const normalizado = normalizarHorarioDigitado(horaInput.value);
-    horaInput.value = normalizado;
-  });
+  horaInput.innerHTML =
+    `<option value="">Selecionar horário</option>` +
+    horarios.map((h) => `<option value="${h}">${h}</option>`).join("");
 }
 
 // =========================
@@ -463,7 +403,7 @@ function criarBlocoPessoaHTML(index, pessoa = {}) {
   return `
     <div class="agenda-item pessoa-bloco" data-index="${index}">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
-        <strong>Paciente ${index + 1}</strong>
+        <strong>Pessoa ${index + 1}</strong>
         <button type="button" onclick="removerPessoa(${index})">Remover</button>
       </div>
 
@@ -581,7 +521,7 @@ function normalizarStatus(texto = "") {
 
   if (!bruto) return null;
 
-  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "REEDD1";
+  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
   if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) return "DES";
   if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) return "LON";
   if (["FOR", "FORA", "FORADECOBERTURA", "FORADECOVERAGE"].includes(bruto)) return "FOR";
@@ -603,9 +543,9 @@ function normalizarStatus(texto = "") {
 }
 
 function decomporStatus(status = "") {
-  const s = normalizarStatus(status) || "REEDD1";
+  const s = normalizarStatus(status) || "NOVO";
 
-  if (s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
+  if (s === "NOVO" || s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
     return {
       status: s,
       segmento: s,
@@ -635,10 +575,10 @@ function decomporStatus(status = "") {
   }
 
   return {
-    status: "REED D1",
-    segmento: "REED",
-    baseTipo: "REED",
-    baseValor: 1
+    status: "NOVO",
+    segmento: "NOVO",
+    baseTipo: "NOVO",
+    baseValor: null
   };
 }
 
@@ -658,6 +598,7 @@ function categoriaDoStatus(status = "") {
     return "IGNORAR_AGORA";
   }
 
+  if (info.segmento === "NOVO") return "UTIL_AGORA";
   if (["DES", "LON", "FOR", "PAT"].includes(info.segmento)) return "DESQUALIFICADO";
 
   return "NEUTRO";
@@ -673,6 +614,7 @@ function categoriaParaClasse(categoria) {
 function prioridadeStatus(status = "") {
   const info = decomporStatus(status);
 
+  if (info.segmento === "NOVO") return 1;
   if (info.segmento === "REED" && info.baseValor === 1) return 2;
   if (info.segmento === "REED") return 10 + info.baseValor;
   if (info.segmento === "PRO") return 50 + info.baseValor;
@@ -711,9 +653,9 @@ function atualizarStatusDinamicoLead(lead) {
     const restante = lead.baseValor - mesesPassados;
 
     if (restante <= 0) {
-      lead.tipo = "REEDD1";
-      lead.baseTipo = "REED";
-      lead.baseValor = 1;
+      lead.tipo = "NOVO";
+      lead.baseTipo = "NOVO";
+      lead.baseValor = null;
       lead.atualizadoAutomaticamente = true;
       return lead;
     }
@@ -877,7 +819,10 @@ function salvarBanco() {
   mostrarBanco();
   atualizarCampanhas();
   salvar();
-  mostrarToast(`Banco atualizado.`, "ok", `${adicionados} adicionados · ${atualizados} atualizados · ${ignorados} ignorados.`);
+
+  alert(
+    `✅ Banco atualizado!\n\nAdicionados: ${adicionados}\nAtualizados: ${atualizados}\nIgnorados: ${ignorados}`
+  );
 }
 
 function abrirSegmentacaoEmMassa() {
@@ -945,7 +890,10 @@ function salvarBancoEmMassa() {
   atualizarCampanhas();
   fecharModalSegmentacao();
   salvar();
-  mostrarToast(`Segmentação em massa aplicada.`, "ok", `${adicionados} novos inseridos · ${mantidos} mantidos sem sobrescrever.`);
+
+  alert(
+    `✅ Segmentação em massa aplicada!\n\nNovos inseridos: ${adicionados}\nMantidos sem sobrescrever: ${mantidos}`
+  );
 }
 
 function obterListaBancoFiltrada() {
@@ -984,9 +932,7 @@ function renderBanco(lista = bancoLeads) {
     return;
   }
 
-  const listaCompacta = lista.slice(0, 18);
-
-  listaBanco.innerHTML = listaCompacta.map((lead) => {
+  listaBanco.innerHTML = lista.map((lead) => {
     const categoria = categoriaDoStatus(lead.tipo);
     const classe = categoriaParaClasse(categoria);
     const indexOriginal = bancoLeads.findIndex(
@@ -994,11 +940,12 @@ function renderBanco(lista = bancoLeads) {
     );
 
     return `
-      <div class="agenda-item ${classe} banco-item-compacto">
+      <div class="agenda-item ${classe}">
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
           <div>
             <p><strong>${escaparHTML(formatarNumero(lead.numero))}</strong></p>
             <p>Status: <strong>${escaparHTML(formatarStatusExibicao(lead.tipo))}</strong></p>
+            <p>Categoria: <strong>${escaparHTML(categoria)}</strong></p>
           </div>
 
           <button
@@ -1012,10 +959,6 @@ function renderBanco(lista = bancoLeads) {
     `;
   }).join("");
 
-  if (lista.length > listaCompacta.length) {
-    listaBanco.insertAdjacentHTML("beforeend", `<div class="lista-compacta-aviso">Mostrando ${listaCompacta.length} de ${lista.length} registros. Use os botões de janela para ver listas completas sem pesar a tela.</div>`);
-  }
-
   atualizarResumoBanco(lista);
 }
 
@@ -1023,6 +966,7 @@ function atualizarResumoBanco(lista = bancoLeads) {
   if (!resumoBanco) return;
 
   const resumo = {
+    NOVO: 0,
     REED: 0,
     PRO: 0,
     DES: 0,
@@ -1043,52 +987,13 @@ function atualizarResumoBanco(lista = bancoLeads) {
 ====================
 Total: ${lista.length}
 
+NOVO: ${resumo.NOVO}
 REED: ${resumo.REED}
 PRO: ${resumo.PRO}
 DES: ${resumo.DES}
 LON: ${resumo.LON}
 FOR: ${resumo.FOR}
 PAT: ${resumo.PAT}`;
-}
-
-
-function abrirPainelBanco(tipo = "TODOS") {
-  if (!painelBancoLista || !modalPainelBanco) return;
-
-  const listaBase = obterListaBancoFiltrada();
-  let lista = listaBase;
-  let titulo = "Todos os leads";
-
-  if (tipo !== "TODOS") {
-    lista = listaBase.filter((lead) => categoriaDoStatus(lead.tipo) === tipo);
-    titulo = tipo === "UTIL_AGORA" ? "Leads trabalháveis" : tipo === "IGNORAR_AGORA" ? "Leads para ignorar agora" : "Leads desqualificados";
-  }
-
-  if (painelBancoTitulo) painelBancoTitulo.textContent = titulo;
-  if (painelBancoResumo) painelBancoResumo.textContent = `${lista.length} registro(s) dentro da visão atual do banco.`;
-
-  painelBancoLista.innerHTML = lista.length ? lista.map((lead) => {
-    const categoria = categoriaDoStatus(lead.tipo);
-    const classe = categoriaParaClasse(categoria);
-    const indexOriginal = bancoLeads.findIndex((item) => getPhoneKey(item.numero) === getPhoneKey(lead.numero));
-    return `
-      <div class="agenda-item ${classe}">
-        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-          <div>
-            <p><strong>${escaparHTML(formatarNumero(lead.numero))}</strong></p>
-            <p>Status: <strong>${escaparHTML(formatarStatusExibicao(lead.tipo))}</strong></p>
-            <p>Categoria: <strong>${escaparHTML(categoria.replace(/_/g, ' '))}</strong></p>
-          </div>
-          <button type="button" onclick="abrirAcoesBanco(${indexOriginal})">⋯</button>
-        </div>
-      </div>`;
-  }).join("") : '<p>Nenhum registro encontrado nessa janela.</p>';
-
-  abrirModalBase(modalPainelBanco);
-}
-
-function fecharPainelBanco() {
-  fecharModalBase(modalPainelBanco);
 }
 
 function mostrarBanco() {
@@ -1148,10 +1053,9 @@ async function editarLeadSelecionado() {
   const novoNumero = await solicitarEntrada("Editar número", lead.numero, "Editar lead");
   if (novoNumero === null) return;
 
-  const novoStatus = await solicitarEntrada(
-    "Editar status (ex: REED D1, REED D15, PRO M3, DES, LON, FOR, PAT)",
-    formatarStatusExibicao(lead.tipo),
-    "Editar segmentação"
+  const novoStatus = prompt(
+    "Editar status:\n\nExemplos:\nNOVO\nREED D1\nREED D15\nPRO M3\nDES\nLON\nFOR\nPAT",
+    formatarStatusExibicao(lead.tipo)
   );
   if (novoStatus === null) return;
 
@@ -1189,7 +1093,7 @@ async function excluirLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
-  if (!(await confirmarAcao("Excluir este lead?", `${formatarNumero(lead.numero)} - ${formatarStatusExibicao(lead.tipo)}`, "Excluir"))) {
+  if (!confirm(`Excluir este lead?\n\n${formatarNumero(lead.numero)} - ${formatarStatusExibicao(lead.tipo)}`)) {
     return;
   }
 
@@ -1256,8 +1160,8 @@ function filtrarLeads() {
     const leadBanco = buscarLeadNoBancoPorNumero(numero);
 
     if (!leadBanco) {
-      aprovados.push(`${numero} - REED D1`);
-      totalReed1++;
+      aprovados.push(`${numero} - NOVO`);
+      totalNovos++;
       return;
     }
 
@@ -1266,6 +1170,7 @@ function filtrarLeads() {
 
     if (categoria === "UTIL_AGORA") {
       aprovados.push(`${numero} - ${statusExibido}`);
+      if (statusExibido === "NOVO") totalNovos++;
       if (statusExibido === "REED D1") totalReed1++;
       return;
     }
@@ -1308,6 +1213,7 @@ Números válidos encontrados: ${numerosExtraidos.length}
 REGRAS ATIVAS
 ====================
 TRABALHAR AGORA:
+- NOVO
 - REED D1
 
 IGNORAR NO MOMENTO:
@@ -1433,14 +1339,8 @@ function gerarSenhasParaAgendamento(data, quantidadePessoas) {
 }
 
 function validarAgendamento(dados) {
-  dados.hora = normalizarHorarioDigitado(dados.hora);
   if (!dados.unidade || !dados.data || !dados.hora) {
     mostrarToast("Preencha unidade, data e horário.", "aviso");
-    return false;
-  }
-
-  if (!/^\d{2}:\d{2}$/.test(dados.hora)) {
-    mostrarToast("Digite um horário válido no formato HH:MM.", "aviso");
     return false;
   }
 
@@ -1539,9 +1439,9 @@ async function agendar() {
 
   const dados = {
     tipo,
-    unidade: (unidadeInput.value || "").trim(),
+    unidade: unidadeInput.value,
     data: dataInput.value,
-    hora: normalizarHorarioDigitado(horaInput.value),
+    hora: horaInput.value,
     pessoas
   };
 
@@ -1638,7 +1538,7 @@ async function transformarEmReagendamento(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
   if (!agendamento) return;
 
-  if (!(await confirmarAcao("Marcar este registro como reagendamento?", juntarNomes(agendamento.pessoas), "Marcar"))) {
+  if (!confirm(`Marcar este registro como reagendamento?\n\n${juntarNomes(agendamento.pessoas)}`)) {
     return;
   }
 
@@ -1695,7 +1595,7 @@ function filtrarAgenda() {
     const senhas = item.pessoas.map((p) => p.senha).join(" / ");
 
     // Bloco por pessoa com cópia individual de nome e número
-    const pessoasHTML = item.pessoas.map((p, indexPessoa) => {
+    const pessoasHTML = item.pessoas.map((p) => {
       const nomeSafe = escaparHTML(p.nome || "");
       const numeroFormatado = escaparHTML(formatarNumero(p.numero));
       const numeroLimpo = limparNumero(p.numero);
@@ -1720,13 +1620,6 @@ function filtrarAgenda() {
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button
               type="button"
-              class="btn-lapis"
-              onclick="editarNomeAgendado(${item.indexOriginal}, ${indexPessoa})"
-              title="Editar nome do paciente"
-              style="font-size:0.82rem; padding:6px 10px;"
-            >✏</button>
-            <button
-              type="button"
               onclick="copiarTexto('${nomeLimpo}', '✅ Nome copiado.')"
               style="font-size:0.82rem; padding:6px 10px;"
             >Copiar nome</button>
@@ -1741,7 +1634,7 @@ function filtrarAgenda() {
     }).join("");
 
     return `
-      <div class="agenda-item agenda-card-real">
+      <div class="agenda-item">
         <p>
           <strong>${escaparHTML(nomes)}</strong>
           — ${escaparHTML(item.unidade)}
@@ -1752,11 +1645,11 @@ function filtrarAgenda() {
           &nbsp;|&nbsp; Senhas: <strong>${escaparHTML(senhas)}</strong>
         </p>
 
-        <div class="agenda-pacientes-lista">
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
           ${pessoasHTML}
         </div>
 
-        <div class="agenda-card-acoes">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">Comprovante Paciente</button>
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>
           <button type="button" onclick="reenviarWhats(${item.indexOriginal}, 'paciente')">Reenviar WhatsApp</button>
@@ -1766,27 +1659,6 @@ function filtrarAgenda() {
       </div>
     `;
   }).join("");
-}
-
-
-async function editarNomeAgendado(indexAgendamento, indexPessoa) {
-  const agendamento = normalizarAgendamento(agendamentos[indexAgendamento]);
-  const pessoa = agendamento?.pessoas?.[indexPessoa];
-  if (!pessoa) return;
-  const novoNome = await solicitarEntrada("Editar nome do paciente", pessoa.nome || "", "Editar paciente");
-  if (novoNome === null) return;
-  const nomeTratado = String(novoNome).trim();
-  if (nomeTratado.length < 3) {
-    mostrarToast("Digite um nome válido para o paciente.", "aviso");
-    return;
-  }
-  agendamentos[indexAgendamento] = {
-    ...agendamento,
-    pessoas: agendamento.pessoas.map((p, i) => i === indexPessoa ? { ...p, nome: nomeTratado } : p)
-  };
-  salvar();
-  filtrarAgenda();
-  mostrarToast("Nome do paciente atualizado.", "ok");
 }
 
 // =========================
@@ -1817,9 +1689,7 @@ function gerarRelatorio() {
     return;
   }
 
-  const registros = agendamentos
-    .map(normalizarAgendamento)
-    .filter((item) => item.data === dataSelecionada && item.tipo === "agendamento");
+  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
 
   const unidadesOrdem = [
     "Augusto Montenegro",
@@ -1838,36 +1708,41 @@ function gerarRelatorio() {
   unidadesOrdem.forEach((u) => { contagemPorUnidade[u] = 0; });
 
   let totalAgendamentos = 0;
+  let totalReagendamentos = 0;
+  let totalInclusoes = 0;
 
   registros.forEach((registro) => {
     const quantidadePessoas = registro.pessoas?.length || 1;
-    totalAgendamentos += quantidadePessoas;
-    contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+
+    if (registro.tipo === "agendamento") {
+      totalAgendamentos += quantidadePessoas;
+      contagemPorUnidade[registro.unidade] =
+        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+    } else if (registro.tipo === "reagendamento") {
+      totalReagendamentos += quantidadePessoas;
+    } else if (registro.tipo === "inclusao") {
+      totalInclusoes += quantidadePessoas;
+      contagemPorUnidade[registro.unidade] =
+        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+    }
   });
 
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
 
-  let texto = `*DIÁRIO*
-_*${nomeDia} ${dataCurta}*_
-`;
+  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
 
-  unidadesOrdem.forEach((unidade, idx) => {
+  unidadesOrdem.forEach((unidade) => {
     const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
     const total = contagemPorUnidade[unidade] || 0;
-    texto += `
-DIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
-    if (idx < unidadesOrdem.length - 1) texto += `
-`;
+    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
   });
 
-  texto += `
-
-*${totalAgendamentos} AGENDAMENTOS*`;
-  texto += `
-*TOTAL = ${totalAgendamentos}*`;
-  texto += `
-*TMK: PAULO LOBATO*`;
+  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
+  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
+  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
+  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
+  texto += `\n*TMK: PAULO LOBATO*`;
 
   resultadoRelatorio.textContent = texto;
 }
@@ -1885,20 +1760,20 @@ function copiarRelatorio() {
 // MÓDULO CLIMA
 // =========================
 const UNIDADES_CLIMA = {
-  "Augusto Montenegro": { lat: -1.3398, lon: -48.4372 },
-  "Marabá":             { lat: -5.3692, lon: -49.1171 },
-  "Ananindeua":         { lat: -1.3655, lon: -48.3720 },
-  "Telégrafo":          { lat: -1.4298, lon: -48.4804 },
-  "Marambaia":          { lat: -1.4145, lon: -48.4648 },
-  "José Bonifácio":     { lat: -1.4462, lon: -48.4755 },
-  "Cidade Nova":        { lat: -1.3924, lon: -48.4096 },
-  "Jurunas":            { lat: -1.4660, lon: -48.4935 },
-  "Castanhal":          { lat: -1.2946, lon: -47.9261 },
-  "Capanema":           { lat: -1.1954, lon: -47.1812 }
+  "Augusto Montenegro": { lat: -1.3403, lon: -48.4300 },
+  "Marabá":             { lat: -5.3686, lon: -49.1178 },
+  "Ananindeua":         { lat: -1.3700, lon: -48.4010 },
+  "Telégrafo":          { lat: -1.4400, lon: -48.4700 },
+  "Marambaia":          { lat: -1.4300, lon: -48.4650 },
+  "José Bonifácio":     { lat: -1.4580, lon: -48.4700 },
+  "Cidade Nova":        { lat: -1.4050, lon: -48.4300 },
+  "Jurunas":            { lat: -1.4610, lon: -48.4780 },
+  "Castanhal":          { lat: -1.2972, lon: -47.9218 },
+  "Capanema":           { lat: -1.1951, lon: -47.1819 }
 };
 
 // Horas operacionais analisadas (índices = hora do dia)
-const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
 function descricaoCodigoClima(codigo) {
   if (codigo === 0) return "Céu limpo";
@@ -1922,24 +1797,14 @@ function emojiCodigoClima(codigo) {
   return "🌤";
 }
 
-// Retorna score de risco contínuo com chuva dominante e temperatura apenas como apoio
-function pontuarHora(precipProb, precip, codigo, temp = 0) {
+// Retorna 0=BAIXO, 1=MÉDIO, 2=ALTO — com pontuação contínua para ordenação
+function pontuarHora(precipProb, precip, codigo) {
   let score = 0;
-  score += precipProb * 0.62;
-  score += Math.min(precip * 22, 42);
-  if (codigo >= 61) score += 24;
-  if (codigo >= 80) score += 18;
-  if (temp >= 34) score += 4;
-  return Math.min(100, Math.round(score));
-}
-
-function calcularConfiancaHora(precipProb, precip, codigo) {
-  let confianca = 40;
-  confianca += Math.min(precipProb * 0.35, 30);
-  confianca += Math.min(precip * 18, 18);
-  if (codigo >= 61) confianca += 8;
-  if (codigo >= 80) confianca += 6;
-  return Math.max(45, Math.min(96, Math.round(confianca)));
+  score += precipProb * 0.6;           // peso maior na probabilidade
+  score += Math.min(precip * 20, 40);  // precip em mm, capped
+  if (codigo >= 61) score += 25;       // chuva confirmada no código
+  if (codigo >= 80) score += 20;       // pancadas / tempestade
+  return Math.round(score);
 }
 
 function nivelRisco(score) {
@@ -2071,24 +1936,22 @@ function renderClimaResultado(dados, unidade, dataISO) {
     const precip     = h.precipitation[i] || 0;
     const temp       = h.temperature_2m[i] || 0;
     const codigo     = h.weathercode[i] || 0;
-    const score      = pontuarHora(precipProb, precip, codigo, temp);
+    const score      = pontuarHora(precipProb, precip, codigo);
     const nivel      = nivelRisco(score);
-    const confianca  = calcularConfiancaHora(precipProb, precip, codigo);
 
-    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel, confianca };
+    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel };
   });
 
   // Divide em período manhã e tarde para resumo
-  const manha = horasAnalisadas.filter((h) => h.hora <= 12);
-  const tarde  = horasAnalisadas.filter((h) => h.hora >= 13);
+  const manha = horasAnalisadas.filter((h) => h.hora <= 11);
+  const tarde  = horasAnalisadas.filter((h) => h.hora >= 12);
 
   const resumoPeriodo = (lista) => {
     const scoreMax = Math.max(...lista.map((h) => h.score));
     const probMax  = Math.max(...lista.map((h) => h.precipProb));
     const tempMedia = Math.round(lista.reduce((s, h) => s + h.temp, 0) / lista.length);
     const nivel = nivelRisco(scoreMax);
-    const confiancaMedia = Math.round(lista.reduce((s, h) => s + h.confianca, 0) / lista.length);
-    return { scoreMax, probMax, tempMedia, nivel, confiancaMedia };
+    return { scoreMax, probMax, tempMedia, nivel };
   };
 
   const resumoManha = resumoPeriodo(manha);
@@ -2205,53 +2068,82 @@ function renderClimaResultado(dados, unidade, dataISO) {
   const classeBox = (n) =>
     n === "ALTO" ? "status-box--erro" : n === "MÉDIO" ? "status-box--alerta" : "status-box--ok";
 
-  const confiancaGeral = Math.round(horasAnalisadas.reduce((s, h) => s + h.confianca, 0) / horasAnalisadas.length);
-  const piorHora = [...horasAnalisadas].sort((a, b) => b.score - a.score)[0];
-
   resultado.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:18px; padding-top:4px;">
-      <div style="display:grid; grid-template-columns:1.2fr .8fr; gap:12px;">
-        <div class="status-box ${classeBox(melhorHora.nivel)}">
-          <strong>Melhor horário do dia</strong>
-          <span>${String(melhorHora.hora).padStart(2, "0")}:00 · ${descricaoCodigoClima(melhorHora.codigo)}</span>
-          <span>Chuva: ${melhorHora.precipProb}% · Temp.: ${melhorHora.temp}°C</span>
-          <span style="color:${corRiscoCSS(melhorHora.nivel)}; font-weight:700;">Risco ${melhorHora.nivel} · ${melhorHora.confianca}%</span>
-        </div>
-        <div class="status-box status-box--ok">
-          <strong>Confiança estimada</strong>
-          <span>${confiancaGeral}% de confiança média na leitura do dia</span>
-          <span style="font-size:0.83rem; color:var(--texto-fraco);">Percentual operacional para dar mais segurança na interpretação.</span>
+
+      <!-- Cabeçalho -->
+      <p style="font-size:0.94rem; color:var(--texto-suave); margin:0;">
+        <strong style="color:var(--texto);">${escaparHTML(unidade)}</strong> — ${escaparHTML(dataBR)}
+      </p>
+
+      <!-- Linha do tempo visual -->
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Probabilidade de chuva por hora
+        </p>
+        <div style="
+          display:flex;
+          align-items:flex-end;
+          gap:4px;
+          padding:12px 10px 0;
+          background:color-mix(in srgb, var(--bg-input) 80%, transparent 20%);
+          border:1px solid var(--borda);
+          border-radius:14px;
+          overflow:hidden;
+        ">
+          ${timelineHTML}
         </div>
       </div>
 
+      <!-- Resumo manhã/tarde -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
         <div class="status-box ${classeBox(resumoManha.nivel)}">
-          <strong>Manhã (7h–12h)</strong>
+          <strong>Manhã (7h–11h)</strong>
           <span>Pico de chuva: ${resumoManha.probMax}%</span>
           <span>Temp. média: ~${resumoManha.tempMedia}°C</span>
-          <span style="color:${corRiscoCSS(resumoManha.nivel)}; font-weight:700;">Risco ${resumoManha.nivel} · ${resumoManha.confiancaMedia}%</span>
+          <span style="color:${corRiscoCSS(resumoManha.nivel)}; font-weight:700; margin-top:4px;">
+            Risco geral: ${resumoManha.nivel}
+          </span>
         </div>
         <div class="status-box ${classeBox(resumoTarde.nivel)}">
-          <strong>Tarde (13h–19h)</strong>
+          <strong>Tarde (12h–18h)</strong>
           <span>Pico de chuva: ${resumoTarde.probMax}%</span>
           <span>Temp. média: ~${resumoTarde.tempMedia}°C</span>
-          <span style="color:${corRiscoCSS(resumoTarde.nivel)}; font-weight:700;">Risco ${resumoTarde.nivel} · ${resumoTarde.confiancaMedia}%</span>
+          <span style="color:${corRiscoCSS(resumoTarde.nivel)}; font-weight:700; margin-top:4px;">
+            Risco geral: ${resumoTarde.nivel}
+          </span>
         </div>
       </div>
 
-      <div class="status-box ${classeBox(piorHora.nivel)}">
-        <strong>Pior horário do dia</strong>
-        <span>${String(piorHora.hora).padStart(2, "0")}:00 · ${descricaoCodigoClima(piorHora.codigo)}</span>
-        <span style="color:${corRiscoCSS(piorHora.nivel)}; font-weight:700;">Risco ${piorHora.nivel} · ${piorHora.confianca}%</span>
+      <!-- Janelas recomendadas -->
+      <div>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Janelas ideais para agendamentos
+        </p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+          ${janelas.length ? janelasBlocos : `
+            <div class="status-box status-box--erro">
+              <strong>Dia de alto risco</strong>
+              <span>Nenhum período com risco baixo identificado.</span>
+              <span style="font-size:0.84rem; color:var(--texto-fraco);">
+                Melhor horário disponível: ${String(melhorHora.hora).padStart(2, "0")}:00
+              </span>
+            </div>
+          `}
+        </div>
       </div>
 
+      <!-- Tabela analítica hora a hora -->
       <div>
-        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">Análise por horário</p>
+        <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0 0 8px; text-transform:uppercase; letter-spacing:0.5px;">
+          Análise detalhada hora a hora
+        </p>
         <div style="overflow-x:auto; border-radius:12px; border:1px solid var(--borda);">
           <table style="width:100%; border-collapse:collapse; font-size:0.88rem;">
             <thead>
               <tr style="background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%);">
                 <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Hora</th>
+                <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;"></th>
                 <th style="padding:8px 10px; text-align:left; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Condição</th>
                 <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Chuva</th>
                 <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Precip.</th>
@@ -2259,34 +2151,23 @@ function renderClimaResultado(dados, unidade, dataISO) {
                 <th style="padding:8px 10px; text-align:center; font-size:0.78rem; color:var(--texto-fraco); font-weight:700;">Risco</th>
               </tr>
             </thead>
-            <tbody>${horasAnalisadas.map((item) => {
-              const cor = corRiscoCSS(item.nivel);
-              const bgOpac = item.nivel === "BAIXO" ? "rgba(0,200,83,0.06)" : item.nivel === "MÉDIO" ? "rgba(255,213,79,0.06)" : "rgba(255,82,82,0.06)";
-              return `<tr style="background:${bgOpac}; border-bottom:1px solid var(--borda);">
-                <td style="padding:7px 10px; font-weight:700; white-space:nowrap;">${String(item.hora).padStart(2, "0")}:00</td>
-                <td style="padding:7px 10px; color:var(--texto-suave); font-size:0.88rem;">${emojiCodigoClima(item.codigo)} ${escaparHTML(descricaoCodigoClima(item.codigo))}</td>
-                <td style="padding:7px 10px; text-align:center;">${item.precipProb}%</td>
-                <td style="padding:7px 10px; text-align:center; font-size:0.86rem; color:var(--texto-suave);">${item.precip.toFixed(1)}mm</td>
-                <td style="padding:7px 10px; text-align:center; color:var(--texto-suave);">${item.temp}°C</td>
-                <td style="padding:7px 10px; text-align:center;"><span style="color:${cor}; font-weight:700; font-size:0.82rem; background:${bgOpac}; border:1px solid ${cor}; border-radius:999px; padding:3px 10px;">${item.nivel} · ${item.confianca}%</span></td>
-              </tr>`;
-            }).join("")}</tbody>
+            <tbody>${tabelaHTML}</tbody>
           </table>
         </div>
       </div>
 
       <p style="font-size:0.82rem; color:var(--texto-fraco); margin:0; padding-top:4px;">
-        ${escaparHTML(unidade)} — ${escaparHTML(dataBR)} · Fonte: Open-Meteo · A leitura não impede agendamentos; ela apenas orienta o melhor horário.
+        Fonte: Open-Meteo · Dados horários · Não impede agendamentos, apenas orienta o melhor horário.
       </p>
     </div>
-  `;}
+  `;
+}
 
 // =========================
 // INICIALIZAÇÃO
 // =========================
 function inicializarFormulario() {
   preencherHorarios();
-  atualizarSelectsDeData();
   limparFormularioAgendamento();
 
   if (tipoAgendamentoInput) {
@@ -2315,7 +2196,6 @@ document.querySelectorAll(".modal").forEach((modalEl) => {
       else if (modalEl === modalEntrada) fecharModalEntrada(null);
       else if (modalEl === modalAcoesBanco) fecharModalBanco();
       else if (modalEl === modalSegmentacaoMassa) fecharModalSegmentacao();
-      else if (modalEl === modalPainelBanco) fecharPainelBanco();
       else if (modalEl === modal) fecharModal();
     }
   });
