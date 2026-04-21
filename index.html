@@ -96,35 +96,35 @@
                 <option>Castanhal</option>
                 <option>Capanema</option>
               </select>
-              <small class="texto-ajuda">Seleção direta da unidade para ganhar tempo e evitar erro de digitação.</small>
             </div>
           </div>
 
           <div class="painel-agendamento-grid">
             <div class="grupo-campos">
               <label for="data">Data</label>
-              <select id="data"></select>
+              <input id="data" type="date">
               <small class="texto-ajuda">
-                Selecione rapidamente a data pela lista. Inclusão continua usando o mesmo dia.
+                Padrão: próximo dia útil. Inclusão usa o mesmo dia.
               </small>
             </div>
 
             <div class="grupo-campos">
               <label for="hora">Horário</label>
-              <input id="hora" type="text" list="listaHorarios" inputmode="numeric" placeholder="Digite ou selecione ex: 14:30">
-              <datalist id="listaHorarios"></datalist>
+              <select id="hora">
+                <option value="">Selecionar horário</option>
+              </select>
               <small class="texto-ajuda">
-                Você pode digitar seu horário manualmente ou aproveitar as sugestões de 10 em 10 minutos.
+                Minutos em intervalos de 10 em 10, mantendo a escolha da hora normalmente.
               </small>
             </div>
           </div>
 
           <div class="grupo-campos">
-            <label>Pacientes do agendamento</label>
+            <label>Pessoas do agendamento</label>
             <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
             <div class="acoes-secundarias">
               <button type="button" onclick="adicionarPessoa()">
-                + Adicionar paciente
+                + Adicionar pessoa
               </button>
             </div>
           </div>
@@ -147,7 +147,7 @@
 
           <div class="grupo-campos">
             <label for="filtroData">Selecionar data</label>
-            <select id="filtroData"></select>
+            <input type="date" id="filtroData">
           </div>
 
           <button type="button" onclick="filtrarAgenda()">Atualizar</button>
@@ -169,7 +169,7 @@
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>REED D1</span>
+              <span>NOVO e REED D1</span>
             </div>
 
             <div class="status-box status-box--alerta">
@@ -302,6 +302,7 @@ ou lista grande com nomes + números."
               <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
               <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
                 <option value="">Todas</option>
+                <option value="NOVO">NOVO</option>
                 <option value="REED">REED</option>
                 <option value="PRO">PRO</option>
                 <option value="DES">DES</option>
@@ -377,18 +378,6 @@ ou lista grande com nomes + números."
             ></textarea>
           </div>
 
-          <div class="banco-paineis-acoes">
-            <button type="button" onclick="abrirPainelBanco('UTIL_AGORA')">Ver trabalháveis</button>
-            <button type="button" onclick="abrirPainelBanco('IGNORAR_AGORA')">Ver ignorar agora</button>
-            <button type="button" onclick="abrirPainelBanco('DESQUALIFICADO')">Ver desqualificados</button>
-            <button type="button" onclick="abrirPainelBanco('TODOS')">Ver todos em janela</button>
-          </div>
-
-          <div class="grupo-campos">
-            <label>Lista compacta do banco</label>
-            <small class="texto-ajuda">A área principal mostra uma visão resumida para não pesar a tela. Use os botões acima para abrir listas completas em janela.</small>
-          </div>
-
           <div id="listaBanco" aria-live="polite"></div>
         </div>
       </section>
@@ -405,18 +394,18 @@ ou lista grande com nomes + números."
 
           <div class="painel-campanhas-filtros">
             <div class="grupo-campos">
-              <label for="campanhaVisualizacao">Tipo de operação</label>
+              <label for="campanhaVisualizacao">Visualização</label>
               <select id="campanhaVisualizacao" onchange="atualizarCampanhas()">
                 <option value="todas">Todas</option>
-                <option value="reed">Somente reengajamento (REED)</option>
-                <option value="pro">Somente programados (PRO)</option>
+                <option value="reed">Somente REED</option>
+                <option value="pro">Somente PRO</option>
               </select>
             </div>
           </div>
 
           <div class="painel-campanhas-grid">
             <div class="grupo-campos">
-              <label for="painelReed">Fila de reengajamento (REED) por dia</label>
+              <label for="painelReed">Fila REED por dia</label>
               <textarea
                 id="painelReed"
                 placeholder="Os REED D1 até D30 aparecerão organizados aqui..."
@@ -425,7 +414,7 @@ ou lista grande com nomes + números."
             </div>
 
             <div class="grupo-campos">
-              <label for="painelPro">Fila de programados (PRO) por mês</label>
+              <label for="painelPro">Fila PRO por mês</label>
               <textarea
                 id="painelPro"
                 placeholder="Os PRO M1 até M12 aparecerão organizados aqui..."
@@ -439,10 +428,10 @@ ou lista grande com nomes + números."
               Atualizar campanhas
             </button>
             <button type="button" onclick="copiarPainelReed()">
-              Copiar reengajamento
+              Copiar REED
             </button>
             <button type="button" onclick="copiarPainelPro()">
-              Copiar programados
+              Copiar PRO
             </button>
           </div>
         </div>
@@ -460,7 +449,7 @@ ou lista grande com nomes + números."
 
           <div class="grupo-campos">
             <label for="dataRelatorio">Selecionar data</label>
-            <select id="dataRelatorio"></select>
+            <input type="date" id="dataRelatorio">
           </div>
 
           <div class="acoes-secundarias">
@@ -505,8 +494,8 @@ ou lista grande com nomes + números."
 
             <div class="grupo-campos">
               <label for="climaData">Data</label>
-              <select id="climaData"></select>
-              <small class="texto-ajuda">Padrão: hoje. O risco mostra a chuva e, ao lado, a porcentagem estimada de confiança da leitura.</small>
+              <input type="date" id="climaData">
+              <small class="texto-ajuda">Padrão: hoje. Use para consultar previsão de amanhã também.</small>
             </div>
           </div>
 
@@ -580,6 +569,7 @@ ou lista grande com nomes + números."
           <option value="LON">LON</option>
           <option value="FOR">FOR</option>
           <option value="PAT">PAT</option>
+          <option value="NOVO">NOVO</option>
           <option value="REED D1">REED D1</option>
           <option value="PRO M1">PRO M1</option>
         </select>
@@ -629,20 +619,6 @@ ou lista grande com nomes + números."
       <div class="modal-confirmacao__acoes">
         <button type="button" class="btn-ghost" onclick="fecharModalEntrada(null)">Cancelar</button>
         <button type="button" class="btn-principal" onclick="confirmarModalEntrada()">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalPainelBanco" class="modal" aria-hidden="true">
-    <div class="modal-content modal-content--grande" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-painel-banco">
-      <div class="modal__header">
-        <h3 id="titulo-modal-painel-banco" class="modal__titulo">Painel do banco</h3>
-        <button type="button" class="modal__fechar" onclick="fecharPainelBanco()">×</button>
-      </div>
-      <div id="painelBancoResumo" class="texto-apoio" style="margin-bottom:12px;"></div>
-      <div id="painelBancoLista" class="painel-banco-lista"></div>
-      <div class="modal-confirmacao__acoes">
-        <button type="button" class="btn-ghost" onclick="fecharPainelBanco()">Fechar</button>
       </div>
     </div>
   </div>
