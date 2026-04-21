@@ -73,7 +73,7 @@ function mostrarToast(texto, tipo = "ok", subtexto = "") {
       <div class="toast__texto">${escaparHTML(texto)}</div>
       ${subtexto ? `<div class="toast__sub">${escaparHTML(subtexto)}</div>` : ""}
     </div>
-    <button type="button" class="toast__fechar" aria-label="Fechar">x</button>
+    <button type="button" class="toast__fechar" aria-label="Fechar">×</button>
   `;
 
   const remover = () => {
@@ -1812,8 +1812,7 @@ function gerarRelatorio() {
         `Agendamentos: ${item.agendamento}`,
         `Reagendamentos: ${item.reagendamento}`,
         `Inclusões: ${item.inclusao}`
-      ].join("
-");
+      ].join("\n");
     });
 
   const totalAgendamentos = Object.values(mapa).reduce((s, i) => s + i.agendamento, 0);
@@ -1825,9 +1824,7 @@ function gerarRelatorio() {
 _*${nomeDia} ${dataCurta}*_
 
 `;
-  texto += blocos.length ? blocos.join("
-
-") : "Sem registros para esta data.";
+  texto += blocos.length ? blocos.join("\n\n") : "Sem registros para esta data.";
   texto += `
 
 *AGENDAMENTOS = ${totalAgendamentos}*`;
