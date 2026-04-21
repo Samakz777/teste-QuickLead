@@ -45,6 +45,9 @@ const textoComprovante = document.getElementById("textoComprovante");
 const modalAcoesBanco = document.getElementById("modalAcoesBanco");
 const modalSegmentacaoMassa = document.getElementById("modalSegmentacaoMassa");
 const syncStatusTexto = document.getElementById("syncStatusTexto");
+const modalListaLeads = document.getElementById("modalListaLeads");
+const modalListaLeadsTitulo = document.getElementById("titulo-modal-lista-leads");
+const modalListaLeadsConteudo = document.getElementById("modalListaLeadsConteudo");
 const toastContainer = document.getElementById("toastContainer");
 const modalConfirmacao = document.getElementById("modalConfirmacao");
 const modalConfirmacaoMensagem = document.getElementById("modalConfirmacaoMensagem");
@@ -377,7 +380,7 @@ function atualizarDataPadraoPorTipo() {
 
 function preencherHorarios() {
   if (!horaInput) return;
-
+  const listaHorarios = document.getElementById("listaHorarios");
   const horarios = [];
   for (let hora = 7; hora <= 19; hora++) {
     for (let minuto = 0; minuto < 60; minuto += 10) {
@@ -386,12 +389,34 @@ function preencherHorarios() {
       horarios.push(`${h}:${m}`);
     }
   }
-
-  horaInput.innerHTML =
-    `<option value="">Selecionar horário</option>` +
-    horarios.map((h) => `<option value="${h}">${h}</option>`).join("");
+  if (listaHorarios) {
+    listaHorarios.innerHTML = horarios.map((h) => `<option value="${h}"></option>`).join("");
+  }
 }
 
+function normalizarHoraDigitada(valor = "") {
+  let texto = String(valor).trim();
+  if (!texto) return "";
+  if (/^\d{1,2}$/.test(texto)) texto = `${texto}:00`;
+  if (/^\d{3,4}$/.test(texto)) {
+    texto = texto.length === 3 ? `0${texto[0]}:${texto.slice(1)}` : `${texto.slice(0,2)}:${texto.slice(2)}`;
+  }
+  const match = texto.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!match) return "";
+  let h = Number(match[1]);
+  let m = Number(match[2]);
+  if (h < 7 || h > 19 || m < 0 || m > 59) return "";
+  m = Math.round(m / 10) * 10;
+  if (m === 60) {
+    h += 1;
+    m = 0;
+  }
+  if (h > 19) return "";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// =========================
+// MULTI-PACIENTE
 // =========================
 // MULTI-PACIENTE
 // =========================
@@ -403,7 +428,7 @@ function criarBlocoPessoaHTML(index, pessoa = {}) {
   return `
     <div class="agenda-item pessoa-bloco" data-index="${index}">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
-        <strong>Pessoa ${index + 1}</strong>
+        <strong>Paciente ${index + 1}</strong>
         <button type="button" onclick="removerPessoa(${index})">Remover</button>
       </div>
 
@@ -521,7 +546,7 @@ function normalizarStatus(texto = "") {
 
   if (!bruto) return null;
 
-  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
+  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "REEDD1";
   if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) return "DES";
   if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) return "LON";
   if (["FOR", "FORA", "FORADECOBERTURA", "FORADECOVERAGE"].includes(bruto)) return "FOR";
@@ -543,9 +568,9 @@ function normalizarStatus(texto = "") {
 }
 
 function decomporStatus(status = "") {
-  const s = normalizarStatus(status) || "NOVO";
+  const s = normalizarStatus(status) || "REEDD1";
 
-  if (s === "NOVO" || s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
+  if (s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
     return {
       status: s,
       segmento: s,
@@ -575,10 +600,10 @@ function decomporStatus(status = "") {
   }
 
   return {
-    status: "NOVO",
-    segmento: "NOVO",
-    baseTipo: "NOVO",
-    baseValor: null
+    status: "REED D1",
+    segmento: "REED",
+    baseTipo: "REED",
+    baseValor: 1
   };
 }
 
@@ -598,7 +623,6 @@ function categoriaDoStatus(status = "") {
     return "IGNORAR_AGORA";
   }
 
-  if (info.segmento === "NOVO") return "UTIL_AGORA";
   if (["DES", "LON", "FOR", "PAT"].includes(info.segmento)) return "DESQUALIFICADO";
 
   return "NEUTRO";
@@ -614,8 +638,7 @@ function categoriaParaClasse(categoria) {
 function prioridadeStatus(status = "") {
   const info = decomporStatus(status);
 
-  if (info.segmento === "NOVO") return 1;
-  if (info.segmento === "REED" && info.baseValor === 1) return 2;
+  if (info.segmento === "REED" && info.baseValor === 1) return 1;
   if (info.segmento === "REED") return 10 + info.baseValor;
   if (info.segmento === "PRO") return 50 + info.baseValor;
   if (info.segmento === "DES") return 96;
@@ -653,9 +676,9 @@ function atualizarStatusDinamicoLead(lead) {
     const restante = lead.baseValor - mesesPassados;
 
     if (restante <= 0) {
-      lead.tipo = "NOVO";
-      lead.baseTipo = "NOVO";
-      lead.baseValor = null;
+      lead.tipo = "REEDD1";
+      lead.baseTipo = "REED";
+      lead.baseValor = 1;
       lead.atualizadoAutomaticamente = true;
       return lead;
     }
@@ -923,22 +946,40 @@ function obterListaBancoFiltrada() {
   });
 }
 
+function atualizarResumoBancoCards(lista = bancoLeads) {
+  const alvo = document.getElementById("bancoResumoCards");
+  if (!alvo) return;
+  const cont = { util: 0, ignorar: 0, des: 0 };
+  lista.forEach((lead) => {
+    const categoria = categoriaDoStatus(lead.tipo);
+    if (categoria === "UTIL_AGORA") cont.util += 1;
+    else if (categoria === "IGNORAR_AGORA") cont.ignorar += 1;
+    else if (categoria === "DESQUALIFICADO") cont.des += 1;
+  });
+  alvo.innerHTML = `
+    <div class="status-box status-box--ok"><strong>${cont.util}</strong><span>Trabalháveis agora</span></div>
+    <div class="status-box status-box--alerta"><strong>${cont.ignorar}</strong><span>Aguardando o momento certo</span></div>
+    <div class="status-box status-box--erro"><strong>${cont.des}</strong><span>Desqualificados</span></div>
+  `;
+}
+
 function renderBanco(lista = bancoLeads) {
   if (!listaBanco) return;
+  atualizarResumoBanco(lista);
+  atualizarResumoBancoCards(lista);
 
   if (!lista.length) {
     listaBanco.innerHTML = "<p>Nenhum lead encontrado no banco.</p>";
-    atualizarResumoBanco([]);
     return;
   }
 
-  listaBanco.innerHTML = lista.map((lead) => {
+  const preview = lista.slice(0, 12);
+  const restante = Math.max(0, lista.length - preview.length);
+
+  listaBanco.innerHTML = preview.map((lead) => {
     const categoria = categoriaDoStatus(lead.tipo);
     const classe = categoriaParaClasse(categoria);
-    const indexOriginal = bancoLeads.findIndex(
-      (item) => getPhoneKey(item.numero) === getPhoneKey(lead.numero)
-    );
-
+    const indexOriginal = bancoLeads.findIndex((item) => getPhoneKey(item.numero) === getPhoneKey(lead.numero));
     return `
       <div class="agenda-item ${classe}">
         <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
@@ -947,26 +988,40 @@ function renderBanco(lista = bancoLeads) {
             <p>Status: <strong>${escaparHTML(formatarStatusExibicao(lead.tipo))}</strong></p>
             <p>Categoria: <strong>${escaparHTML(categoria)}</strong></p>
           </div>
-
-          <button
-            type="button"
-            onclick="abrirAcoesBanco(${indexOriginal})"
-            aria-label="Abrir ações do lead"
-            style="min-width:44px;"
-          >⋯</button>
+          <button type="button" onclick="abrirAcoesBanco(${indexOriginal})" aria-label="Abrir ações do lead" style="min-width:44px;">⋯</button>
         </div>
       </div>
     `;
-  }).join("");
+  }).join("") + (restante ? `<p class="texto-ajuda banco-preview-note">Mostrando 12 de ${lista.length} leads filtrados. Use as visões por categoria para abrir a lista completa.</p>` : "");
+}
 
-  atualizarResumoBanco(lista);
+function abrirLeadsModal(modo = "TODOS") {
+  if (!modalListaLeads || !modalListaLeadsConteudo) return;
+  const listaBase = obterListaBancoFiltrada();
+  const filtrada = modo === "TODOS" ? listaBase : listaBase.filter((lead) => categoriaDoStatus(lead.tipo) === modo);
+  const titulos = {
+    TODOS: "Todos os leads filtrados",
+    UTIL_AGORA: "Leads trabalháveis agora",
+    IGNORAR_AGORA: "Leads para aguardar",
+    DESQUALIFICADO: "Leads desqualificados"
+  };
+  if (modalListaLeadsTitulo) modalListaLeadsTitulo.textContent = titulos[modo] || "Lista de leads";
+  modalListaLeadsConteudo.innerHTML = filtrada.length ? filtrada.map((lead) => `
+    <div class="agenda-item ${categoriaParaClasse(categoriaDoStatus(lead.tipo))}">
+      <p><strong>${escaparHTML(formatarNumero(lead.numero))}</strong></p>
+      <p>Status: <strong>${escaparHTML(formatarStatusExibicao(lead.tipo))}</strong></p>
+    </div>`).join("") : '<p>Nenhum lead encontrado nessa visão.</p>';
+  abrirModalBase(modalListaLeads);
+}
+
+function fecharModalListaLeads() {
+  fecharModalBase(modalListaLeads);
 }
 
 function atualizarResumoBanco(lista = bancoLeads) {
   if (!resumoBanco) return;
 
   const resumo = {
-    NOVO: 0,
     REED: 0,
     PRO: 0,
     DES: 0,
@@ -987,13 +1042,14 @@ function atualizarResumoBanco(lista = bancoLeads) {
 ====================
 Total: ${lista.length}
 
-NOVO: ${resumo.NOVO}
 REED: ${resumo.REED}
 PRO: ${resumo.PRO}
 DES: ${resumo.DES}
 LON: ${resumo.LON}
 FOR: ${resumo.FOR}
-PAT: ${resumo.PAT}`;
+PAT: ${resumo.PAT}
+
+Entradas novas são normalizadas como REED D1.`;
 }
 
 function mostrarBanco() {
@@ -1160,8 +1216,9 @@ function filtrarLeads() {
     const leadBanco = buscarLeadNoBancoPorNumero(numero);
 
     if (!leadBanco) {
-      aprovados.push(`${numero} - NOVO`);
+      aprovados.push(`${numero} - REED D1`);
       totalNovos++;
+      totalReed1++;
       return;
     }
 
@@ -1170,8 +1227,10 @@ function filtrarLeads() {
 
     if (categoria === "UTIL_AGORA") {
       aprovados.push(`${numero} - ${statusExibido}`);
-      if (statusExibido === "NOVO") totalNovos++;
-      if (statusExibido === "REED D1") totalReed1++;
+      if (statusExibido === "REED D1") {
+        totalNovos++;
+        totalReed1++;
+      }
       return;
     }
 
@@ -1199,7 +1258,7 @@ function filtrarLeads() {
 `RESUMO DA EXTRAÇÃO
 ====================
 Aprovados: ${aprovados.length}
-- Novos: ${totalNovos}
+- Entradas novas normalizadas: ${totalNovos}
 - REED D1: ${totalReed1}
 
 Bloqueados: ${bloqueados.length}
@@ -1213,8 +1272,7 @@ Números válidos encontrados: ${numerosExtraidos.length}
 REGRAS ATIVAS
 ====================
 TRABALHAR AGORA:
-- NOVO
-- REED D1
+- REED D1 (inclui entradas novas)
 
 IGNORAR NO MOMENTO:
 - REED D2 até D30
@@ -1252,43 +1310,42 @@ function atualizarCampanhas() {
 
   const reedMap = {};
   const proMap = {};
-
-  for (let i = 1; i <= 30; i++) {
-    reedMap[`D${i}`] = [];
-  }
-
-  for (let i = 1; i <= 12; i++) {
-    proMap[`M${i}`] = [];
-  }
+  for (let i = 1; i <= 30; i++) reedMap[`D${i}`] = [];
+  for (let i = 1; i <= 12; i++) proMap[`M${i}`] = [];
 
   bancoLeads.forEach((lead) => {
     const info = decomporStatus(lead.tipo);
     const numero = limparNumero(lead.numero);
-
-    if (info.segmento === "REED" && info.baseValor >= 1 && info.baseValor <= 30) {
-      reedMap[`D${info.baseValor}`].push(numero);
-    }
-
-    if (info.segmento === "PRO" && info.baseValor >= 1 && info.baseValor <= 12) {
-      proMap[`M${info.baseValor}`].push(numero);
-    }
+    if (info.segmento === "REED" && info.baseValor >= 1 && info.baseValor <= 30) reedMap[`D${info.baseValor}`].push(numero);
+    if (info.segmento === "PRO" && info.baseValor >= 1 && info.baseValor <= 12) proMap[`M${info.baseValor}`].push(numero);
   });
 
   const visualizacao = campanhaVisualizacao?.value || "todas";
+  const totalReed = Object.values(reedMap).reduce((s, arr) => s + arr.length, 0);
+  const totalPro = Object.values(proMap).reduce((s, arr) => s + arr.length, 0);
+  const reedD1 = reedMap.D1.length;
+  const proMaisProximo = Object.entries(proMap).find(([, arr]) => arr.length)?.[0] || "Sem fila";
+
+  const resumoCampanhas = document.getElementById("resumoCampanhas");
+  if (resumoCampanhas) {
+    resumoCampanhas.innerHTML = `
+      <div class="status-box status-box--ok"><strong>${reedD1}</strong><span>REED D1 prontos para retrabalho</span></div>
+      <div class="status-box status-box--alerta"><strong>${totalReed}</strong><span>Reengajamentos ativos (REED)</span></div>
+      <div class="status-box"><strong>${totalPro}</strong><span>Programados ativos · mais próximo: ${proMaisProximo}</span></div>
+    `;
+  }
 
   if (painelReed) {
     const textoReed = Object.keys(reedMap)
-      .map((dia) => `${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
+      .map((dia) => `REENGAJAMENTO ${dia} (${reedMap[dia].length})\n${reedMap[dia].join("\n")}`.trim())
       .join("\n\n");
-
     painelReed.value = visualizacao === "pro" ? "" : textoReed;
   }
 
   if (painelPro) {
     const textoPro = Object.keys(proMap)
-      .map((mes) => `${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
+      .map((mes) => `PROGRAMADO ${mes} (${proMap[mes].length})\n${proMap[mes].join("\n")}`.trim())
       .join("\n\n");
-
     painelPro.value = visualizacao === "reed" ? "" : textoPro;
   }
 }
@@ -1339,8 +1396,9 @@ function gerarSenhasParaAgendamento(data, quantidadePessoas) {
 }
 
 function validarAgendamento(dados) {
+  dados.hora = normalizarHoraDigitada(dados.hora);
   if (!dados.unidade || !dados.data || !dados.hora) {
-    mostrarToast("Preencha unidade, data e horário.", "aviso");
+    mostrarToast("Preencha unidade, data e horário válidos.", "aviso");
     return false;
   }
 
@@ -1514,6 +1572,23 @@ function fecharModal() {
 // =========================
 // AGENDA
 // =========================
+async function editarNomePaciente(agendamentoIndex, pessoaIndex) {
+  const agendamento = normalizarAgendamento(agendamentos[agendamentoIndex]);
+  if (!agendamento?.pessoas?.[pessoaIndex]) return;
+  const atual = agendamento.pessoas[pessoaIndex].nome || "";
+  const novo = await solicitarEntrada("Editar nome do paciente", atual, "Editar paciente");
+  if (novo === null) return;
+  const nome = String(novo).trim();
+  if (nome.length < 3) {
+    mostrarToast("Digite um nome válido.", "aviso");
+    return;
+  }
+  agendamentos[agendamentoIndex].pessoas[pessoaIndex].nome = nome;
+  salvar();
+  filtrarAgenda();
+  mostrarToast("Nome do paciente atualizado.", "ok");
+}
+
 function copiarNumero(numero) {
   copiarTexto(limparNumero(numero), "✅ Número copiado.");
 }
@@ -1595,7 +1670,7 @@ function filtrarAgenda() {
     const senhas = item.pessoas.map((p) => p.senha).join(" / ");
 
     // Bloco por pessoa com cópia individual de nome e número
-    const pessoasHTML = item.pessoas.map((p) => {
+    const pessoasHTML = item.pessoas.map((p, pessoaIndex) => {
       const nomeSafe = escaparHTML(p.nome || "");
       const numeroFormatado = escaparHTML(formatarNumero(p.numero));
       const numeroLimpo = limparNumero(p.numero);
@@ -1613,7 +1688,7 @@ function filtrarAgenda() {
           flex-wrap:wrap;
         ">
           <div>
-            <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span>
+            <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span><button type="button" class="btn-mini" onclick="editarNomePaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar nome">✎</button>
             <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span>
             ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
           </div>
@@ -1683,68 +1758,38 @@ function normalizarNomeUnidadeRelatorio(unidade = "") {
 
 function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
-
   if (!dataSelecionada) {
     mostrarToast("Selecione uma data.", "aviso");
     return;
   }
 
-  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
-
-  const unidadesOrdem = [
-    "Augusto Montenegro",
-    "Marabá",
-    "Ananindeua",
-    "Telégrafo",
-    "Marambaia",
-    "José Bonifácio",
-    "Cidade Nova",
-    "Jurunas",
-    "Castanhal",
-    "Capanema"
-  ];
-
+  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada && item.tipo === "agendamento");
+  const unidadesOrdem = ["Augusto Montenegro","Marabá","Ananindeua","Telégrafo","Marambaia","José Bonifácio","Cidade Nova","Jurunas","Castanhal","Capanema"];
   const contagemPorUnidade = {};
   unidadesOrdem.forEach((u) => { contagemPorUnidade[u] = 0; });
-
   let totalAgendamentos = 0;
-  let totalReagendamentos = 0;
-  let totalInclusoes = 0;
 
   registros.forEach((registro) => {
     const quantidadePessoas = registro.pessoas?.length || 1;
-
-    if (registro.tipo === "agendamento") {
-      totalAgendamentos += quantidadePessoas;
-      contagemPorUnidade[registro.unidade] =
-        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
-    } else if (registro.tipo === "reagendamento") {
-      totalReagendamentos += quantidadePessoas;
-    } else if (registro.tipo === "inclusao") {
-      totalInclusoes += quantidadePessoas;
-      contagemPorUnidade[registro.unidade] =
-        (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
-    }
+    totalAgendamentos += quantidadePessoas;
+    contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
   });
 
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
+  const blocos = unidadesOrdem
+    .map((unidade) => ({ unidade, total: contagemPorUnidade[unidade] || 0 }))
+    .filter((item) => item.total > 0)
+    .map((item) => `DIA ${dataCurta} *(${String(item.total).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(item.unidade)}*`);
 
-  let texto = `*DIÁRIO*\n_*${nomeDia} ${dataCurta}*_\n`;
+  let texto = `*DIÁRIO*
+_*${nomeDia} ${dataCurta}*_
 
-  unidadesOrdem.forEach((unidade) => {
-    const nomeRelatorio = normalizarNomeUnidadeRelatorio(unidade);
-    const total = contagemPorUnidade[unidade] || 0;
-    texto += `\nDIA ${dataCurta} *(${String(total).padStart(2, "0")}) ${nomeRelatorio}*`;
-  });
-
-  texto += `\n*${totalAgendamentos} AGENDAMENTOS*`;
-  texto += `\n*${totalReagendamentos} REAGENDAMENTO*`;
-  texto += `\n*+ ${totalInclusoes} INCLUSÃO*`;
+`;
+  texto += blocos.length ? blocos.join("\n\n") : "Sem agendamentos válidos para esta data.";
   texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
   texto += `\n*TMK: PAULO LOBATO*`;
-
-  resultadoRelatorio.textContent = texto;
+  resultadoRelatorio.textContent = texto.trim();
 }
 
 function copiarRelatorio() {
@@ -1762,18 +1807,18 @@ function copiarRelatorio() {
 const UNIDADES_CLIMA = {
   "Augusto Montenegro": { lat: -1.3403, lon: -48.4300 },
   "Marabá":             { lat: -5.3686, lon: -49.1178 },
-  "Ananindeua":         { lat: -1.3700, lon: -48.4010 },
+  "Ananindeua":         { lat: -1.3715, lon: -48.4035 },
   "Telégrafo":          { lat: -1.4400, lon: -48.4700 },
-  "Marambaia":          { lat: -1.4300, lon: -48.4650 },
-  "José Bonifácio":     { lat: -1.4580, lon: -48.4700 },
-  "Cidade Nova":        { lat: -1.4050, lon: -48.4300 },
+  "Marambaia":          { lat: -1.4295, lon: -48.4660 },
+  "José Bonifácio":     { lat: -1.4550, lon: -48.4720 },
+  "Cidade Nova":        { lat: -1.4040, lon: -48.4315 },
   "Jurunas":            { lat: -1.4610, lon: -48.4780 },
   "Castanhal":          { lat: -1.2972, lon: -47.9218 },
   "Capanema":           { lat: -1.1951, lon: -47.1819 }
 };
 
 // Horas operacionais analisadas (índices = hora do dia)
-const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const HORAS_ANALISE = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
 function descricaoCodigoClima(codigo) {
   if (codigo === 0) return "Céu limpo";
@@ -1798,6 +1843,18 @@ function emojiCodigoClima(codigo) {
 }
 
 // Retorna 0=BAIXO, 1=MÉDIO, 2=ALTO — com pontuação contínua para ordenação
+function calcularConfiancaHora(precipProb, precip, codigo) {
+  let confianca = 55;
+  if (precipProb <= 20) confianca += 22;
+  else if (precipProb <= 40) confianca += 14;
+  else if (precipProb <= 60) confianca += 8;
+  else confianca += 4;
+  if (precip >= 0.5) confianca += 8;
+  if (codigo >= 61) confianca += 8;
+  if (codigo >= 80) confianca += 5;
+  return Math.max(52, Math.min(95, Math.round(confianca)));
+}
+
 function pontuarHora(precipProb, precip, codigo) {
   let score = 0;
   score += precipProb * 0.6;           // peso maior na probabilidade
@@ -2025,6 +2082,7 @@ function renderClimaResultado(dados, unidade, dataISO) {
             border-radius:6px;
             padding:2px 8px;
           ">${item.nivel}</span>
+          <span style="display:block; margin-top:4px; font-size:0.72rem; color:var(--texto-fraco);">${item.confianca}%</span>
         </td>
       </tr>
     `;
@@ -2094,6 +2152,8 @@ function renderClimaResultado(dados, unidade, dataISO) {
           ${timelineHTML}
         </div>
       </div>
+
+      <div class="status-box ${confiancaMedia >= 78 ? "status-box--ok" : confiancaMedia >= 65 ? "status-box--alerta" : "status-box--erro"}"><strong>Confiança estimada da previsão</strong><span>${confiancaMedia}% de estabilidade na leitura do dia</span><span style="font-weight:700; color:${confiancaMedia >= 78 ? "var(--verde)" : confiancaMedia >= 65 ? "var(--amarelo)" : "var(--vermelho)"};">${confiancaMedia >= 78 ? "Confiança alta" : confiancaMedia >= 65 ? "Confiança média" : "Confiança baixa"}</span></div>
 
       <!-- Resumo manhã/tarde -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -2173,6 +2233,13 @@ function inicializarFormulario() {
   if (tipoAgendamentoInput) {
     tipoAgendamentoInput.addEventListener("change", atualizarDataPadraoPorTipo);
   }
+  if (horaInput) {
+    horaInput.addEventListener("blur", () => {
+      const normalizado = normalizarHoraDigitada(horaInput.value);
+      if (horaInput.value && !normalizado) mostrarToast("Horário inválido. Use algo como 14:30.", "aviso");
+      if (normalizado) horaInput.value = normalizado;
+    });
+  }
 }
 
 setTheme(temaSalvo);
@@ -2196,6 +2263,7 @@ document.querySelectorAll(".modal").forEach((modalEl) => {
       else if (modalEl === modalEntrada) fecharModalEntrada(null);
       else if (modalEl === modalAcoesBanco) fecharModalBanco();
       else if (modalEl === modalSegmentacaoMassa) fecharModalSegmentacao();
+      else if (modalEl === modalListaLeads) fecharModalListaLeads();
       else if (modalEl === modal) fecharModal();
     }
   });
