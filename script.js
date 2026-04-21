@@ -1589,6 +1589,23 @@ async function editarNomePaciente(agendamentoIndex, pessoaIndex) {
   mostrarToast("Nome do paciente atualizado.", "ok");
 }
 
+async function editarNumeroPaciente(agendamentoIndex, pessoaIndex) {
+  const agendamento = normalizarAgendamento(agendamentos[agendamentoIndex]);
+  if (!agendamento?.pessoas?.[pessoaIndex]) return;
+  const atual = agendamento.pessoas[pessoaIndex].numero || "";
+  const novo = await solicitarEntrada("Editar número do paciente", atual, "Editar paciente");
+  if (novo === null) return;
+  const numero = limparNumero(String(novo));
+  if (numero.length < 10) {
+    mostrarToast("Digite um número válido.", "aviso");
+    return;
+  }
+  agendamentos[agendamentoIndex].pessoas[pessoaIndex].numero = numero;
+  salvar();
+  filtrarAgenda();
+  mostrarToast("Número do paciente atualizado.", "ok");
+}
+
 function copiarNumero(numero) {
   copiarTexto(limparNumero(numero), "✅ Número copiado.");
 }
@@ -1689,7 +1706,7 @@ function filtrarAgenda() {
         ">
           <div>
             <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span><button type="button" class="btn-mini" onclick="editarNomePaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar nome">✎</button>
-            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span>
+            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span><button type="button" class="btn-mini" onclick="editarNumeroPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar número">✎</button>
             ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -1763,32 +1780,65 @@ function gerarRelatorio() {
     return;
   }
 
-  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada && item.tipo === "agendamento");
+  const registros = agendamentos
+    .map(normalizarAgendamento)
+    .filter((item) => item.data === dataSelecionada);
+
   const unidadesOrdem = ["Augusto Montenegro","Marabá","Ananindeua","Telégrafo","Marambaia","José Bonifácio","Cidade Nova","Jurunas","Castanhal","Capanema"];
-  const contagemPorUnidade = {};
-  unidadesOrdem.forEach((u) => { contagemPorUnidade[u] = 0; });
-  let totalAgendamentos = 0;
+  const mapa = {};
+  unidadesOrdem.forEach((u) => {
+    mapa[u] = { agendamento: 0, reagendamento: 0, inclusao: 0, total: 0 };
+  });
 
   registros.forEach((registro) => {
-    const quantidadePessoas = registro.pessoas?.length || 1;
-    totalAgendamentos += quantidadePessoas;
-    contagemPorUnidade[registro.unidade] = (contagemPorUnidade[registro.unidade] || 0) + quantidadePessoas;
+    const quantidade = registro.pessoas?.length || 1;
+    const unidade = registro.unidade;
+    if (!mapa[unidade]) mapa[unidade] = { agendamento: 0, reagendamento: 0, inclusao: 0, total: 0 };
+    const tipo = registro.tipo || "agendamento";
+    if (tipo === "reagendamento") mapa[unidade].reagendamento += quantidade;
+    else if (tipo === "inclusao") mapa[unidade].inclusao += quantidade;
+    else mapa[unidade].agendamento += quantidade;
+    mapa[unidade].total += quantidade;
   });
 
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
   const blocos = unidadesOrdem
-    .map((unidade) => ({ unidade, total: contagemPorUnidade[unidade] || 0 }))
-    .filter((item) => item.total > 0)
-    .map((item) => `DIA ${dataCurta} *(${String(item.total).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(item.unidade)}*`);
+    .filter((unidade) => (mapa[unidade]?.total || 0) > 0)
+    .map((unidade) => {
+      const item = mapa[unidade];
+      return [
+        `DIA ${dataCurta} *(${String(item.total).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`,
+        `Agendamentos: ${item.agendamento}`,
+        `Reagendamentos: ${item.reagendamento}`,
+        `Inclusões: ${item.inclusao}`
+      ].join("
+");
+    });
+
+  const totalAgendamentos = Object.values(mapa).reduce((s, i) => s + i.agendamento, 0);
+  const totalReagendamentos = Object.values(mapa).reduce((s, i) => s + i.reagendamento, 0);
+  const totalInclusoes = Object.values(mapa).reduce((s, i) => s + i.inclusao, 0);
+  const totalGeral = totalAgendamentos + totalReagendamentos + totalInclusoes;
 
   let texto = `*DIÁRIO*
 _*${nomeDia} ${dataCurta}*_
 
 `;
-  texto += blocos.length ? blocos.join("\n\n") : "Sem agendamentos válidos para esta data.";
-  texto += `\n\n*TOTAL = ${totalAgendamentos}*`;
-  texto += `\n*TMK: PAULO LOBATO*`;
+  texto += blocos.length ? blocos.join("
+
+") : "Sem registros para esta data.";
+  texto += `
+
+*AGENDAMENTOS = ${totalAgendamentos}*`;
+  texto += `
+*REAGENDAMENTOS = ${totalReagendamentos}*`;
+  texto += `
+*INCLUSÕES = ${totalInclusoes}*`;
+  texto += `
+*TOTAL GERAL = ${totalGeral}*`;
+  texto += `
+*TMK: PAULO LOBATO*`;
   resultadoRelatorio.textContent = texto.trim();
 }
 
@@ -1963,20 +2013,24 @@ async function buscarClimaUnidade() {
   try {
     const url = [
       "https://api.open-meteo.com/v1/forecast",
-      `?latitude=${coords.lat}`,
-      `&longitude=${coords.lon}`,
-      "&hourly=temperature_2m,precipitation_probability,precipitation,weathercode",
+      `?latitude=${encodeURIComponent(coords.lat)}`,
+      `&longitude=${encodeURIComponent(coords.lon)}`,
+      "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code",
       "&timezone=America%2FBelem",
-      `&start_date=${dataAlvo}`,
-      `&end_date=${dataAlvo}`
+      `&start_date=${encodeURIComponent(dataAlvo)}`,
+      `&end_date=${encodeURIComponent(dataAlvo)}`
     ].join("");
 
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error("Falha na API");
+    const resp = await fetch(url, { method: "GET", headers: { "Accept": "application/json" } });
+    if (!resp.ok) throw new Error(`Falha na API (${resp.status})`);
     const dados = await resp.json();
+    if (!dados?.hourly?.time || !Array.isArray(dados.hourly.time)) {
+      throw new Error("Resposta da API sem dados horários válidos");
+    }
     renderClimaResultado(dados, unidadeNome, dataAlvo);
-  } catch {
-    resultado.innerHTML = `<p style="color:var(--vermelho)">Não foi possível buscar a previsão. Verifique sua conexão.</p>`;
+  } catch (erro) {
+    console.error("Erro ao buscar clima:", erro);
+    resultado.innerHTML = `<p style="color:var(--vermelho)">Não foi possível buscar a previsão agora.</p><p style="color:var(--texto-fraco); font-size:.85rem; margin-top:6px;">Detalhe técnico: ${escaparHTML(String(erro?.message || erro))}</p>`;
   }
 }
 
@@ -1987,16 +2041,22 @@ function renderClimaResultado(dados, unidade, dataISO) {
   const h = dados.hourly;
 
   // Monta array de horas analisadas com score e nível
+  const weatherArray = h.weathercode || h.weather_code || [];
+  const precipProbArray = h.precipitation_probability || [];
+  const precipArray = h.precipitation || [];
+  const tempArray = h.temperature_2m || [];
+
   const horasAnalisadas = HORAS_ANALISE.map((hora) => {
-    const i = hora; // índice = hora do dia para consulta de 1 dia
-    const precipProb = h.precipitation_probability[i] || 0;
-    const precip     = h.precipitation[i] || 0;
-    const temp       = h.temperature_2m[i] || 0;
-    const codigo     = h.weathercode[i] || 0;
+    const i = hora;
+    const precipProb = Number(precipProbArray[i] ?? 0);
+    const precip     = Number(precipArray[i] ?? 0);
+    const temp       = Number(tempArray[i] ?? 0);
+    const codigo     = Number(weatherArray[i] ?? 0);
     const score      = pontuarHora(precipProb, precip, codigo);
     const nivel      = nivelRisco(score);
+    const confianca  = calcularConfiancaHora(precipProb, precip, codigo);
 
-    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel };
+    return { hora, precipProb, precip, temp: Math.round(temp), codigo, score, nivel, confianca };
   });
 
   // Divide em período manhã e tarde para resumo
@@ -2019,6 +2079,8 @@ function renderClimaResultado(dados, unidade, dataISO) {
 
   // Melhor hora individual (menor score)
   const melhorHora = [...horasAnalisadas].sort((a, b) => a.score - b.score)[0];
+  const piorHora = [...horasAnalisadas].sort((a, b) => b.score - a.score)[0];
+  const confiancaMedia = Math.round(horasAnalisadas.reduce((s, item) => s + item.confianca, 0) / horasAnalisadas.length);
 
   const dataBR = formatarDataBRCompleta(dataISO);
 
@@ -2154,6 +2216,8 @@ function renderClimaResultado(dados, unidade, dataISO) {
       </div>
 
       <div class="status-box ${confiancaMedia >= 78 ? "status-box--ok" : confiancaMedia >= 65 ? "status-box--alerta" : "status-box--erro"}"><strong>Confiança estimada da previsão</strong><span>${confiancaMedia}% de estabilidade na leitura do dia</span><span style="font-weight:700; color:${confiancaMedia >= 78 ? "var(--verde)" : confiancaMedia >= 65 ? "var(--amarelo)" : "var(--vermelho)"};">${confiancaMedia >= 78 ? "Confiança alta" : confiancaMedia >= 65 ? "Confiança média" : "Confiança baixa"}</span></div>
+      <div class="status-box ${classeBox(melhorHora.nivel)}"><strong>Melhor hora do dia</strong><span>${String(melhorHora.hora).padStart(2, "0")}:00 · ${melhorHora.precipProb}% chuva · ${melhorHora.temp}°C</span><span style="font-weight:700; color:${corRiscoCSS(melhorHora.nivel)};">Risco ${melhorHora.nivel}</span></div>
+      <div class="status-box ${classeBox(piorHora.nivel)}"><strong>Pior hora do dia</strong><span>${String(piorHora.hora).padStart(2, "0")}:00 · ${piorHora.precipProb}% chuva · ${piorHora.temp}°C</span><span style="font-weight:700; color:${corRiscoCSS(piorHora.nivel)};">Risco ${piorHora.nivel}</span></div>
 
       <!-- Resumo manhã/tarde -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
