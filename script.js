@@ -59,6 +59,9 @@ const modalEntradaLabel = document.getElementById("modalEntradaLabel");
 
 let resolverModalConfirmacao = null;
 let resolverModalEntrada = null;
+const nomeTMKInput = document.getElementById("nomeTMK");
+const importarTXTInput = document.getElementById("importarTXT");
+let nomeTMK = localStorage.getItem("quickleadTMK") || "PAULO LOBATO";
 
 function mostrarToast(texto, tipo = "ok", subtexto = "") {
   if (!toastContainer) {
@@ -380,40 +383,36 @@ function atualizarDataPadraoPorTipo() {
 
 function preencherHorarios() {
   if (!horaInput) return;
-  const listaHorarios = document.getElementById("listaHorarios");
+
   const horarios = [];
   for (let hora = 7; hora <= 19; hora++) {
-    for (let minuto = 0; minuto < 60; minuto += 10) {
+    for (let minuto = 0; minuto < 60; minuto += 30) {
       const h = String(hora).padStart(2, "0");
       const m = String(minuto).padStart(2, "0");
       horarios.push(`${h}:${m}`);
     }
   }
-  if (listaHorarios) {
-    listaHorarios.innerHTML = horarios.map((h) => `<option value="${h}"></option>`).join("");
-  }
+
+  horaInput.innerHTML = `<option value="">Selecionar horário</option>` +
+    horarios.map((h) => `<option value="${h}">${h}</option>`).join("");
 }
 
 function normalizarHoraDigitada(valor = "") {
   let texto = String(valor).trim();
   if (!texto) return "";
   if (/^\d{1,2}$/.test(texto)) texto = `${texto}:00`;
-  if (/^\d{3,4}$/.test(texto)) {
-    texto = texto.length === 3 ? `0${texto[0]}:${texto.slice(1)}` : `${texto.slice(0,2)}:${texto.slice(2)}`;
-  }
+  if (/^\d{3,4}$/.test(texto)) texto = texto.length === 3 ? `0${texto[0]}:${texto.slice(1)}` : `${texto.slice(0, 2)}:${texto.slice(2)}`;
   const match = texto.match(/^(\d{1,2}):(\d{1,2})$/);
   if (!match) return "";
-  let h = Number(match[1]);
+  const h = Number(match[1]);
   let m = Number(match[2]);
   if (h < 7 || h > 19 || m < 0 || m > 59) return "";
-  m = Math.round(m / 10) * 10;
-  if (m === 60) {
-    h += 1;
-    m = 0;
-  }
-  if (h > 19) return "";
+  m = m < 15 ? 0 : 30;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+
+// =========================
+// MULTI-PACIENTE
 
 // =========================
 // MULTI-PACIENTE
@@ -546,7 +545,7 @@ function normalizarStatus(texto = "") {
 
   if (!bruto) return null;
 
-  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "REEDD1";
+  if (["NOVO", "NEW", "LEADNOVO", "LEAD"].includes(bruto)) return "NOVO";
   if (["DES", "DESCARTADO", "DESQUALIFICADO"].includes(bruto)) return "DES";
   if (["LON", "LONG", "LONGDISTANCE"].includes(bruto)) return "LON";
   if (["FOR", "FORA", "FORADECOBERTURA", "FORADECOVERAGE"].includes(bruto)) return "FOR";
@@ -568,9 +567,9 @@ function normalizarStatus(texto = "") {
 }
 
 function decomporStatus(status = "") {
-  const s = normalizarStatus(status) || "REEDD1";
+  const s = normalizarStatus(status) || "NOVO";
 
-  if (s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
+  if (s === "NOVO" || s === "DES" || s === "LON" || s === "FOR" || s === "PAT") {
     return {
       status: s,
       segmento: s,
@@ -600,10 +599,10 @@ function decomporStatus(status = "") {
   }
 
   return {
-    status: "REED D1",
-    segmento: "REED",
-    baseTipo: "REED",
-    baseValor: 1
+    status: "NOVO",
+    segmento: "NOVO",
+    baseTipo: "NOVO",
+    baseValor: null
   };
 }
 
@@ -623,6 +622,7 @@ function categoriaDoStatus(status = "") {
     return "IGNORAR_AGORA";
   }
 
+  if (info.segmento === "NOVO") return "UTIL_AGORA";
   if (["DES", "LON", "FOR", "PAT"].includes(info.segmento)) return "DESQUALIFICADO";
 
   return "NEUTRO";
@@ -638,7 +638,8 @@ function categoriaParaClasse(categoria) {
 function prioridadeStatus(status = "") {
   const info = decomporStatus(status);
 
-  if (info.segmento === "REED" && info.baseValor === 1) return 1;
+  if (info.segmento === "NOVO") return 1;
+  if (info.segmento === "REED" && info.baseValor === 1) return 2;
   if (info.segmento === "REED") return 10 + info.baseValor;
   if (info.segmento === "PRO") return 50 + info.baseValor;
   if (info.segmento === "DES") return 96;
@@ -801,6 +802,19 @@ function ordenarBanco() {
 
     return limparNumero(a.numero).localeCompare(limparNumero(b.numero));
   });
+}
+
+function abrirImportacaoTXT() {
+  if (importarTXTInput) importarTXTInput.click();
+}
+
+function importarLeadsTXT(conteudo = "") {
+  if (!conteudo.trim()) {
+    mostrarToast("Arquivo TXT vazio.", "aviso");
+    return;
+  }
+  if (entradaBanco) entradaBanco.value = conteudo.trim();
+  mostrarToast("TXT importado para a área do banco. Revise e escolha a ação desejada.", "ok");
 }
 
 function salvarBanco() {
@@ -1022,6 +1036,7 @@ function atualizarResumoBanco(lista = bancoLeads) {
   if (!resumoBanco) return;
 
   const resumo = {
+    NOVO: 0,
     REED: 0,
     PRO: 0,
     DES: 0,
@@ -1042,6 +1057,7 @@ function atualizarResumoBanco(lista = bancoLeads) {
 ====================
 Total: ${lista.length}
 
+NOVO: ${resumo.NOVO}
 REED: ${resumo.REED}
 PRO: ${resumo.PRO}
 DES: ${resumo.DES}
@@ -1189,8 +1205,7 @@ function filtrarLeads() {
 
   const textoOriginal = entradaFiltro.value || "";
   const numerosExtraidos = extrairTodosNumerosValidos(textoOriginal);
-
-  const aprovados = [];
+  const aprovadosBrutos = [];
   const bloqueados = [];
   const usados = new Set();
 
@@ -1202,7 +1217,6 @@ function filtrarLeads() {
 
   numerosExtraidos.forEach((numero) => {
     const chave = getPhoneKey(numero);
-
     if (!chave) return;
 
     if (usados.has(chave)) {
@@ -1212,13 +1226,11 @@ function filtrarLeads() {
     }
 
     usados.add(chave);
-
     const leadBanco = buscarLeadNoBancoPorNumero(numero);
 
     if (!leadBanco) {
-      aprovados.push(`${numero} - REED D1`);
+      aprovadosBrutos.push(limparNumero(numero));
       totalNovos++;
-      totalReed1++;
       return;
     }
 
@@ -1226,11 +1238,8 @@ function filtrarLeads() {
     const statusExibido = formatarStatusExibicao(leadBanco.tipo);
 
     if (categoria === "UTIL_AGORA") {
-      aprovados.push(`${numero} - ${statusExibido}`);
-      if (statusExibido === "REED D1") {
-        totalNovos++;
-        totalReed1++;
-      }
+      aprovadosBrutos.push(limparNumero(numero));
+      if (statusExibido === "REED D1") totalReed1++;
       return;
     }
 
@@ -1246,10 +1255,8 @@ function filtrarLeads() {
     }
   });
 
-  const totalLixoIgnorado = Math.max(
-    0,
-    textoOriginal.split(/\n+/).filter((l) => l.trim()).length - numerosExtraidos.length
-  );
+  const aprovados = aprovadosBrutos.map((numero, index) => `Lead ${index + 1} - ${numero}`);
+  const totalLixoIgnorado = Math.max(0, textoOriginal.split(/\n+/).filter((l) => l.trim()).length - numerosExtraidos.length);
 
   saidaFiltro.value = aprovados.join("\n");
   saidaBloqueados.value = bloqueados.join("\n");
@@ -1258,8 +1265,8 @@ function filtrarLeads() {
 `RESUMO DA EXTRAÇÃO
 ====================
 Aprovados: ${aprovados.length}
-- Entradas novas normalizadas: ${totalNovos}
-- REED D1: ${totalReed1}
+- Entradas novas detectadas: ${totalNovos}
+- REED D1 válidos: ${totalReed1}
 
 Bloqueados: ${bloqueados.length}
 - Duplicados: ${totalDuplicados}
@@ -1272,7 +1279,8 @@ Números válidos encontrados: ${numerosExtraidos.length}
 REGRAS ATIVAS
 ====================
 TRABALHAR AGORA:
-- REED D1 (inclui entradas novas)
+- NOVO
+- REED D1
 
 IGNORAR NO MOMENTO:
 - REED D2 até D30
@@ -1456,32 +1464,13 @@ Projeto Enxergar 🌐`;
 
 function gerarMensagemCRM(agendamento) {
   const ag = normalizarAgendamento(agendamento);
-  const dataFormatada = formatarDataBRCompleta(ag.data);
-  const horaFormatada = formatarHorario(ag.hora);
+  const observacoes = ag.pessoas.map((p) => p.observacao).filter(Boolean);
+  let cabecalho = `*TMK: ${nomeTMK}*\n*RELATÓRIO CRM*`;
+  if (observacoes.length) cabecalho += `
+*OBS:* ${observacoes.join(" | ")}`;
+  return `${cabecalho}
 
-  let texto = `CRM / CONTROLE INTERNO
-
-Tipo: ${ag.tipo.toUpperCase()}
-Unidade: ${ag.unidade}
-Data: ${dataFormatada}
-Hora: ${horaFormatada}
-
-Pessoas:
-`;
-
-  ag.pessoas.forEach((pessoa, index) => {
-    texto += `
-${index + 1}. ${pessoa.nome}
-Número: ${formatarNumero(pessoa.numero)}
-Senha: ${pessoa.senha}
-Obs: ${pessoa.observacao || "Sem observação"}
-`;
-  });
-
-  texto += `
-TMK: PAULO LOBATO`;
-
-  return texto.trim();
+${gerarMensagemPaciente(ag)}`.trim();
 }
 
 function gerarMensagem(agendamento, tipo = "paciente") {
@@ -1744,7 +1733,6 @@ function filtrarAgenda() {
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">Comprovante Paciente</button>
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>
-          <button type="button" onclick="reenviarWhats(${item.indexOriginal}, 'paciente')">Reenviar WhatsApp</button>
           <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">Marcar Reagendamento</button>
           <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
         </div>
@@ -1780,62 +1768,47 @@ function gerarRelatorio() {
     return;
   }
 
-  const registros = agendamentos
-    .map(normalizarAgendamento)
-    .filter((item) => item.data === dataSelecionada);
-
+  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
   const unidadesOrdem = ["Augusto Montenegro","Marabá","Ananindeua","Telégrafo","Marambaia","José Bonifácio","Cidade Nova","Jurunas","Castanhal","Capanema"];
   const mapa = {};
-  unidadesOrdem.forEach((u) => {
-    mapa[u] = { agendamento: 0, reagendamento: 0, inclusao: 0, total: 0 };
-  });
+  unidadesOrdem.forEach((u) => mapa[u] = { agendamento: 0, reagendamento: 0, inclusao: 0, totalLinha: 0 });
 
   registros.forEach((registro) => {
     const quantidade = registro.pessoas?.length || 1;
     const unidade = registro.unidade;
-    if (!mapa[unidade]) mapa[unidade] = { agendamento: 0, reagendamento: 0, inclusao: 0, total: 0 };
+    if (!mapa[unidade]) mapa[unidade] = { agendamento: 0, reagendamento: 0, inclusao: 0, totalLinha: 0 };
     const tipo = registro.tipo || "agendamento";
-    if (tipo === "reagendamento") mapa[unidade].reagendamento += quantidade;
-    else if (tipo === "inclusao") mapa[unidade].inclusao += quantidade;
-    else mapa[unidade].agendamento += quantidade;
-    mapa[unidade].total += quantidade;
+    if (tipo === "reagendamento") {
+      mapa[unidade].reagendamento += quantidade;
+      mapa[unidade].totalLinha += quantidade;
+    } else if (tipo === "inclusao") {
+      mapa[unidade].inclusao += quantidade;
+      mapa[unidade].totalLinha += quantidade;
+    } else {
+      mapa[unidade].agendamento += quantidade;
+      mapa[unidade].totalLinha += quantidade;
+    }
   });
 
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
-  const blocos = unidadesOrdem
-    .filter((unidade) => (mapa[unidade]?.total || 0) > 0)
-    .map((unidade) => {
-      const item = mapa[unidade];
-      return [
-        `DIA ${dataCurta} *(${String(item.total).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`,
-        `Agendamentos: ${item.agendamento}`,
-        `Reagendamentos: ${item.reagendamento}`,
-        `Inclusões: ${item.inclusao}`
-      ].join("\n");
-    });
+  const linhas = unidadesOrdem.map((unidade) => {
+    const totalLinha = mapa[unidade].totalLinha;
+    const nome = normalizarNomeUnidadeRelatorio(unidade);
+    return `DIA ${dataCurta} *(${String(totalLinha).padStart(2, "0")}) ${nome}*`;
+  });
 
   const totalAgendamentos = Object.values(mapa).reduce((s, i) => s + i.agendamento, 0);
   const totalReagendamentos = Object.values(mapa).reduce((s, i) => s + i.reagendamento, 0);
   const totalInclusoes = Object.values(mapa).reduce((s, i) => s + i.inclusao, 0);
-  const totalGeral = totalAgendamentos + totalReagendamentos + totalInclusoes;
+  const totalGeral = totalAgendamentos + totalInclusoes + totalReagendamentos;
 
-  let texto = `*DIÁRIO*
-_*${nomeDia} ${dataCurta}*_
-
-`;
-  texto += blocos.length ? blocos.join("\n\n") : "Sem registros para esta data.";
-  texto += `
-
-*AGENDAMENTOS = ${totalAgendamentos}*`;
-  texto += `
-*REAGENDAMENTOS = ${totalReagendamentos}*`;
-  texto += `
-*INCLUSÕES = ${totalInclusoes}*`;
-  texto += `
-*TOTAL GERAL = ${totalGeral}*`;
-  texto += `
-*TMK: PAULO LOBATO*`;
+  let texto = `*DIÁRIO* \n    _*${nomeDia} ${dataCurta}*_\n\n`;
+  texto += linhas.join("\n\n");
+  texto += `\n\n*${totalAgendamentos} AGENDAMENTOS*\n`;
+  if (totalInclusoes > 0) texto += `\n*+ ${totalInclusoes} inclusão*\n`;
+  if (totalReagendamentos > 0) texto += `\n*+ ${totalReagendamentos} reagendamento*\n`;
+  texto += `\n*${totalGeral} TOTAL *\n\n \n*TMK: ${nomeTMK}*`;
   resultadoRelatorio.textContent = texto.trim();
 }
 
@@ -2307,6 +2280,23 @@ setTheme(temaSalvo);
 normalizarAgendamentosExistentes();
 salvar();
 inicializarFormulario();
+if (nomeTMKInput) {
+  nomeTMKInput.value = nomeTMK;
+  nomeTMKInput.addEventListener("input", (e) => {
+    nomeTMK = e.target.value.trim() || "PAULO LOBATO";
+    localStorage.setItem("quickleadTMK", nomeTMK);
+  });
+}
+if (importarTXTInput) {
+  importarTXTInput.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => importarLeadsTXT(String(ev.target?.result || ""));
+    reader.readAsText(file);
+    importarTXTInput.value = "";
+  });
+}
 atualizarStatusAutomaticos();
 mostrarBanco();
 atualizarCampanhas();
@@ -2341,3 +2331,6 @@ document.addEventListener("keydown", (event) => {
 });
 
 trocarAba("agendamento");
+
+if (filtroData && !filtroData.value) filtroData.value = obterDataHojeISO();
+if (dataRelatorio && !dataRelatorio.value) dataRelatorio.value = obterDataHojeISO();
