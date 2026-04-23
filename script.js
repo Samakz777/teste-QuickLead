@@ -1191,6 +1191,39 @@ function copiarBancoEmFileira() {
   copiarTexto(texto, "✅ Banco copiado em fileira.");
 }
 
+
+function exportarBancoTXT() {
+  if (!bancoLeads || !bancoLeads.length) {
+    mostrarToast("O banco está vazio.", "info");
+    return;
+  }
+
+  const linhas = bancoLeads.map((lead) => {
+    const status = formatarStatusExibicao(lead.tipo || lead.status || "");
+    return `${limparNumero(lead.numero)} - ${status}`;
+  });
+
+  const conteudo = linhas.join("\n");
+  const blob = new Blob([conteudo], { type: "text/plain;charset=utf-8" });
+
+  const hoje = new Date();
+  const data = [
+    String(hoje.getDate()).padStart(2, "0"),
+    String(hoje.getMonth() + 1).padStart(2, "0"),
+    hoje.getFullYear()
+  ].join("-");
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `banco_geral_${data}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+
+  mostrarToast("Banco geral exportado em TXT.", "ok");
+}
+
 function sincronizarAgora() {
   atualizarStatusSync("Sincronização online ainda não configurada");
   mostrarToast("A sincronização em tempo real ainda não está configurada.", "info", "A base local já está pronta para evolução futura.");
@@ -1439,7 +1472,7 @@ function gerarMensagemPaciente(agendamento) {
 
   return `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
 
-*Consultor: PAULO LOBATO*
+*Consultor: ${nomeTMK}*
 
 *Pacientes: ${nomes.toUpperCase()}*
 
