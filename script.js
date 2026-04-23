@@ -1440,6 +1440,18 @@ function copiarPainelPro() {
 // =========================
 // AGENDAMENTO
 // =========================
+function formatarPacientes(pessoas) {
+    if (!pessoas || pessoas.length === 0) return "";
+
+    const quantidade = pessoas.length;
+
+    const titulo = quantidade === 1 ? "Paciente" : "Pacientes";
+
+    const nomes = pessoas.join(", ");
+
+    return `${titulo}: ${nomes}`;
+}
+
 function formatarHorario(hora = "") {
   if (!hora.includes(":")) return hora;
 
