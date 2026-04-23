@@ -27,6 +27,10 @@
           </div>
 
           <div class="topo__acoes">
+            <div class="topo__config">
+              <label for="nomeTMK" class="topo__config-label">TMK</label>
+              <input type="text" id="nomeTMK" class="topo__config-input" placeholder="Nome do operador">
+            </div>
             <button type="button" id="btnTema" onclick="alternarTema()">
               🌙 / ☀️ Tema
             </button>
@@ -110,10 +114,11 @@
 
             <div class="grupo-campos">
               <label for="hora">Horário</label>
-              <input id="hora" type="text" list="listaHorarios" placeholder="Ex: 14:30" inputmode="numeric" autocomplete="off">
-              <datalist id="listaHorarios"></datalist>
+              <select id="hora">
+                <option value="">Selecionar horário</option>
+              </select>
               <small class="texto-ajuda">
-                Você pode digitar rapidamente ou escolher uma sugestão de 10 em 10 minutos.
+                Horários de 30 em 30 minutos para agilizar a seleção.
               </small>
             </div>
           </div>
@@ -123,7 +128,7 @@
             <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
             <div class="acoes-secundarias">
               <button type="button" onclick="adicionarPessoa()">
-                + Adicionar paciente
+                + Adicionar pessoa
               </button>
             </div>
           </div>
@@ -140,7 +145,7 @@
           <div class="card__topo">
             <h2 id="titulo-agenda">Agenda do Dia</h2>
             <p class="texto-apoio">
-              Consulte os registros por data e gere comprovantes para paciente ou CRM.
+              Consulte os registros por data e gere comprovantes operacionais.
             </p>
           </div>
 
@@ -168,7 +173,7 @@
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>REED D1 e entradas novas normalizadas</span>
+              <span>NOVO e REED D1</span>
             </div>
 
             <div class="status-box status-box--alerta">
@@ -186,7 +191,7 @@
             <label for="entradaFiltro">Entrada do filtro</label>
             <textarea
               id="entradaFiltro"
-              placeholder="Cole a lista ou o bloco copiado do WhatsApp aqui..."
+              placeholder="Cole a lista com nomes + números aqui. Ex.: Maria Silva 91999999999"
             ></textarea>
           </div>
 
@@ -266,8 +271,9 @@
               placeholder="Exemplos:
 91999990000 - REED D1
 91988887777 - PRO M3
+91977776666 - DES
 
-ou lista grande com nomes + números."
+ou lista grande com nomes + números para aplicar uma segmentação em massa."
             ></textarea>
           </div>
 
@@ -284,6 +290,8 @@ ou lista grande com nomes + números."
             <button type="button" onclick="copiarBancoEmFileira()">
               Copiar banco em fileira
             </button>
+            <button type="button" onclick="abrirImportacaoTXT()">Importar TXT</button>
+            <input type="file" id="importarTXT" accept=".txt" hidden>
           </div>
 
           <div class="grupo-campos">
@@ -301,6 +309,7 @@ ou lista grande com nomes + números."
               <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
               <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
                 <option value="">Todas</option>
+                <option value="NOVO">NOVO</option>
                 <option value="REED">REED</option>
                 <option value="PRO">PRO</option>
                 <option value="DES">DES</option>
@@ -367,6 +376,8 @@ ou lista grande com nomes + números."
             </div>
           </div>
 
+          <div class="painel-status" id="bancoResumoCards"></div>
+
           <div class="grupo-campos">
             <label for="resumoBanco">Resumo do banco</label>
             <textarea
@@ -376,16 +387,13 @@ ou lista grande com nomes + números."
             ></textarea>
           </div>
 
-          <div id="bancoResumoCards" class="painel-status banco-resumo-cards"></div>
-
           <div class="acoes-secundarias">
             <button type="button" onclick="abrirLeadsModal('UTIL_AGORA')">Ver trabalháveis</button>
-            <button type="button" onclick="abrirLeadsModal('IGNORAR_AGORA')">Ver ignorar agora</button>
+            <button type="button" onclick="abrirLeadsModal('IGNORAR_AGORA')">Ver aguardando</button>
             <button type="button" onclick="abrirLeadsModal('DESQUALIFICADO')">Ver desqualificados</button>
             <button type="button" onclick="abrirLeadsModal('TODOS')">Ver todos</button>
           </div>
 
-          <p class="texto-ajuda banco-preview-note">A lista abaixo mostra uma prévia compacta. Use os botões acima para abrir a visão completa por categoria.</p>
           <div id="listaBanco" aria-live="polite"></div>
         </div>
       </section>
@@ -400,6 +408,8 @@ ou lista grande com nomes + números."
             </p>
           </div>
 
+          <div id="resumoCampanhas" class="painel-status"></div>
+
           <div class="painel-campanhas-filtros">
             <div class="grupo-campos">
               <label for="campanhaVisualizacao">Visualização</label>
@@ -410,8 +420,6 @@ ou lista grande com nomes + números."
               </select>
             </div>
           </div>
-
-          <div id="resumoCampanhas" class="painel-status campanhas-resumo"></div>
 
           <div class="painel-campanhas-grid">
             <div class="grupo-campos">
@@ -453,7 +461,7 @@ ou lista grande com nomes + números."
           <div class="card__topo">
             <h2 id="titulo-relatorios">Relatório Diário</h2>
             <p class="texto-apoio">
-              Gera o diário no formato operacional focado nos agendamentos válidos para envio organizado no WhatsApp.
+              Gera o diário no formato operacional usado no WhatsApp, com total de agendamentos e adicionais separados.
             </p>
           </div>
 
@@ -505,7 +513,7 @@ ou lista grande com nomes + números."
             <div class="grupo-campos">
               <label for="climaData">Data</label>
               <input type="date" id="climaData">
-              <small class="texto-ajuda">Padrão: hoje. A leitura mostra risco por hora e confiança estimada da previsão.</small>
+              <small class="texto-ajuda">Padrão: hoje. Use para consultar previsão de amanhã também.</small>
             </div>
           </div>
 
@@ -532,7 +540,6 @@ ou lista grande com nomes + números."
 
       <div class="botoes">
         <button type="button" onclick="copiarComprovante()">Copiar</button>
-        <button type="button" onclick="enviarWhats()">Enviar WhatsApp</button>
         <button type="button" onclick="fecharModal()">Fechar</button>
       </div>
     </div>
@@ -579,6 +586,7 @@ ou lista grande com nomes + números."
           <option value="LON">LON</option>
           <option value="FOR">FOR</option>
           <option value="PAT">PAT</option>
+          <option value="NOVO">NOVO</option>
           <option value="REED D1">REED D1</option>
           <option value="PRO M1">PRO M1</option>
         </select>
@@ -595,6 +603,19 @@ ou lista grande com nomes + números."
     </div>
   </div>
 
+
+  <div id="modalListaLeads" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-lista-leads">
+      <div class="modal__header">
+        <h3 id="titulo-modal-lista-leads" class="modal__titulo">Lista de leads</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalListaLeads()">×</button>
+      </div>
+      <div id="modalListaLeadsConteudo" class="modal-lista-leads__conteudo"></div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalListaLeads()">Fechar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
@@ -628,20 +649,6 @@ ou lista grande com nomes + números."
       <div class="modal-confirmacao__acoes">
         <button type="button" class="btn-ghost" onclick="fecharModalEntrada(null)">Cancelar</button>
         <button type="button" class="btn-principal" onclick="confirmarModalEntrada()">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-
-  <div id="modalListaLeads" class="modal" aria-hidden="true">
-    <div class="modal-content modal-content--grande" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-lista-leads">
-      <div class="modal__header">
-        <h3 id="titulo-modal-lista-leads" class="modal__titulo">Lista de leads</h3>
-        <button type="button" class="modal__fechar" onclick="fecharModalListaLeads()">×</button>
-      </div>
-      <div id="modalListaLeadsConteudo" class="modal-lista-leads__conteudo"></div>
-      <div class="modal-confirmacao__acoes">
-        <button type="button" class="btn-ghost" onclick="fecharModalListaLeads()">Fechar</button>
       </div>
     </div>
   </div>
