@@ -30,6 +30,10 @@
             <div class="topo__config">
               <label for="nomeTMK" class="topo__config-label">TMK</label>
               <input type="text" id="nomeTMK" class="topo__config-input" placeholder="Nome do operador">
+              <div class="tmk-genero" aria-label="Gênero do TMK">
+                <button type="button" id="btnGeneroMasc" class="tmk-genero__btn" title="Masculino" aria-pressed="true">♂</button>
+                <button type="button" id="btnGeneroFem" class="tmk-genero__btn" title="Feminino" aria-pressed="false">♀</button>
+              </div>
             </div>
             <button type="button" id="btnTema" onclick="alternarTema()">
               🌙 / ☀️ Tema
