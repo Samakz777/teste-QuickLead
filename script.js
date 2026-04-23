@@ -62,6 +62,9 @@ let resolverModalEntrada = null;
 const nomeTMKInput = document.getElementById("nomeTMK");
 const importarTXTInput = document.getElementById("importarTXT");
 let nomeTMK = localStorage.getItem("quickleadTMK") || "PAULO LOBATO";
+let generoTMK = localStorage.getItem("quickleadGeneroTMK") || "masculino";
+const btnGeneroMasc = document.getElementById("btnGeneroMasc");
+const btnGeneroFem = document.getElementById("btnGeneroFem");
 
 function mostrarToast(texto, tipo = "ok", subtexto = "") {
   if (!toastContainer) {
@@ -264,6 +267,31 @@ function obterNomeDiaSemana(dataISO) {
 function capitalizar(texto = "") {
   if (!texto) return "";
   return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function obterTituloConsultor() {
+  return generoTMK === "feminino" ? "Consultora" : "Consultor";
+}
+
+function aplicarGeneroTMKUI() {
+  if (btnGeneroMasc) {
+    const ativo = generoTMK === "masculino";
+    btnGeneroMasc.classList.toggle("ativo", ativo);
+    btnGeneroMasc.setAttribute("aria-pressed", ativo ? "true" : "false");
+  }
+  if (btnGeneroFem) {
+    const ativo = generoTMK === "feminino";
+    btnGeneroFem.classList.toggle("ativo", ativo);
+    btnGeneroFem.setAttribute("aria-pressed", ativo ? "true" : "false");
+  }
+}
+
+function formatarRotuloSenhas(pessoas = []) {
+  const lista = pessoas.map((p) => p.senha).filter(Boolean);
+  return {
+    rotulo: lista.length <= 1 ? "Senha" : "Senhas",
+    valor: lista.join(" e ")
+  };
 }
 
 function setTheme(theme) {
@@ -1468,15 +1496,15 @@ function gerarMensagemPaciente(agendamento) {
   const dataFormatada = formatarDataBRCompleta(ag.data);
   const horaFormatada = formatarHorario(ag.hora);
   const nomes = juntarNomes(ag.pessoas);
-  const senhas = ag.pessoas.map((p) => p.senha).join(" e ");
+  const senhaInfo = formatarRotuloSenhas(ag.pessoas);
 
   return `*SEU AGENDAMENTO FOI CONFIRMADO!✅*
 
-*Consultor: ${nomeTMK}*
+*${obterTituloConsultor()}: ${nomeTMK}*
 
 *Pacientes: ${nomes.toUpperCase()}*
 
-*Senhas: ${senhas}*
+*${senhaInfo.rotulo}: ${senhaInfo.valor}*
 
 *UNIDADE: ${ag.unidade}*
 
@@ -1706,7 +1734,7 @@ function filtrarAgenda() {
 
   listaAgenda.innerHTML = listaDoDia.map((item) => {
     const nomes = juntarNomes(item.pessoas);
-    const senhas = item.pessoas.map((p) => p.senha).join(" / ");
+    const senhaInfo = { rotulo: (item.pessoas?.length || 0) <= 1 ? "Senha" : "Senhas", valor: item.pessoas.map((p) => p.senha).join(" / ") };
 
     // Bloco por pessoa com cópia individual de nome e número
     const pessoasHTML = item.pessoas.map((p, pessoaIndex) => {
@@ -1756,7 +1784,7 @@ function filtrarAgenda() {
         </p>
         <p style="margin-bottom:10px;">
           Tipo: <strong>${escaparHTML(item.tipo.toUpperCase())}</strong>
-          &nbsp;|&nbsp; Senhas: <strong>${escaparHTML(senhas)}</strong>
+          &nbsp;|&nbsp; ${escaparHTML(senhaInfo.rotulo)}: <strong>${escaparHTML(senhaInfo.valor)}</strong>
         </p>
 
         <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
@@ -2320,6 +2348,21 @@ if (nomeTMKInput) {
     localStorage.setItem("quickleadTMK", nomeTMK);
   });
 }
+if (btnGeneroMasc) {
+  btnGeneroMasc.addEventListener("click", () => {
+    generoTMK = "masculino";
+    localStorage.setItem("quickleadGeneroTMK", generoTMK);
+    aplicarGeneroTMKUI();
+  });
+}
+if (btnGeneroFem) {
+  btnGeneroFem.addEventListener("click", () => {
+    generoTMK = "feminino";
+    localStorage.setItem("quickleadGeneroTMK", generoTMK);
+    aplicarGeneroTMKUI();
+  });
+}
+aplicarGeneroTMKUI();
 if (importarTXTInput) {
   importarTXTInput.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
