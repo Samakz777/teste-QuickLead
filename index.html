@@ -2,505 +2,669 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="QuickLead — sistema de agendamentos, filtro, banco de leads e campanhas.">
-  <meta name="theme-color" content="#07090d">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+  <meta
+    name="description"
+    content="QuickLead - sistema inteligente de agendamentos, filtro, banco de leads e campanhas programadas."
+  >
+  <meta name="theme-color" content="#0f1115">
   <title>QuickLead</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="app-shell">
-
-  <!-- HEADER -->
-  <header class="topo">
-    <div class="topo__conteudo">
-      <div class="topo__marca">
-        <span class="topo__nome">QuickLead</span>
-        <span class="subtitulo">Agendamentos · Leads · Campanhas</span>
-      </div>
-
-      <div class="topo__centro">
-        <div class="contador-producao" id="contadorProducao" title="Produção do dia">
-          <div class="contador-producao__item">
-            <span class="contador-producao__num" id="contadorAgendamentos">0</span>
-            <span class="contador-producao__label">Agendamentos</span>
+  <div class="app-shell">
+    <header class="topo">
+      <div class="topo__conteudo">
+        <div class="topo__linha">
+          <div>
+            <h1>QuickLead</h1>
+            <p class="subtitulo">
+              Sistema inteligente de agendamentos e qualificação de leads
+            </p>
           </div>
-          <div class="contador-producao__sep"></div>
-          <div class="contador-producao__item">
-            <span class="contador-producao__num" id="contadorInclusoes">0</span>
-            <span class="contador-producao__label">Inclusões</span>
-          </div>
-          <div class="contador-producao__sep"></div>
-          <div class="contador-producao__item">
-            <span class="contador-producao__num" id="contadorReagendamentos">0</span>
-            <span class="contador-producao__label">Reagend.</span>
+
+          <div class="topo__acoes">
+            <div class="topo__config">
+              <label for="nomeTMK" class="topo__config-label">TMK</label>
+              <div class="tmk-inline">
+                <input type="text" id="nomeTMK" class="topo__config-input" placeholder="Nome do operador">
+                <select id="generoTMK" class="topo__genero" title="Gênero do consultor">
+                  <option value="M">♂</option>
+                  <option value="F">♀</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" id="btnTema" onclick="alternarTema()">
+              🌙 / ☀️ Tema
+            </button>
           </div>
         </div>
       </div>
+    </header>
 
-      <div class="topo__acoes">
-        <div class="tmk-campo" title="Nome do operador (TMK) — usado nos relatórios e comprovantes">
-          <span class="tmk-label">TMK</span>
-          <input
-            type="text"
-            id="tmkNome"
-            class="tmk-input"
-            placeholder="Seu nome"
-            maxlength="30"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <select id="tmkGenero" class="tmk-genero" title="Consultor ou Consultora">
-            <option value="M">M</option>
-            <option value="F">F</option>
-          </select>
+    <nav class="menu" aria-label="Menu principal">
+      <button type="button" onclick="trocarAba('agendamento')" aria-controls="agendamento">
+        Agendar
+      </button>
+      <button type="button" onclick="trocarAba('agenda')" aria-controls="agenda">
+        Agenda
+      </button>
+      <button type="button" onclick="trocarAba('filtro')" aria-controls="filtro">
+        Filtro
+      </button>
+      <button type="button" onclick="trocarAba('banco')" aria-controls="banco">
+        Banco
+      </button>
+      <button type="button" onclick="trocarAba('campanhas')" aria-controls="campanhas">
+        Campanhas
+      </button>
+      <button type="button" onclick="trocarAba('relatorios')" aria-controls="relatorios">
+        Relatórios
+      </button>
+      <button type="button" onclick="trocarAba('clima')" aria-controls="clima">
+        Clima
+      </button>
+    </nav>
+
+    <main class="conteudo-principal">
+
+      <!-- AGENDAMENTO -->
+      <section id="agendamento" class="aba ativa" aria-labelledby="titulo-agendamento">
+        <div class="card card--agendamento">
+          <div class="card__topo">
+            <h2 id="titulo-agendamento">Novo Agendamento</h2>
+            <p class="texto-apoio">
+              Cadastre um ou mais pacientes no mesmo agendamento, com opção de inclusão e reagendamento.
+            </p>
+          </div>
+
+          <div class="painel-agendamento-grid">
+            <div class="grupo-campos">
+              <label for="tipoAgendamento">Tipo do registro</label>
+              <select id="tipoAgendamento">
+                <option value="agendamento">Agendamento normal</option>
+                <option value="inclusao">Inclusão no mesmo dia</option>
+                <option value="reagendamento">Reagendamento</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="unidade">Unidade</label>
+              <select id="unidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="painel-agendamento-grid">
+            <div class="grupo-campos">
+              <label for="data">Data</label>
+              <input id="data" type="date">
+              <small class="texto-ajuda">
+                Padrão: próximo dia útil. Inclusão usa o mesmo dia.
+              </small>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="hora">Horário</label>
+              <select id="hora">
+                <option value="">Selecionar horário</option>
+              </select>
+              <small class="texto-ajuda">
+                Horários de 30 em 30 minutos para agilizar a seleção.
+              </small>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label>Pessoas do agendamento</label>
+            <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
+            <div class="acoes-secundarias">
+              <button type="button" onclick="adicionarPessoa()">
+                + Adicionar pessoa
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-principal" onclick="agendar()">
+            Confirmar Agendamento
+          </button>
         </div>
-        <button type="button" id="btnTema" onclick="alternarTema()" title="Alternar tema">
-          Tema
+      </section>
+
+      <!-- AGENDA -->
+      <section id="agenda" class="aba" aria-labelledby="titulo-agenda">
+        <div class="card card--agenda">
+          <div class="card__topo">
+            <h2 id="titulo-agenda">Agenda do Dia</h2>
+            <p class="texto-apoio">
+              Consulte os registros por data e gere comprovantes operacionais.
+            </p>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="filtroData">Selecionar data</label>
+            <input type="date" id="filtroData">
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" onclick="filtrarAgenda()">Atualizar</button>
+            <button type="button" onclick="copiarAgendaDoDia()">Copiar agendamentos do dia</button>
+          </div>
+
+          <div id="listaAgenda" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- FILTRO -->
+      <section id="filtro" class="aba" aria-labelledby="titulo-filtro">
+        <div class="card card--filtro">
+          <div class="card__topo">
+            <h2 id="titulo-filtro">Filtro Inteligente de Leads</h2>
+            <p class="texto-apoio">
+              O filtro deve extrair apenas números válidos e ignorar completamente lixo de conversa do WhatsApp.
+            </p>
+          </div>
+
+          <div class="painel-status">
+            <div class="status-box status-box--ok">
+              <strong>Trabalhar agora:</strong>
+              <span>NOVO e REED D1</span>
+            </div>
+
+            <div class="status-box status-box--alerta">
+              <strong>Ignorar no momento:</strong>
+              <span>REED D2 até D30, PRO M1 até M12</span>
+            </div>
+
+            <div class="status-box status-box--erro">
+              <strong>Desqualificados:</strong>
+              <span>DES, LON, FOR, PAT e REED vencido</span>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="entradaFiltro">Entrada do filtro</label>
+            <textarea
+              id="entradaFiltro"
+              placeholder="Cole a lista com nomes + números aqui. Ex.: Maria Silva 91999999999"
+            ></textarea>
+          </div>
+
+          <div class="acoes-filtro">
+            <button type="button" class="btn-principal" onclick="filtrarLeads()">
+              Filtrar Leads
+            </button>
+            <button type="button" onclick="copiarAprovados()">
+              Copiar aprovados
+            </button>
+            <button type="button" onclick="limparFiltro()">
+              Limpar filtro
+            </button>
+          </div>
+
+          <div class="resultados-filtro-grid">
+            <div class="grupo-campos">
+              <label for="saidaFiltro">Leads aprovados</label>
+              <textarea
+                id="saidaFiltro"
+                placeholder="Só números válidos aprovados aparecerão aqui..."
+                readonly
+              ></textarea>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="saidaBloqueados">Ignorados / desqualificados</label>
+              <textarea
+                id="saidaBloqueados"
+                placeholder="Apenas bloqueios reais e números removidos aparecerão aqui..."
+                readonly
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="resumoFiltro">RESUMO DA EXTRAÇÃO</label>
+            <textarea
+              id="resumoFiltro"
+              placeholder="Resumo automático da extração..."
+              readonly
+            ></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- BANCO -->
+      <section id="banco" class="aba" aria-labelledby="titulo-banco">
+        <div class="card card--banco">
+          <div class="card__topo">
+            <h2 id="titulo-banco">Banco de Leads</h2>
+            <p class="texto-apoio">
+              Adicione listas grandes com nome + número. O sistema deve guardar só os números e manter segmentações já existentes.
+            </p>
+          </div>
+
+          <div class="barra-operacional">
+            <div class="sync-status" id="syncStatus">
+              <strong>Sincronização:</strong>
+              <span id="syncStatusTexto">Modo local ativo</span>
+            </div>
+
+            <div class="acoes-secundarias">
+              <button type="button" onclick="sincronizarAgora()">
+                Sincronizar agora
+              </button>
+              <button type="button" onclick="limparBancoCompleto()" class="btn-perigo">
+                Limpar todo o banco
+              </button>
+            </div>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="entradaBanco">Adicionar ou atualizar leads</label>
+            <textarea
+              id="entradaBanco"
+              placeholder="Exemplos:
+91999990000 - REED D1
+91988887777 - PRO M3
+91977776666 - DES
+
+ou lista grande com nomes + números para aplicar uma segmentação em massa."
+            ></textarea>
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" class="btn-principal" onclick="salvarBanco()">
+              Salvar no banco
+            </button>
+            <button type="button" onclick="abrirSegmentacaoEmMassa()">
+              Aplicar segmentação em massa
+            </button>
+            <button type="button" onclick="mostrarBanco()">
+              Atualizar lista
+            </button>
+            <button type="button" onclick="copiarBancoEmFileira()">
+              Copiar banco em fileira
+            </button>
+            <button type="button" onclick="exportarBancoTXT()">
+              Exportar banco (.txt)
+            </button>
+            <button type="button" onclick="abrirImportacaoTXT()">Importar TXT</button>
+            <input type="file" id="importarTXT" accept=".txt" hidden>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="buscaBanco">Buscar no banco</label>
+            <input
+              id="buscaBanco"
+              type="text"
+              placeholder="Buscar por número, status, dia ou mês..."
+              oninput="filtrarBancoManual()"
+            >
+          </div>
+
+          <div class="painel-banco-grid">
+            <div class="grupo-campos">
+              <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
+              <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
+                <option value="">Todas</option>
+                <option value="NOVO">NOVO</option>
+                <option value="REED">REED</option>
+                <option value="PRO">PRO</option>
+                <option value="DES">DES</option>
+                <option value="LON">LON</option>
+                <option value="FOR">FOR</option>
+                <option value="PAT">PAT</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="filtroDiaReed">Dia do REED</label>
+              <select id="filtroDiaReed" onchange="aplicarFiltrosBanco()">
+                <option value="">Todos</option>
+                <option value="D1">D1</option>
+                <option value="D2">D2</option>
+                <option value="D3">D3</option>
+                <option value="D4">D4</option>
+                <option value="D5">D5</option>
+                <option value="D6">D6</option>
+                <option value="D7">D7</option>
+                <option value="D8">D8</option>
+                <option value="D9">D9</option>
+                <option value="D10">D10</option>
+                <option value="D11">D11</option>
+                <option value="D12">D12</option>
+                <option value="D13">D13</option>
+                <option value="D14">D14</option>
+                <option value="D15">D15</option>
+                <option value="D16">D16</option>
+                <option value="D17">D17</option>
+                <option value="D18">D18</option>
+                <option value="D19">D19</option>
+                <option value="D20">D20</option>
+                <option value="D21">D21</option>
+                <option value="D22">D22</option>
+                <option value="D23">D23</option>
+                <option value="D24">D24</option>
+                <option value="D25">D25</option>
+                <option value="D26">D26</option>
+                <option value="D27">D27</option>
+                <option value="D28">D28</option>
+                <option value="D29">D29</option>
+                <option value="D30">D30</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="filtroMesPro">Mês do PRO</label>
+              <select id="filtroMesPro" onchange="aplicarFiltrosBanco()">
+                <option value="">Todos</option>
+                <option value="M1">M1</option>
+                <option value="M2">M2</option>
+                <option value="M3">M3</option>
+                <option value="M4">M4</option>
+                <option value="M5">M5</option>
+                <option value="M6">M6</option>
+                <option value="M7">M7</option>
+                <option value="M8">M8</option>
+                <option value="M9">M9</option>
+                <option value="M10">M10</option>
+                <option value="M11">M11</option>
+                <option value="M12">M12</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="painel-status" id="bancoResumoCards"></div>
+
+          <div class="grupo-campos">
+            <label for="resumoBanco">Resumo do banco</label>
+            <textarea
+              id="resumoBanco"
+              placeholder="Resumo automático do banco..."
+              readonly
+            ></textarea>
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" onclick="abrirLeadsModal('UTIL_AGORA')">Ver trabalháveis</button>
+            <button type="button" onclick="abrirLeadsModal('IGNORAR_AGORA')">Ver aguardando</button>
+            <button type="button" onclick="abrirLeadsModal('DESQUALIFICADO')">Ver desqualificados</button>
+            <button type="button" onclick="abrirLeadsModal('TODOS')">Ver todos</button>
+          </div>
+
+          <div id="listaBanco" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- CAMPANHAS -->
+      <section id="campanhas" class="aba" aria-labelledby="titulo-campanhas">
+        <div class="card card--campanhas">
+          <div class="card__topo">
+            <h2 id="titulo-campanhas">Campanhas Programadas</h2>
+            <p class="texto-apoio">
+              Visualize REED por dia e PRO por mês com filtros mais claros.
+            </p>
+          </div>
+
+          <div id="resumoCampanhas" class="painel-status"></div>
+
+          <div class="painel-campanhas-filtros">
+            <div class="grupo-campos">
+              <label for="campanhaVisualizacao">Visualização</label>
+              <select id="campanhaVisualizacao" onchange="atualizarCampanhas()">
+                <option value="todas">Todas</option>
+                <option value="reed">Somente REED</option>
+                <option value="pro">Somente PRO</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="painel-campanhas-grid">
+            <div class="grupo-campos">
+              <label for="painelReed">Fila REED por dia</label>
+              <textarea
+                id="painelReed"
+                placeholder="Os REED D1 até D30 aparecerão organizados aqui..."
+                readonly
+              ></textarea>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="painelPro">Fila PRO por mês</label>
+              <textarea
+                id="painelPro"
+                placeholder="Os PRO M1 até M12 aparecerão organizados aqui..."
+                readonly
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" onclick="atualizarCampanhas()">
+              Atualizar campanhas
+            </button>
+            <button type="button" onclick="copiarPainelReed()">
+              Copiar REED
+            </button>
+            <button type="button" onclick="copiarPainelPro()">
+              Copiar PRO
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section id="relatorios" class="aba" aria-labelledby="titulo-relatorios">
+        <div class="card card--relatorio">
+          <div class="card__topo">
+            <h2 id="titulo-relatorios">Relatório Diário</h2>
+            <p class="texto-apoio">
+              Gera o diário no formato operacional usado no WhatsApp, com total de agendamentos e adicionais separados.
+            </p>
+          </div>
+
+          <div class="grupo-campos">
+            <label for="dataRelatorio">Selecionar data</label>
+            <input type="date" id="dataRelatorio">
+          </div>
+
+          <div class="acoes-secundarias">
+            <button type="button" onclick="gerarRelatorio()">
+              Gerar Relatório
+            </button>
+            <button type="button" onclick="copiarRelatorio()">
+              Copiar Relatório
+            </button>
+          </div>
+
+          <pre id="resultadoRelatorio" aria-live="polite"></pre>
+        </div>
+      </section>
+      <!-- CLIMA -->
+      <section id="clima" class="aba" aria-labelledby="titulo-clima">
+        <div class="card card--relatorio">
+          <div class="card__topo">
+            <h2 id="titulo-clima">Previsão do Tempo por Unidade</h2>
+            <p class="texto-apoio">
+              Consulte o clima por unidade e veja qual período do dia tem menor risco de chuva para agendamentos.
+            </p>
+          </div>
+
+          <div class="painel-agendamento-grid">
+            <div class="grupo-campos">
+              <label for="climaUnidade">Unidade</label>
+              <select id="climaUnidade">
+                <option value="">Selecionar unidade</option>
+                <option>Augusto Montenegro</option>
+                <option>Marabá</option>
+                <option>Ananindeua</option>
+                <option>Telégrafo</option>
+                <option>Marambaia</option>
+                <option>José Bonifácio</option>
+                <option>Cidade Nova</option>
+                <option>Jurunas</option>
+                <option>Castanhal</option>
+                <option>Capanema</option>
+              </select>
+            </div>
+
+            <div class="grupo-campos">
+              <label for="climaData">Data</label>
+              <input type="date" id="climaData">
+              <small class="texto-ajuda">Padrão: hoje. Use para consultar previsão de amanhã também.</small>
+            </div>
+          </div>
+
+          <button type="button" class="btn-principal" onclick="buscarClimaUnidade()">
+            Buscar Previsão
+          </button>
+
+          <div id="climaResultado"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL COMPROVANTE -->
+  <div id="modalComprovante" class="modal" aria-hidden="true">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal"
+    >
+      <h3 id="titulo-modal">Comprovante</h3>
+      <textarea id="textoComprovante" readonly></textarea>
+
+      <div class="botoes">
+        <button type="button" onclick="copiarComprovante()">Copiar</button>
+        <button type="button" onclick="fecharModal()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AÇÕES DO BANCO -->
+  <div id="modalAcoesBanco" class="modal" aria-hidden="true">
+    <div
+      class="modal-content modal-content--pequeno"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-banco"
+    >
+      <h3 id="titulo-modal-banco">Ações do lead</h3>
+
+      <div class="lista-acoes-modal">
+        <button type="button" onclick="editarLeadSelecionado()">
+          Editar lead
+        </button>
+        <button type="button" onclick="excluirLeadSelecionado()" class="btn-perigo">
+          Excluir lead
+        </button>
+        <button type="button" onclick="fecharModalBanco()">
+          Fechar
         </button>
       </div>
     </div>
-  </header>
-
-  <!-- NAVEGAÇÃO -->
-  <nav class="menu" aria-label="Menu principal">
-    <button type="button" onclick="trocarAba('agendamento')" data-tab="agendamento" aria-controls="agendamento">Agendar</button>
-    <button type="button" onclick="trocarAba('agenda')"      data-tab="agenda"      aria-controls="agenda">Agenda</button>
-    <button type="button" onclick="trocarAba('filtro')"      data-tab="filtro"      aria-controls="filtro">Filtro</button>
-    <button type="button" onclick="trocarAba('banco')"       data-tab="banco"       aria-controls="banco">Banco</button>
-    <button type="button" onclick="trocarAba('campanhas')"   data-tab="campanhas"   aria-controls="campanhas">Campanhas</button>
-    <button type="button" onclick="trocarAba('relatorios')"  data-tab="relatorios"  aria-controls="relatorios">Relatórios</button>
-    <button type="button" onclick="trocarAba('clima')"       data-tab="clima"       aria-controls="clima">Clima</button>
-  </nav>
-
-  <!-- CONTEÚDO -->
-  <main class="conteudo-principal">
-
-    <!-- ABA: AGENDAMENTO -->
-    <section id="agendamento" class="aba ativa" aria-labelledby="titulo-agendamento">
-      <div class="card card--agendamento">
-        <div class="card__topo">
-          <h2 id="titulo-agendamento">Novo Agendamento</h2>
-          <p class="texto-apoio">Cadastre um ou mais pacientes com inclusão e reagendamento.</p>
-        </div>
-
-        <div class="painel-agendamento-grid">
-          <div class="grupo-campos">
-            <label for="tipoAgendamento">Tipo do registro</label>
-            <select id="tipoAgendamento">
-              <option value="agendamento">Agendamento normal</option>
-              <option value="inclusao">Inclusão no mesmo dia</option>
-              <option value="reagendamento">Reagendamento</option>
-            </select>
-          </div>
-          <div class="grupo-campos">
-            <label for="unidade">Unidade</label>
-            <select id="unidade">
-              <option value="">Selecionar unidade</option>
-              <option>Augusto Montenegro</option>
-              <option>Marabá</option>
-              <option>Ananindeua</option>
-              <option>Telégrafo</option>
-              <option>Marambaia</option>
-              <option>José Bonifácio</option>
-              <option>Cidade Nova</option>
-              <option>Jurunas</option>
-              <option>Castanhal</option>
-              <option>Capanema</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="painel-agendamento-grid">
-          <div class="grupo-campos">
-            <label for="data">Data</label>
-            <input id="data" type="date">
-            <small class="texto-ajuda">Padrão: próximo dia útil. Inclusão usa o mesmo dia.</small>
-          </div>
-          <div class="grupo-campos">
-            <label for="hora">Horário</label>
-            <select id="hora"><option value="">Selecionar horário</option></select>
-            <small class="texto-ajuda">Intervalos de 30 em 30 minutos.</small>
-          </div>
-        </div>
-
-        <div class="grupo-campos">
-          <label>Pessoas do agendamento</label>
-          <div id="listaPessoas" class="lista-pessoas-agendamento"></div>
-          <div class="acoes-secundarias">
-            <button type="button" onclick="adicionarPessoa()">+ Adicionar pessoa</button>
-          </div>
-        </div>
-
-        <button type="button" class="btn-principal" onclick="agendar()">Confirmar Agendamento</button>
-      </div>
-    </section>
-
-    <!-- ABA: AGENDA -->
-    <section id="agenda" class="aba" aria-labelledby="titulo-agenda">
-      <div class="card card--agenda">
-        <div class="card__topo">
-          <h2 id="titulo-agenda">Agenda do Dia</h2>
-          <p class="texto-apoio">Consulte registros por data e gere comprovantes.</p>
-        </div>
-
-        <div class="painel-agendamento-grid">
-          <div class="grupo-campos">
-            <label for="filtroData">Data</label>
-            <input type="date" id="filtroData">
-          </div>
-          <div style="display:flex; align-items:flex-end; gap:8px;">
-            <button type="button" onclick="filtrarAgenda()" style="flex:1;">Atualizar</button>
-            <button type="button" onclick="copiarListaAgendaDia()" title="Copiar todos os agendamentos do dia em formato de lista" style="flex:1;">Copiar lista do dia</button>
-          </div>
-        </div>
-
-        <div id="listaAgenda" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <!-- ABA: FILTRO -->
-    <section id="filtro" class="aba" aria-labelledby="titulo-filtro">
-      <div class="card card--filtro">
-        <div class="card__topo">
-          <h2 id="titulo-filtro">Filtro Inteligente de Leads</h2>
-          <p class="texto-apoio">Extrai apenas números válidos e ignora lixo de conversas do WhatsApp.</p>
-        </div>
-
-        <div class="painel-status">
-          <div class="status-box status-box--ok">
-            <strong>Trabalhar agora</strong>
-            <span>NOVO e REED D1</span>
-          </div>
-          <div class="status-box status-box--alerta">
-            <strong>Ignorar no momento</strong>
-            <span>REED D2–D30, PRO M1–M12</span>
-          </div>
-          <div class="status-box status-box--erro">
-            <strong>Desqualificados</strong>
-            <span>DES, LON, FOR, PAT e REED vencido</span>
-          </div>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="entradaFiltro">Entrada</label>
-          <textarea id="entradaFiltro" placeholder="Cole a lista ou o bloco copiado do WhatsApp aqui..."></textarea>
-        </div>
-
-        <div class="acoes-filtro">
-          <button type="button" class="btn-principal" onclick="filtrarLeads()">Filtrar Leads</button>
-          <button type="button" onclick="copiarAprovados()">Copiar aprovados</button>
-          <button type="button" onclick="limparFiltro()">Limpar</button>
-        </div>
-
-        <div class="resultados-filtro-grid">
-          <div class="grupo-campos">
-            <label for="saidaFiltro">Leads aprovados</label>
-            <textarea id="saidaFiltro" placeholder="Números aprovados..." readonly></textarea>
-          </div>
-          <div class="grupo-campos">
-            <label for="saidaBloqueados">Ignorados / desqualificados</label>
-            <textarea id="saidaBloqueados" placeholder="Bloqueios..." readonly></textarea>
-          </div>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="resumoFiltro">Resumo</label>
-          <textarea id="resumoFiltro" placeholder="Resumo automático..." readonly></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- ABA: BANCO -->
-    <section id="banco" class="aba" aria-labelledby="titulo-banco">
-      <div class="card card--banco">
-        <div class="card__topo">
-          <h2 id="titulo-banco">Banco de Leads</h2>
-          <p class="texto-apoio">Gerencie, segmente e filtre todos os leads armazenados.</p>
-        </div>
-
-        <div class="barra-operacional">
-          <div class="sync-status">
-            <strong>Armazenamento local</strong>
-            <span id="syncStatusTexto">Modo local ativo</span>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" onclick="sincronizarAgora()">Sincronizar</button>
-            <button type="button" onclick="limparBancoCompleto()" class="btn-perigo">Limpar banco</button>
-          </div>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="entradaBanco">Adicionar ao banco</label>
-          <textarea id="entradaBanco" placeholder="Cole números aqui (um por linha). Exemplos:&#10;91999990001 - NOVO&#10;91999990002 - REED D1&#10;91999990003 - REED D15&#10;91999990004 - PRO M3&#10;91999990005 - DES&#10;91999990006 - LON&#10;91999990007 - FOR&#10;91999990008 - PAT"></textarea>
-        </div>
-
-        <div class="acoes-secundarias">
-          <button type="button" class="btn-principal" onclick="salvarBanco()">Salvar no banco</button>
-          <button type="button" onclick="importarTXT()" title="Importar arquivo .txt com números e segmentações">Importar TXT</button>
-          <button type="button" onclick="exportarBancoTXT()" title="Exportar todo o banco em .txt">Exportar TXT</button>
-          <button type="button" onclick="abrirSegmentacaoEmMassa()">Segmentação em massa</button>
-          <button type="button" onclick="copiarBancoEmFileira()">Copiar banco</button>
-        </div>
-
-        <div class="painel-banco-grid">
-          <div class="grupo-campos">
-            <label for="buscaBanco">Buscar</label>
-            <input type="text" id="buscaBanco" placeholder="Número ou status..." oninput="filtrarBancoManual()">
-          </div>
-          <div class="grupo-campos">
-            <label for="filtroSegmentacaoBanco">Segmentação</label>
-            <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
-              <option value="">Todas</option>
-              <option value="NOVO">NOVO</option>
-              <option value="REED">REED</option>
-              <option value="PRO">PRO</option>
-              <option value="DES">DES</option>
-              <option value="LON">LON</option>
-              <option value="FOR">FOR</option>
-              <option value="PAT">PAT</option>
-            </select>
-          </div>
-          <div class="grupo-campos">
-            <label for="filtroDiaReed">Dia REED</label>
-            <select id="filtroDiaReed" onchange="aplicarFiltrosBanco()">
-              <option value="">Todos</option>
-              <option value="D1">D1</option><option value="D2">D2</option>
-              <option value="D3">D3</option><option value="D4">D4</option>
-              <option value="D5">D5</option><option value="D7">D7</option>
-              <option value="D10">D10</option><option value="D15">D15</option>
-              <option value="D20">D20</option><option value="D30">D30</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="filtroMesPro">Mês PRO</label>
-          <select id="filtroMesPro" onchange="aplicarFiltrosBanco()" style="max-width:220px;">
-            <option value="">Todos</option>
-            <option value="M1">M1</option><option value="M2">M2</option>
-            <option value="M3">M3</option><option value="M4">M4</option>
-            <option value="M5">M5</option><option value="M6">M6</option>
-            <option value="M7">M7</option><option value="M8">M8</option>
-            <option value="M9">M9</option><option value="M10">M10</option>
-            <option value="M11">M11</option><option value="M12">M12</option>
-          </select>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="resumoBanco">Resumo do banco</label>
-          <textarea id="resumoBanco" placeholder="Resumo automático..." readonly></textarea>
-        </div>
-
-        <div id="listaBanco" aria-live="polite"></div>
-      </div>
-    </section>
-
-    <!-- ABA: CAMPANHAS -->
-    <section id="campanhas" class="aba" aria-labelledby="titulo-campanhas">
-      <div class="card card--campanhas">
-        <div class="card__topo">
-          <h2 id="titulo-campanhas">Campanhas Programadas</h2>
-          <p class="texto-apoio">Visualize REED por dia e PRO por mês.</p>
-        </div>
-
-        <div class="painel-campanhas-filtros">
-          <div class="grupo-campos">
-            <label for="campanhaVisualizacao">Visualização</label>
-            <select id="campanhaVisualizacao" onchange="atualizarCampanhas()" style="max-width:280px;">
-              <option value="todas">Todas</option>
-              <option value="reed">Somente REED</option>
-              <option value="pro">Somente PRO</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="painel-campanhas-grid">
-          <div class="grupo-campos">
-            <label for="painelReed">Fila REED por dia</label>
-            <textarea id="painelReed" placeholder="REED D1 até D30 organizados aqui..." readonly></textarea>
-          </div>
-          <div class="grupo-campos">
-            <label for="painelPro">Fila PRO por mês</label>
-            <textarea id="painelPro" placeholder="PRO M1 até M12 organizados aqui..." readonly></textarea>
-          </div>
-        </div>
-
-        <div class="acoes-secundarias">
-          <button type="button" onclick="atualizarCampanhas()">Atualizar</button>
-          <button type="button" onclick="copiarPainelReed()">Copiar REED</button>
-          <button type="button" onclick="copiarPainelPro()">Copiar PRO</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ABA: RELATÓRIOS -->
-    <section id="relatorios" class="aba" aria-labelledby="titulo-relatorios">
-      <div class="card card--relatorio">
-        <div class="card__topo">
-          <h2 id="titulo-relatorios">Relatório Diário</h2>
-          <p class="texto-apoio">Gera o diário no formato operacional com agendamentos, reagendamentos e inclusões.</p>
-        </div>
-
-        <div class="grupo-campos">
-          <label for="dataRelatorio">Data</label>
-          <input type="date" id="dataRelatorio">
-        </div>
-
-        <div class="acoes-secundarias">
-          <button type="button" class="btn-principal" onclick="gerarRelatorio()">Gerar Relatório</button>
-          <button type="button" onclick="copiarRelatorio()">Copiar</button>
-        </div>
-
-        <pre id="resultadoRelatorio" aria-live="polite"></pre>
-      </div>
-    </section>
-
-    <!-- ABA: CLIMA -->
-    <section id="clima" class="aba" aria-labelledby="titulo-clima">
-      <div class="card card--relatorio">
-        <div class="card__topo">
-          <h2 id="titulo-clima">Previsão do Tempo por Unidade</h2>
-          <p class="texto-apoio">Consulte o clima e veja o melhor horário para agendamentos por unidade.</p>
-        </div>
-
-        <div class="painel-agendamento-grid">
-          <div class="grupo-campos">
-            <label for="climaUnidade">Unidade</label>
-            <select id="climaUnidade">
-              <option value="">Selecionar unidade</option>
-              <option>Augusto Montenegro</option>
-              <option>Marabá</option>
-              <option>Ananindeua</option>
-              <option>Telégrafo</option>
-              <option>Marambaia</option>
-              <option>José Bonifácio</option>
-              <option>Cidade Nova</option>
-              <option>Jurunas</option>
-              <option>Castanhal</option>
-              <option>Capanema</option>
-            </select>
-          </div>
-          <div class="grupo-campos">
-            <label for="climaData">Data</label>
-            <input type="date" id="climaData">
-            <small class="texto-ajuda">Padrão: hoje.</small>
-          </div>
-        </div>
-
-        <button type="button" class="btn-principal" onclick="buscarClimaUnidade()">Buscar Previsão</button>
-
-        <div id="climaResultado"></div>
-      </div>
-    </section>
-
-  </main>
-</div><!-- /app-shell -->
-
-<!-- MODAL: COMPROVANTE -->
-<div id="modalComprovante" class="modal" aria-hidden="true">
-  <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-modal">
-    <div class="modal__header">
-      <span class="modal__titulo" id="titulo-modal">Comprovante</span>
-      <button type="button" class="modal__fechar" onclick="fecharModal()">✕</button>
-    </div>
-    <textarea id="textoComprovante" readonly></textarea>
-    <div class="botoes">
-      <button type="button" onclick="copiarComprovante()">Copiar</button>
-      <button type="button" onclick="enviarWhats()">Enviar WhatsApp</button>
-      <button type="button" onclick="fecharModal()">Fechar</button>
-    </div>
   </div>
-</div>
 
-<!-- MODAL: AÇÕES DO BANCO -->
-<div id="modalAcoesBanco" class="modal" aria-hidden="true">
-  <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-banco">
-    <div class="modal__header">
-      <span class="modal__titulo" id="titulo-modal-banco">Ações do lead</span>
-      <button type="button" class="modal__fechar" onclick="fecharModalBanco()">✕</button>
-    </div>
-    <div class="lista-acoes-modal">
-      <button type="button" onclick="editarLeadSelecionado()">Editar lead</button>
-      <button type="button" onclick="excluirLeadSelecionado()" class="btn-perigo">Excluir lead</button>
-      <button type="button" onclick="fecharModalBanco()" class="btn-ghost">Fechar</button>
-    </div>
-  </div>
-</div>
+  <!-- MODAL SEGMENTAÇÃO EM MASSA -->
+  <div id="modalSegmentacaoMassa" class="modal" aria-hidden="true">
+    <div
+      class="modal-content modal-content--pequeno"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-segmentacao"
+    >
+      <h3 id="titulo-modal-segmentacao">Aplicar segmentação em massa</h3>
 
-<!-- MODAL: SEGMENTAÇÃO EM MASSA -->
-<div id="modalSegmentacaoMassa" class="modal" aria-hidden="true">
-  <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-segmentacao">
-    <div class="modal__header">
-      <span class="modal__titulo" id="titulo-modal-segmentacao">Segmentação em massa</span>
-      <button type="button" class="modal__fechar" onclick="fecharModalSegmentacao()">✕</button>
-    </div>
-    <div class="grupo-campos">
-      <label for="segmentacaoEmMassa">Segmentação</label>
-      <select id="segmentacaoEmMassa">
-        <option value="DES">DES</option>
-        <option value="LON">LON</option>
-        <option value="FOR">FOR</option>
-        <option value="PAT">PAT</option>
-        <option value="NOVO">NOVO</option>
-        <option value="REED D1">REED D1</option>
-        <option value="PRO M1">PRO M1</option>
-      </select>
-    </div>
-    <div class="modal-confirmacao__acoes" style="margin-top:16px;">
-      <button type="button" onclick="fecharModalSegmentacao()" class="btn-ghost">Cancelar</button>
-      <button type="button" class="btn-principal" onclick="salvarBancoEmMassa()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: CONFIRMAÇÃO (substitui confirm()) -->
-<div id="modalConfirmacao" class="modal" aria-hidden="true">
-  <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true">
-    <div class="modal__header">
-      <span class="modal__titulo" id="modalConfirmacaoTitulo">Confirmar ação</span>
-      <button type="button" class="modal__fechar" onclick="_confirmarCancelar()">✕</button>
-    </div>
-    <div class="modal-confirmacao__corpo">
-      <p class="modal-confirmacao__mensagem" id="modalConfirmacaoMensagem"></p>
-      <p class="modal-confirmacao__detail"   id="modalConfirmacaoDetalhe"></p>
-    </div>
-    <div class="modal-confirmacao__acoes">
-      <button type="button" id="modalConfirmacaoCancelar" class="btn-ghost" onclick="_confirmarCancelar()">Cancelar</button>
-      <button type="button" id="modalConfirmacaoOk" onclick="_confirmarOk()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: EDITAR LEAD (substitui prompt()) -->
-<div id="modalEditar" class="modal" aria-hidden="true">
-  <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true">
-    <div class="modal__header">
-      <span class="modal__titulo">Editar lead</span>
-      <button type="button" class="modal__fechar" onclick="fecharModalEditar()">✕</button>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:16px; padding: 4px 0 8px;">
       <div class="grupo-campos">
-        <label for="editarNumero">Número</label>
-        <input type="tel" id="editarNumero" placeholder="Ex: 91988889999">
+        <label for="segmentacaoEmMassa">Escolha a segmentação</label>
+        <select id="segmentacaoEmMassa">
+          <option value="DES">DES</option>
+          <option value="LON">LON</option>
+          <option value="FOR">FOR</option>
+          <option value="PAT">PAT</option>
+          <option value="NOVO">NOVO</option>
+          <option value="REED D1">REED D1</option>
+          <option value="PRO M1">PRO M1</option>
+        </select>
+      </div>
+
+      <div class="lista-acoes-modal">
+        <button type="button" class="btn-principal" onclick="salvarBancoEmMassa()">
+          Confirmar segmentação
+        </button>
+        <button type="button" onclick="fecharModalSegmentacao()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="modalListaLeads" class="modal" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-lista-leads">
+      <div class="modal__header">
+        <h3 id="titulo-modal-lista-leads" class="modal__titulo">Lista de leads</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalListaLeads()">×</button>
+      </div>
+      <div id="modalListaLeadsConteudo" class="modal-lista-leads__conteudo"></div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalListaLeads()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="modalConfirmacao" class="modal" aria-hidden="true">
+    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-confirmacao">
+      <div class="modal__header">
+        <h3 id="titulo-modal-confirmacao" class="modal__titulo">Confirmar ação</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalConfirmacao()">×</button>
+      </div>
+      <div class="modal-confirmacao__corpo">
+        <p id="modalConfirmacaoMensagem" class="modal-confirmacao__mensagem">Deseja continuar?</p>
+        <p id="modalConfirmacaoDetalhe" class="modal-confirmacao__detail"></p>
+      </div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalConfirmacao(false)">Cancelar</button>
+        <button type="button" class="btn-principal" id="btnConfirmarModalAcao" onclick="fecharModalConfirmacao(true)">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEntrada" class="modal" aria-hidden="true">
+    <div class="modal-content modal-content--pequeno" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-entrada">
+      <div class="modal__header">
+        <h3 id="titulo-modal-entrada" class="modal__titulo">Editar campo</h3>
+        <button type="button" class="modal__fechar" onclick="fecharModalEntrada(null)">×</button>
       </div>
       <div class="grupo-campos">
-        <label for="editarStatus">Status</label>
-        <input type="text" id="editarStatus" placeholder="Ex: NOVO, REED D1, PRO M3, DES">
-        <small class="texto-ajuda">Valores: NOVO · REED D1–D30 · PRO M1–M12 · DES · LON · FOR · PAT</small>
+        <label for="modalEntradaInput" id="modalEntradaLabel">Valor</label>
+        <input type="text" id="modalEntradaInput">
+      </div>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-ghost" onclick="fecharModalEntrada(null)">Cancelar</button>
+        <button type="button" class="btn-principal" onclick="confirmarModalEntrada()">Salvar</button>
       </div>
     </div>
-    <div class="modal-confirmacao__acoes">
-      <button type="button" onclick="fecharModalEditar()" class="btn-ghost">Cancelar</button>
-      <button type="button" class="btn-principal" onclick="confirmarEdicaoLead()">Salvar</button>
-    </div>
   </div>
-</div>
 
-<!-- TOASTS -->
-<div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
