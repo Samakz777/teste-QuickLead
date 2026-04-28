@@ -31,10 +31,11 @@
               <label for="nomeTMK" class="topo__config-label">TMK</label>
               <div class="tmk-inline">
                 <input type="text" id="nomeTMK" class="topo__config-input" placeholder="Nome do operador">
-                <select id="generoTMK" class="topo__genero" title="Gênero do consultor">
-                  <option value="M">♂</option>
-                  <option value="F">♀</option>
-                </select>
+                <input type="hidden" id="generoTMK" value="M">
+                <div class="genero-toggle" aria-label="Gênero do consultor">
+                  <button type="button" id="btnGeneroM" class="genero-btn" title="Masculino" onclick="setGeneroTMK('M')">♂</button>
+                  <button type="button" id="btnGeneroF" class="genero-btn" title="Feminino" onclick="setGeneroTMK('F')">♀</button>
+                </div>
               </div>
             </div>
             <button type="button" id="btnTema" onclick="alternarTema()">
@@ -105,6 +106,9 @@
                 <option>Jurunas</option>
                 <option>Castanhal</option>
                 <option>Capanema</option>
+                <option>Fortaleza</option>
+                <option>Manoa</option>
+                <option>Manaus</option>
               </select>
             </div>
           </div>
@@ -182,7 +186,7 @@
           <div class="painel-status">
             <div class="status-box status-box--ok">
               <strong>Trabalhar agora:</strong>
-              <span>NOVO e REED D1</span>
+              <span>REED D1</span>
             </div>
 
             <div class="status-box status-box--alerta">
@@ -321,7 +325,6 @@ ou lista grande com nomes + números para aplicar uma segmentação em massa."
               <label for="filtroSegmentacaoBanco">Filtrar por segmentação</label>
               <select id="filtroSegmentacaoBanco" onchange="aplicarFiltrosBanco()">
                 <option value="">Todas</option>
-                <option value="NOVO">NOVO</option>
                 <option value="REED">REED</option>
                 <option value="PRO">PRO</option>
                 <option value="DES">DES</option>
@@ -519,6 +522,9 @@ ou lista grande com nomes + números para aplicar uma segmentação em massa."
                 <option>Jurunas</option>
                 <option>Castanhal</option>
                 <option>Capanema</option>
+                <option>Fortaleza</option>
+                <option>Manoa</option>
+                <option>Manaus</option>
               </select>
             </div>
 
@@ -598,7 +604,6 @@ ou lista grande com nomes + números para aplicar uma segmentação em massa."
           <option value="LON">LON</option>
           <option value="FOR">FOR</option>
           <option value="PAT">PAT</option>
-          <option value="NOVO">NOVO</option>
           <option value="REED D1">REED D1</option>
           <option value="PRO M1">PRO M1</option>
         </select>
