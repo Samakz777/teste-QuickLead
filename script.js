@@ -2087,7 +2087,10 @@ function gerarRelatorio() {
   });
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
-  const linhas = UNIDADES_ORDEM.map((unidade) => `DIA ${dataCurta} *(${String(mapa[unidade]?.totalLinha || 0).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`);
+  // Diário: mostrar apenas unidades que tiveram atividade no dia
+  const linhas = UNIDADES_ORDEM
+    .filter((unidade) => (mapa[unidade]?.totalLinha || 0) > 0)
+    .map((unidade) => `DIA ${dataCurta} *(${String(mapa[unidade].totalLinha).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`);
   const totalAgendamentos = Object.values(mapa).reduce((s, i) => s + i.agendamento, 0);
   const totalReagendamentos = Object.values(mapa).reduce((s, i) => s + i.reagendamento, 0);
   const totalInclusoes = Object.values(mapa).reduce((s, i) => s + i.inclusao, 0);
