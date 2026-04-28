@@ -804,3 +804,24 @@ html[data-genero="F"][data-theme="dark"] .genero-btn.ativo{background:linear-gra
 .crm-status--ok{color:var(--verde)!important}.btn-perigo{border-radius:var(--r-sm)!important}
 html[data-theme="light"] .genero-toggle{background:rgba(255,255,255,.78);border-color:rgba(16,34,49,.12)}html[data-theme="light"] .genero-btn.ativo{color:#fff!important}html[data-theme="light"] .card,html[data-theme="light"] .agenda-item{color:#142231}
 @media (max-width:900px){.app-shell{padding:14px}.topo__conteudo{padding:22px 18px}.menu{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.painel-agendamento-grid,.painel-banco-grid,.painel-campanhas-grid,.resultados-filtro-grid{grid-template-columns:1fr!important}.topo__acoes{width:100%;justify-content:space-between}}
+
+
+/* ===== Ajustes finos de produtividade da Agenda ===== */
+.agenda-item.crm-pendente { border-color: rgba(255, 212, 84, 0.24) !important; background: linear-gradient(145deg, rgba(255, 212, 84, 0.045), transparent 34%), var(--bg-card) !important; }
+.agenda-item.crm-enviado { border-color: rgba(32, 227, 148, 0.26) !important; background: linear-gradient(145deg, rgba(32, 227, 148, 0.055), transparent 34%), var(--bg-card) !important; box-shadow: var(--shadow-sm), 0 0 0 1px rgba(32, 227, 148, 0.12) !important; }
+html[data-theme="light"] .agenda-item.crm-pendente { background: linear-gradient(145deg, rgba(255, 212, 84, 0.12), rgba(255,255,255,.9)) !important; }
+html[data-theme="light"] .agenda-item.crm-enviado { background: linear-gradient(145deg, rgba(8, 163, 95, 0.12), rgba(255,255,255,.92)) !important; }
+.agenda-item__cabecalho { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.agenda-item__pessoas { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.agenda-item__acoes { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.paciente-agenda-linha { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:14px; background:color-mix(in srgb, var(--bg-input) 88%, transparent 12%); flex-wrap:wrap; }
+.paciente-agenda-info { display:flex; align-items:center; gap:7px; flex-wrap:wrap; min-width:240px; }
+.paciente-agenda-nome { font-weight:780; color:var(--texto); }
+.paciente-agenda-numero { color:var(--texto-suave); }
+.paciente-agenda-senha { color:var(--texto-fraco); font-size:.86rem; }
+.paciente-agenda-acoes { display:flex; gap:6px; flex-wrap:wrap; }
+.paciente-agenda-acoes button { font-size:.82rem!important; padding:6px 10px!important; min-height:34px!important; }
+.btn-mini { min-width:30px!important; width:30px!important; height:30px!important; min-height:30px!important; padding:0!important; border-radius:999px!important; display:inline-grid!important; place-items:center!important; margin-left:4px!important; font-size:.82rem!important; opacity:.84; }
+.btn-mini:hover { opacity:1; transform:translateY(-1px); }
+.crm-horario { color:var(--texto-fraco); font-size:.84rem; margin-left:8px; }
+.modal-entrada-select { width:100%; }
