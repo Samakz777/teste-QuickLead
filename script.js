@@ -920,22 +920,37 @@ function salvarBanco() {
   let adicionados = 0;
   let atualizados = 0;
   let ignorados = 0;
+  let semStatus = 0;
+
+  const dadosValidos = [];
 
   linhas.forEach((linha) => {
-    let dado = extrairNumeroEStatusDaLinha(linha);
+    const dado = extrairNumeroEStatusDaLinha(linha);
 
     if (!dado) {
       if (linha.trim()) ignorados++;
       return;
     }
 
-    dado = aplicarStatusPadraoBanco(dado);
-
-    if (!dado || !dado.tipo) {
-      ignorados++;
+    if (!dado.tipo) {
+      semStatus++;
       return;
     }
 
+    dadosValidos.push(dado);
+  });
+
+  if (semStatus > 0) {
+    mostrarToast(
+      "Escolha uma segmentação para esses números.",
+      "aviso",
+      "Como há número sem status, use a segmentação em massa para aplicar REED, PRO, DES, LON, FOR ou PAT."
+    );
+    abrirSegmentacaoEmMassa();
+    return;
+  }
+
+  dadosValidos.forEach((dado) => {
     const existente = buscarLeadNoBancoPorNumero(dado.numero);
 
     if (existente) {
