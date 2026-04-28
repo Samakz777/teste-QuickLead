@@ -915,29 +915,25 @@ function importarLeadsTXT(conteudo = "") {
 }
 
 function salvarBanco() {
-  const linhas = entradaBanco.value.split("\n");
+  const texto = entradaBanco?.value || "";
+  const linhas = texto.split("\n");
   let adicionados = 0;
   let atualizados = 0;
   let ignorados = 0;
 
   linhas.forEach((linha) => {
-    const dado = extrairNumeroEStatusDaLinha(linha);
+    let dado = extrairNumeroEStatusDaLinha(linha);
 
     if (!dado) {
       if (linha.trim()) ignorados++;
       return;
     }
 
-    if (!dado.tipo) {
-      const statusPadrao = normalizarStatus(obterStatusPadraoBanco());
-      if (!statusPadrao) {
-        ignorados++;
-        return;
-      }
-      const infoPadrao = decomporStatus(statusPadrao);
-      dado.tipo = statusPadrao;
-      dado.baseTipo = infoPadrao.baseTipo;
-      dado.baseValor = infoPadrao.baseValor;
+    dado = aplicarStatusPadraoBanco(dado);
+
+    if (!dado || !dado.tipo) {
+      ignorados++;
+      return;
     }
 
     const existente = buscarLeadNoBancoPorNumero(dado.numero);
@@ -956,12 +952,16 @@ function salvarBanco() {
   });
 
   atualizarStatusAutomaticos();
-  entradaBanco.value = "";
+  if (entradaBanco) entradaBanco.value = "";
   mostrarBanco();
   atualizarCampanhas();
   salvar();
 
-  mostrarToast("Banco atualizado.", "ok", `Adicionados: ${adicionados} · Atualizados: ${atualizados} · Ignorados: ${ignorados}`);
+  mostrarToast(
+    "Banco atualizado!",
+    "ok",
+    `Adicionados: ${adicionados} · Atualizados: ${atualizados} · Ignorados: ${ignorados}`
+  );
 }
 
 function abrirSegmentacaoEmMassa() {
@@ -2613,3 +2613,6 @@ try {
 } catch (erro) {
   console.warn("Não foi possível inicializar controles extras do banco.", erro);
 }
+
+
+try { preencherSelectsSegmentacaoPadrao(); } catch (e) { console.warn('Falha ao preparar segmentação padrão:', e); }
