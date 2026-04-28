@@ -941,11 +941,8 @@ function salvarBanco() {
   });
 
   if (semStatus > 0) {
-    mostrarToast(
-      "Escolha uma segmentação para esses números.",
-      "aviso",
-      "Como há número sem status, use a segmentação em massa para aplicar REED, PRO, DES, LON, FOR ou PAT."
-    );
+    // Número(s) sem segmentação detectado(s) — abre seleção automaticamente
+    // (mesmo comportamento da segmentação em massa, mas para qualquer quantidade)
     abrirSegmentacaoEmMassa();
     return;
   }
@@ -1238,9 +1235,18 @@ async function editarLeadSelecionado() {
   const novoNumero = await solicitarEntrada("Editar número", lead.numero, "Editar lead");
   if (novoNumero === null) return;
 
-  const novoStatus = prompt(
-    "Editar status:\n\nExemplos:\nREED D1\nREED D15\nPRO M3\nDES\nLON\nFOR\nPAT",
-    formatarStatusExibicao(lead.tipo)
+  const opcoesStatus = [
+    "REED D1","REED D2","REED D3","REED D4","REED D5","REED D7","REED D10",
+    "REED D15","REED D20","REED D25","REED D30",
+    "PRO M1","PRO M2","PRO M3","PRO M4","PRO M5","PRO M6",
+    "PRO M7","PRO M8","PRO M9","PRO M10","PRO M11","PRO M12",
+    "DES","LON","FOR","PAT"
+  ];
+  const novoStatus = await solicitarSelecaoEntrada(
+    "Editar status do lead",
+    formatarStatusExibicao(lead.tipo),
+    opcoesStatus,
+    "Editar lead"
   );
   if (novoStatus === null) return;
 
@@ -1278,9 +1284,13 @@ async function excluirLeadSelecionado() {
   if (leadSelecionadoIndex === null || !bancoLeads[leadSelecionadoIndex]) return;
 
   const lead = bancoLeads[leadSelecionadoIndex];
-  if (!confirm(`Excluir este lead?\n\n${formatarNumero(lead.numero)} - ${formatarStatusExibicao(lead.tipo)}`)) {
-    return;
-  }
+
+  const confirmado = await confirmarAcao(
+    "Excluir este lead?",
+    `${formatarNumero(lead.numero)} — ${formatarStatusExibicao(lead.tipo)}`,
+    "Excluir"
+  );
+  if (!confirmado) return;
 
   bancoLeads.splice(leadSelecionadoIndex, 1);
   salvar();
@@ -2629,5 +2639,12 @@ try {
   console.warn("Não foi possível inicializar controles extras do banco.", erro);
 }
 
+
+function preencherSelectsSegmentacaoPadrao() {
+  // Alias de compatibilidade: garante que os selects de segmentação padrão do banco
+  // estejam preenchidos na inicialização do sistema.
+  preencherSegmentacoesPadraoBanco();
+  atualizarUIBancoPadrao();
+}
 
 try { preencherSelectsSegmentacaoPadrao(); } catch (e) { console.warn('Falha ao preparar segmentação padrão:', e); }
