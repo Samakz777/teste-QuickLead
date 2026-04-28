@@ -819,3 +819,101 @@ html[data-theme="light"] .genero-toggle{background:rgba(255,255,255,.78);border-
 html[data-theme="light"] .agenda-item.crm-pendente { background: linear-gradient(135deg, rgba(185,138,0,.12), rgba(185,138,0,.025)), rgba(255,255,255,.9) !important; }
 html[data-theme="light"] .agenda-item.crm-enviado { background: linear-gradient(135deg, rgba(8,163,95,.12), rgba(8,163,95,.025)), rgba(255,255,255,.92) !important; }
 @media (min-width: 1200px) { .app-shell { max-width: 1480px; } .card--agenda, .card--banco { max-width: 1240px; } }
+
+
+/* AJUSTE FINAL — RELATÓRIO + TEMA FEMININO / CRM */
+html[data-genero="F"][data-theme="dark"] {
+  --azul: #ff4fb3;
+  --azul-escuro: #db2f91;
+  --azul-bg: rgba(255, 79, 179, 0.12);
+  --azul-borda: rgba(255, 79, 179, 0.28);
+  --roxo: #f0a4ff;
+  --roxo-bg: rgba(240, 164, 255, 0.12);
+  --roxo-borda: rgba(240, 164, 255, 0.28);
+  --glow-azul: 0 14px 38px rgba(255, 79, 179, 0.22);
+}
+
+html[data-genero="F"][data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 12% 16%, rgba(255,79,179,0.13), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(240,164,255,0.10), transparent 30%),
+    radial-gradient(circle at 56% 100%, rgba(255,105,180,0.08), transparent 32%),
+    linear-gradient(180deg, var(--bg-2), var(--bg));
+}
+
+html[data-genero="F"] .genero-btn.ativo {
+  background: linear-gradient(135deg, #ff4fb3, #f0a4ff) !important;
+  color: #190613 !important;
+  box-shadow: 0 10px 28px rgba(255,79,179,.28) !important;
+}
+
+html[data-genero="F"] .agenda-item.crm-pendente {
+  border-color: rgba(255, 79, 179, .28) !important;
+  background: linear-gradient(135deg, rgba(255, 79, 179, .095), rgba(255, 79, 179, .018)), var(--bg-card) !important;
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(255, 79, 179, .08) !important;
+}
+
+html[data-genero="F"] .agenda-item.crm-enviado {
+  border-color: rgba(240, 164, 255, .32) !important;
+  background: linear-gradient(135deg, rgba(240, 164, 255, .105), rgba(255, 79, 179, .024)), var(--bg-card) !important;
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(240, 164, 255, .09) !important;
+}
+
+html[data-genero="F"] .crm-status,
+html[data-genero="F"] .crm-status--ok {
+  color: #ff9ed8 !important;
+}
+
+html[data-genero="F"] .btn-perigo {
+  background: linear-gradient(135deg, #ff5fae, #ff8fd1) !important;
+  color: #1b0713 !important;
+  border-color: rgba(255, 143, 209, .42) !important;
+  box-shadow: 0 12px 34px rgba(255, 79, 179, .24) !important;
+}
+
+html[data-genero="F"][data-theme="light"] .agenda-item.crm-pendente {
+  border-color: rgba(199, 42, 134, .22) !important;
+  background: linear-gradient(135deg, rgba(255, 79, 179, .10), rgba(255, 79, 179, .025)), rgba(255,255,255,.92) !important;
+}
+
+html[data-genero="F"][data-theme="light"] .agenda-item.crm-enviado {
+  border-color: rgba(154, 70, 190, .22) !important;
+  background: linear-gradient(135deg, rgba(154, 70, 190, .10), rgba(255, 79, 179, .025)), rgba(255,255,255,.94) !important;
+}
+
+
+/* Ajuste específico do tema feminino: estados da agenda combinam com rosa/lilás */
+html[data-theme="pink"] .agenda-item:not(.crm-enviado) {
+  background:
+    linear-gradient(135deg, rgba(255, 77, 166, 0.10), rgba(255, 128, 191, 0.035)),
+    var(--card, rgba(12, 18, 28, 0.72));
+  border-color: rgba(255, 77, 166, 0.24);
+}
+
+html[data-theme="pink"] .agenda-item.crm-enviado {
+  background:
+    linear-gradient(135deg, rgba(196, 119, 255, 0.16), rgba(255, 77, 166, 0.06)),
+    var(--card, rgba(12, 18, 28, 0.72));
+  border-color: rgba(255, 77, 166, 0.38);
+  box-shadow: 0 0 0 1px rgba(255, 77, 166, 0.13), 0 18px 44px rgba(255, 77, 166, 0.10);
+}
+
+html[data-theme="pink"] .crm-status {
+  color: #ffd1ea;
+  background: rgba(255, 77, 166, 0.12);
+  border-color: rgba(255, 77, 166, 0.22);
+}
+
+html[data-theme="pink"] .crm-status--ok {
+  color: #ff7fc4;
+  background: rgba(255, 77, 166, 0.18);
+  border-color: rgba(255, 77, 166, 0.42);
+}
+
+html[data-theme="pink"] .btn-perigo,
+html[data-theme="pink"] button.btn-perigo {
+  background: linear-gradient(135deg, rgba(255, 77, 166, 0.88), rgba(180, 92, 255, 0.82));
+  border-color: rgba(255, 77, 166, 0.52);
+  box-shadow: 0 12px 28px rgba(255, 77, 166, 0.22);
+}
+
