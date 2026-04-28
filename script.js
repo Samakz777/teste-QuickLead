@@ -2028,10 +2028,8 @@ function filtrarAgenda() {
 
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">Comprovante Paciente</button>
-          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>
-          <button type="button" onclick="editarDataAgendamento(${item.indexOriginal})">Editar data</button>\n          <button type="button" onclick="editarUnidadeAgendamento(${item.indexOriginal})">Editar unidade</button>\n          <button type="button" onclick="editarHorarioAgendamento(${item.indexOriginal})">Editar horário</button>
+          <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>\n\n
           <button type="button" class="${item.crmEnviado ? '' : 'btn-perigo'}" onclick="alternarCRMEnviado(${item.indexOriginal})">${item.crmEnviado ? '✓ CRM Enviado' : 'Subir CRM'}</button>
-          <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">Marcar Reagendamento</button>
           <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
         </div>
       </div>
