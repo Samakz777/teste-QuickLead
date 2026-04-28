@@ -790,3 +790,17 @@ html[data-theme="light"] .agenda-item{background:linear-gradient(145deg, rgba(25
   font-size: .78rem !important;
   margin-left: 4px;
 }
+
+/* =============================================================
+   AJUSTES NÍVEL ABSURDO — PRODUTIVIDADE / GÊNERO / CRM
+   ============================================================= */
+.genero-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--borda);border-radius:var(--r-pill);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.genero-btn{min-height:34px!important;width:38px;padding:0!important;border-radius:var(--r-pill)!important;font-weight:900!important;box-shadow:none!important;background:transparent!important;color:var(--texto-suave)!important}
+.genero-btn.ativo,.genero-btn:hover{color:var(--texto-inv)!important;background:linear-gradient(135deg,var(--azul),var(--azul-escuro))!important;box-shadow:var(--glow-azul)!important}
+html[data-genero="F"][data-theme="dark"]{--verde:#ff5db8;--verde-escuro:#d82f8d;--verde-bg:rgba(255,93,184,.12);--verde-borda:rgba(255,93,184,.28);--azul:#ff87d1;--azul-escuro:#c84da3;--azul-bg:rgba(255,135,209,.11);--azul-borda:rgba(255,135,209,.24);--roxo:#ffc0e6;--roxo-bg:rgba(255,192,230,.12);--roxo-borda:rgba(255,192,230,.24);background-color:#0f0a14}
+html[data-genero="F"][data-theme="dark"] body{background:radial-gradient(circle at 15% 15%,rgba(255,93,184,.12),transparent 30%),radial-gradient(circle at 90% 8%,rgba(255,135,209,.09),transparent 30%),radial-gradient(circle at 52% 100%,rgba(185,140,255,.06),transparent 32%),linear-gradient(180deg,#120b18,#080711)}
+html[data-genero="F"][data-theme="dark"] .genero-btn.ativo{background:linear-gradient(135deg,#ff5db8,#c84da3)!important}
+.agenda-item.crm-enviado{border-color:var(--verde-borda)!important;box-shadow:var(--shadow-sm),0 0 0 1px var(--verde-borda)!important}
+.crm-status--ok{color:var(--verde)!important}.btn-perigo{border-radius:var(--r-sm)!important}
+html[data-theme="light"] .genero-toggle{background:rgba(255,255,255,.78);border-color:rgba(16,34,49,.12)}html[data-theme="light"] .genero-btn.ativo{color:#fff!important}html[data-theme="light"] .card,html[data-theme="light"] .agenda-item{color:#142231}
+@media (max-width:900px){.app-shell{padding:14px}.topo__conteudo{padding:22px 18px}.menu{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.painel-agendamento-grid,.painel-banco-grid,.painel-campanhas-grid,.resultados-filtro-grid{grid-template-columns:1fr!important}.topo__acoes{width:100%;justify-content:space-between}}
