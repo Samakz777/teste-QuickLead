@@ -62,6 +62,10 @@ let resolverModalEntrada = null;
 const nomeTMKInput = document.getElementById("nomeTMK");
 const generoTMKInput = document.getElementById("generoTMK");
 const importarTXTInput = document.getElementById("importarTXT");
+const segmentacaoPadraoBanco = document.getElementById("segmentacaoPadraoBanco");
+const segmentacaoPadraoReed = document.getElementById("segmentacaoPadraoReed");
+const segmentacaoPadraoPro = document.getElementById("segmentacaoPadraoPro");
+const modalEntradaSelect = document.getElementById("modalEntradaSelect");
 const btnGeneroM = document.getElementById("btnGeneroM");
 const btnGeneroF = document.getElementById("btnGeneroF");
 let nomeTMK = localStorage.getItem("quickleadTMK") || "PAULO LOBATO";
@@ -85,6 +89,24 @@ function getTituloPaciente(qtd = 1) {
 
 function getTituloSenha(qtd = 1) {
   return Number(qtd) === 1 ? "Senha" : "Senhas";
+}
+
+function formatarNumeroWhats(numero = "") {
+  const n = limparNumero(numero);
+  if (!n) return "";
+  return n.startsWith("55") ? n : `55${n}`;
+}
+
+function formatarTipoRegistro(tipo = "agendamento") {
+  const mapa = { agendamento: "AGENDAMENTO", inclusao: "INCLUSÃO", reagendamento: "REAGENDAMENTO" };
+  return mapa[tipo] || String(tipo || "AGENDAMENTO").toUpperCase();
+}
+
+function normalizarTipoRegistro(tipo = "agendamento") {
+  const bruto = normalizarTexto(tipo).replace(/[Ç]/g, "C");
+  if (["INCLUSAO", "INCLUSAO NO MESMO DIA"].includes(bruto)) return "inclusao";
+  if (["REAGENDAMENTO", "REAGENDAR"].includes(bruto)) return "reagendamento";
+  return "agendamento";
 }
 
 const UNIDADES_ORDEM = [
@@ -187,14 +209,40 @@ function fecharModalConfirmacao(confirmado = false) {
   }
 }
 
-function solicitarEntrada(label, valorInicial = "", titulo = "Editar campo") { return new Promise((resolve) => { if (!modalEntrada || !modalEntradaInput) { resolve(window.prompt(label, valorInicial)); return; } const campoSelect = document.getElementById("modalEntradaSelect"); if (campoSelect) campoSelect.style.display = "none"; resolverModalEntrada = resolve; const tituloEl = document.getElementById("titulo-modal-entrada"); if (tituloEl) tituloEl.textContent = titulo; if (modalEntradaLabel) modalEntradaLabel.textContent = label; modalEntradaInput.style.display = ""; modalEntradaInput.type = "text"; modalEntradaInput.removeAttribute("list"); modalEntradaInput.value = valorInicial || ""; abrirModalBase(modalEntrada); setTimeout(() => modalEntradaInput.focus(), 30); }); }
+function solicitarEntrada(label, valorInicial = "", titulo = "Editar campo") {
+  return new Promise((resolve) => {
+    if (!modalEntrada || !modalEntradaInput) {
+      resolve(window.prompt(label, valorInicial));
+      return;
+    }
 
+    resolverModalEntrada = resolve;
+    if (modalEntradaSelect) { modalEntradaSelect.style.display = "none"; modalEntradaSelect.innerHTML = ""; }
+    if (modalEntradaInput) { modalEntradaInput.style.display = ""; modalEntradaInput.removeAttribute("list"); }
+    const tituloEl = document.getElementById("titulo-modal-entrada");
+    if (tituloEl) tituloEl.textContent = titulo;
+    if (modalEntradaLabel) modalEntradaLabel.textContent = label;
+    modalEntradaInput.value = valorInicial || "";
+    abrirModalBase(modalEntrada);
+    setTimeout(() => modalEntradaInput.focus(), 30);
+  });
+}
 
-function confirmarModalEntrada() { const campoSelect = document.getElementById("modalEntradaSelect"); const valor = campoSelect && campoSelect.style.display !== "none" ? campoSelect.value : (modalEntradaInput?.value ?? ""); fecharModalEntrada(valor); }
+function confirmarModalEntrada() {
+  const usandoSelect = modalEntradaSelect && modalEntradaSelect.style.display !== "none";
+  fecharModalEntrada(usandoSelect ? (modalEntradaSelect.value ?? "") : (modalEntradaInput?.value ?? ""));
+}
 
-
-function fecharModalEntrada(valor = null) { fecharModalBase(modalEntrada); const campoSelect = document.getElementById("modalEntradaSelect"); if (campoSelect) campoSelect.style.display = "none"; if (modalEntradaInput) { modalEntradaInput.style.display = ""; modalEntradaInput.type = "text"; modalEntradaInput.removeAttribute("list"); } if (resolverModalEntrada) { const fn = resolverModalEntrada; resolverModalEntrada = null; fn(valor); } }
-
+function fecharModalEntrada(valor = null) {
+  fecharModalBase(modalEntrada);
+  if (modalEntradaSelect) { modalEntradaSelect.style.display = "none"; modalEntradaSelect.innerHTML = ""; }
+  if (modalEntradaInput) { modalEntradaInput.style.display = ""; modalEntradaInput.removeAttribute("list"); }
+  if (resolverModalEntrada) {
+    const fn = resolverModalEntrada;
+    resolverModalEntrada = null;
+    fn(valor);
+  }
+}
 
 
 // =========================
@@ -570,7 +618,7 @@ function coletarPessoasFormulario() {
   const blocos = Array.from(listaPessoas.querySelectorAll(".pessoa-bloco"));
 
   return blocos.map((bloco) => ({
-    nome: (bloco.querySelector(".pessoa-nome")?.value || "").trim(),
+    nome: (bloco.querySelector(".pessoa-nome")?.value || "").trim().toUpperCase(),
     numero: limparNumero(bloco.querySelector(".pessoa-numero")?.value || ""),
     observacao: (bloco.querySelector(".pessoa-observacao")?.value || "").trim()
   }));
@@ -602,11 +650,11 @@ function juntarNomesComNumero(pessoas = []) {
   const itens = pessoas
     .map((p) => {
       const nome = (p.nome || "").trim();
-      const numero = limparNumero(p.numero || "");
-      if (!nome && !numero) return "";
-      if (nome && numero) return `${nome} (${formatarNumero(numero)})`;
+      const numeroWhats = formatarNumeroWhats(p.numero || "");
+      if (!nome && !numeroWhats) return "";
+      if (nome && numeroWhats) return `${nome} (${numeroWhats})`;
       if (nome) return nome;
-      return formatarNumero(numero);
+      return numeroWhats;
     })
     .filter(Boolean);
 
@@ -753,6 +801,31 @@ function atualizarStatusAutomaticos() {
   }
 }
 
+
+function preencherSegmentacoesPadraoBanco() {
+  if (segmentacaoPadraoReed && !segmentacaoPadraoReed.options.length) {
+    segmentacaoPadraoReed.innerHTML = Array.from({ length: 30 }, (_, i) => `<option value="D${i + 1}">D${i + 1}</option>`).join("");
+  }
+  if (segmentacaoPadraoPro && !segmentacaoPadraoPro.options.length) {
+    segmentacaoPadraoPro.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="M${i + 1}">M${i + 1}</option>`).join("");
+  }
+}
+
+function atualizarUIBancoPadrao() {
+  preencherSegmentacoesPadraoBanco();
+  const tipo = segmentacaoPadraoBanco?.value || "REED";
+  document.querySelectorAll(".banco-padrao-reed").forEach((el) => el.style.display = tipo === "REED" ? "flex" : "none");
+  document.querySelectorAll(".banco-padrao-pro").forEach((el) => el.style.display = tipo === "PRO" ? "flex" : "none");
+}
+
+function obterStatusPadraoBanco() {
+  preencherSegmentacoesPadraoBanco();
+  const tipo = segmentacaoPadraoBanco?.value || "REED";
+  if (tipo === "REED") return `REED ${segmentacaoPadraoReed?.value || "D1"}`;
+  if (tipo === "PRO") return `PRO ${segmentacaoPadraoPro?.value || "M1"}`;
+  return tipo;
+}
+
 // =========================
 // BANCO
 // =========================
@@ -841,8 +914,55 @@ function importarLeadsTXT(conteudo = "") {
   mostrarToast("TXT importado para a área do banco. Revise e escolha a ação desejada.", "ok");
 }
 
-function salvarBanco() { const linhas = entradaBanco.value.split("\n"); let adicionados = 0; let atualizados = 0; let ignorados = 0; const statusPadrao = normalizarStatus(segmentacaoEmMassa?.value || "REED D1") || "REEDD1"; const infoPadrao = decomporStatus(statusPadrao); linhas.forEach((linha) => { const dado = extrairNumeroEStatusDaLinha(linha); if (!dado) { if (linha.trim()) ignorados++; return; } if (!dado.tipo) { dado.tipo = statusPadrao; dado.baseTipo = infoPadrao.baseTipo; dado.baseValor = infoPadrao.baseValor; } const existente = buscarLeadNoBancoPorNumero(dado.numero); if (existente) { existente.numero = dado.numero; existente.tipo = dado.tipo; existente.baseTipo = dado.baseTipo; existente.baseValor = dado.baseValor; existente.criadoEm = agoraISO(); atualizados++; } else { bancoLeads.push(dado); adicionados++; } }); atualizarStatusAutomaticos(); entradaBanco.value = ""; mostrarBanco(); atualizarCampanhas(); salvar(); mostrarToast("Banco atualizado.", "ok", 'Adicionados: ' + adicionados + ' · Atualizados: ' + atualizados + ' · Ignorados: ' + ignorados); }
+function salvarBanco() {
+  const linhas = entradaBanco.value.split("\n");
+  let adicionados = 0;
+  let atualizados = 0;
+  let ignorados = 0;
 
+  linhas.forEach((linha) => {
+    const dado = extrairNumeroEStatusDaLinha(linha);
+
+    if (!dado) {
+      if (linha.trim()) ignorados++;
+      return;
+    }
+
+    if (!dado.tipo) {
+      const statusPadrao = normalizarStatus(obterStatusPadraoBanco());
+      if (!statusPadrao) {
+        ignorados++;
+        return;
+      }
+      const infoPadrao = decomporStatus(statusPadrao);
+      dado.tipo = statusPadrao;
+      dado.baseTipo = infoPadrao.baseTipo;
+      dado.baseValor = infoPadrao.baseValor;
+    }
+
+    const existente = buscarLeadNoBancoPorNumero(dado.numero);
+
+    if (existente) {
+      existente.numero = dado.numero;
+      existente.tipo = dado.tipo;
+      existente.baseTipo = dado.baseTipo;
+      existente.baseValor = dado.baseValor;
+      existente.criadoEm = agoraISO();
+      atualizados++;
+    } else {
+      bancoLeads.push(dado);
+      adicionados++;
+    }
+  });
+
+  atualizarStatusAutomaticos();
+  entradaBanco.value = "";
+  mostrarBanco();
+  atualizarCampanhas();
+  salvar();
+
+  mostrarToast("Banco atualizado.", "ok", `Adicionados: ${adicionados} · Atualizados: ${atualizados} · Ignorados: ${ignorados}`);
+}
 
 function abrirSegmentacaoEmMassa() {
   if (!entradaBanco.value.trim()) {
@@ -859,8 +979,59 @@ function fecharModalSegmentacao() {
   modalSegmentacaoMassa.setAttribute("aria-hidden", "true");
 }
 
-function salvarBancoEmMassa() { const texto = entradaBanco.value.trim(); if (!texto) { mostrarToast("Cole uma lista no campo do banco primeiro.", "aviso"); return; } const numeros = extrairTodosNumerosValidos(texto); if (!numeros.length) { mostrarToast("Nenhum número válido foi encontrado.", "erro"); return; } const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES"); if (!statusSelecionado) { mostrarToast("Selecione uma segmentação válida.", "aviso"); return; } const info = decomporStatus(statusSelecionado); let adicionados = 0; let mantidos = 0; numeros.forEach((numero) => { const existente = buscarLeadNoBancoPorNumero(numero); if (existente) { mantidos++; return; } bancoLeads.push({ numero, tipo: statusSelecionado, baseTipo: info.baseTipo, baseValor: info.baseValor, criadoEm: agoraISO() }); adicionados++; }); atualizarStatusAutomaticos(); entradaBanco.value = ""; mostrarBanco(); atualizarCampanhas(); fecharModalSegmentacao(); salvar(); mostrarToast("Segmentação em massa aplicada.", "ok", 'Novos inseridos: ' + adicionados + ' · Mantidos: ' + mantidos); }
+function salvarBancoEmMassa() {
+  const texto = entradaBanco.value.trim();
+  if (!texto) {
+    mostrarToast("Cole uma lista no campo do banco primeiro.", "aviso");
+    return;
+  }
 
+  const numeros = extrairTodosNumerosValidos(texto);
+  if (!numeros.length) {
+    mostrarToast("Nenhum número válido foi encontrado.", "erro");
+    return;
+  }
+
+  const statusSelecionado = normalizarStatus(segmentacaoEmMassa?.value || "DES");
+
+  if (!statusSelecionado) {
+    mostrarToast("Selecione uma segmentação válida.", "aviso");
+    return;
+  }
+
+  const info = decomporStatus(statusSelecionado);
+
+  let adicionados = 0;
+  let mantidos = 0;
+
+  numeros.forEach((numero) => {
+    const existente = buscarLeadNoBancoPorNumero(numero);
+
+    if (existente) {
+      mantidos++;
+      return;
+    }
+
+    bancoLeads.push({
+      numero,
+      tipo: statusSelecionado,
+      baseTipo: info.baseTipo,
+      baseValor: info.baseValor,
+      criadoEm: agoraISO()
+    });
+
+    adicionados++;
+  });
+
+  atualizarStatusAutomaticos();
+  entradaBanco.value = "";
+  mostrarBanco();
+  atualizarCampanhas();
+  fecharModalSegmentacao();
+  salvar();
+
+  mostrarToast("Segmentação em massa aplicada.", "ok", `Novos inseridos: ${adicionados} · Mantidos: ${mantidos}`);
+}
 
 function obterListaBancoFiltrada() {
   const termo = normalizarTexto(buscaBanco?.value || "");
@@ -1435,7 +1606,7 @@ function gerarMensagem(agendamento, tipo = "paciente") {
 }
 
 async function agendar() {
-  const pessoas = coletarPessoasFormulario().map((p) => ({ ...p, nome: (p.nome || "").toUpperCase() }));
+  const pessoas = coletarPessoasFormulario();
   const tipo = tipoAgendamentoInput?.value || "agendamento";
 
   const dados = {
@@ -1521,12 +1692,12 @@ async function editarNomePaciente(agendamentoIndex, pessoaIndex) {
   const atual = agendamento.pessoas[pessoaIndex].nome || "";
   const novo = await solicitarEntrada("Editar nome do paciente", atual, "Editar paciente");
   if (novo === null) return;
-  const nome = String(novo).trim();
+  const nome = String(novo).trim().toUpperCase();
   if (nome.length < 3) {
     mostrarToast("Digite um nome válido.", "aviso");
     return;
   }
-  agendamentos[agendamentoIndex].pessoas[pessoaIndex].nome = nome.toUpperCase();
+  agendamentos[agendamentoIndex].pessoas[pessoaIndex].nome = nome;
   salvar();
   filtrarAgenda();
   mostrarToast("Nome do paciente atualizado.", "ok");
@@ -1565,11 +1736,50 @@ function gerarSenhasParaAgendamentoEditado(data, quantidadePessoas, indexIgnorad
 }
 
 
-function solicitarDataEntrada(label, valorInicial = "", titulo = "Editar data") { return new Promise((resolve) => { if (!modalEntrada || !modalEntradaInput) { resolve(window.prompt(label, valorInicial)); return; } const campoSelect = document.getElementById("modalEntradaSelect"); if (campoSelect) campoSelect.style.display = "none"; resolverModalEntrada = resolve; const tituloEl = document.getElementById("titulo-modal-entrada"); if (tituloEl) tituloEl.textContent = titulo; if (modalEntradaLabel) modalEntradaLabel.textContent = label; modalEntradaInput.style.display = ""; modalEntradaInput.type = "date"; modalEntradaInput.value = valorInicial || ""; abrirModalBase(modalEntrada); setTimeout(() => modalEntradaInput.showPicker ? modalEntradaInput.showPicker() : modalEntradaInput.focus(), 30); }).finally(() => { if (modalEntradaInput) modalEntradaInput.type = "text"; }); }
+function solicitarDataEntrada(label, valorInicial = "", titulo = "Editar data") {
+  return new Promise((resolve) => {
+    if (!modalEntrada || !modalEntradaInput) {
+      resolve(window.prompt(label, valorInicial));
+      return;
+    }
 
+    resolverModalEntrada = resolve;
+    if (modalEntradaSelect) { modalEntradaSelect.style.display = "none"; modalEntradaSelect.innerHTML = ""; }
+    if (modalEntradaInput) { modalEntradaInput.style.display = ""; modalEntradaInput.removeAttribute("list"); }
+    const tituloEl = document.getElementById("titulo-modal-entrada");
+    if (tituloEl) tituloEl.textContent = titulo;
+    if (modalEntradaLabel) modalEntradaLabel.textContent = label;
+    modalEntradaInput.type = "date";
+    modalEntradaInput.value = valorInicial || "";
+    abrirModalBase(modalEntrada);
+    setTimeout(() => modalEntradaInput.focus(), 30);
+  }).finally(() => {
+    if (modalEntradaInput) modalEntradaInput.type = "text";
+  });
+}
 
-function solicitarSelecaoEntrada(label, valorInicial = "", opcoes = [], titulo = "Editar campo") { return new Promise((resolve) => { if (!modalEntrada) { resolve(window.prompt(label, valorInicial)); return; } resolverModalEntrada = resolve; const tituloEl = document.getElementById("titulo-modal-entrada"); if (tituloEl) tituloEl.textContent = titulo; if (modalEntradaLabel) modalEntradaLabel.textContent = label; let campoSelect = document.getElementById("modalEntradaSelect"); if (!campoSelect) { campoSelect = document.createElement("select"); campoSelect.id = "modalEntradaSelect"; campoSelect.className = "modal-entrada-select"; modalEntradaInput?.insertAdjacentElement("afterend", campoSelect); } if (modalEntradaInput) modalEntradaInput.style.display = "none"; campoSelect.style.display = ""; campoSelect.innerHTML = opcoes.map((opcao) => '<option value="' + escaparHTML(opcao) + '">' + escaparHTML(opcao) + '</option>').join(""); campoSelect.value = valorInicial || (opcoes[0] || ""); abrirModalBase(modalEntrada); setTimeout(() => campoSelect.focus(), 30); }); }
+function solicitarSelecaoEntrada(label, valorInicial = "", opcoes = [], titulo = "Editar campo") {
+  return new Promise((resolve) => {
+    if (!modalEntrada || !modalEntradaSelect) {
+      resolve(window.prompt(`${label}
 
+Opções: ${opcoes.join(", ")}`, valorInicial));
+      return;
+    }
+    resolverModalEntrada = resolve;
+    const tituloEl = document.getElementById("titulo-modal-entrada");
+    if (tituloEl) tituloEl.textContent = titulo;
+    if (modalEntradaLabel) modalEntradaLabel.textContent = label;
+    if (modalEntradaInput) modalEntradaInput.style.display = "none";
+    modalEntradaSelect.style.display = "";
+    modalEntradaSelect.innerHTML = opcoes.map((opcao) => {
+      const selecionado = opcao === valorInicial ? " selected" : "";
+      return `<option value="${escaparHTML(opcao)}"${selecionado}>${escaparHTML(opcao)}</option>`;
+    }).join("");
+    abrirModalBase(modalEntrada);
+    setTimeout(() => modalEntradaSelect.focus(), 30);
+  });
+}
 
 async function editarUnidadeAgendamento(index) {
   const agendamento = agendamentos[index];
@@ -1595,7 +1805,19 @@ async function editarHorarioAgendamento(index) {
   salvar(); filtrarAgenda(); mostrarToast("Horário atualizado.", "ok");
 }
 
-async function editarTipoAgendamento(index) { const agendamento = agendamentos[index]; if (!agendamento) return; const agNormalizado = normalizarAgendamento(agendamento); const opcoes = ["agendamento", "inclusao", "reagendamento"]; const novoTipo = await solicitarSelecaoEntrada("Editar tipo do registro", agNormalizado.tipo || "agendamento", opcoes, "Editar tipo"); if (novoTipo === null) return; if (!opcoes.includes(novoTipo)) { mostrarToast("Selecione um tipo válido.", "aviso"); return; } agendamentos[index].tipo = novoTipo; salvar(); filtrarAgenda(); if (dataRelatorio && dataRelatorio.value === agNormalizado.data) gerarRelatorio(); mostrarToast("Tipo do registro atualizado.", "ok"); }
+async function editarTipoAgendamento(index) {
+  const agendamento = agendamentos[index];
+  if (!agendamento) return;
+  const agNormalizado = normalizarAgendamento(agendamento);
+  const tipoAtual = normalizarTipoRegistro(agNormalizado.tipo || "agendamento");
+  const novoTipo = await solicitarSelecaoEntrada("Editar tipo do registro", tipoAtual, ["agendamento", "inclusao", "reagendamento"], "Editar tipo");
+  if (novoTipo === null) return;
+  agendamentos[index].tipo = normalizarTipoRegistro(novoTipo);
+  salvar();
+  filtrarAgenda();
+  if (dataRelatorio && dataRelatorio.value === agNormalizado.data) gerarRelatorio();
+  mostrarToast("Tipo do registro atualizado.", "ok");
+}
 
 async function editarDataAgendamento(index) {
 
@@ -1630,12 +1852,38 @@ async function editarDataAgendamento(index) {
   mostrarToast("Data atualizada e senhas recalculadas.", "ok");
 }
 
-async function alternarCRMEnviado(index) { const agendamento = agendamentos[index]; if (!agendamento) return; const agNormalizado = normalizarAgendamento(agendamento); const jaEnviado = Boolean(agendamento.crmEnviado); const confirmado = await confirmarAcao(jaEnviado ? "Desmarcar como enviado ao CRM?" : "Marcar como enviado ao CRM?", juntarNomes(agNormalizado.pessoas), jaEnviado ? "Desmarcar" : "Marcar"); if (!confirmado) return; agendamentos[index].crmEnviado = !jaEnviado; agendamentos[index].crmEnviadoEm = !jaEnviado ? agoraISO() : null; salvar(); filtrarAgenda(); mostrarToast(!jaEnviado ? "Marcado como enviado ao CRM." : "CRM desmarcado.", "ok"); }
+async function alternarCRMEnviado(index) {
+  const agendamento = agendamentos[index];
+  if (!agendamento) return;
+  const agNormalizado = normalizarAgendamento(agendamento);
+  const jaEnviado = Boolean(agendamento.crmEnviado);
+  const confirmado = await confirmarAcao(jaEnviado ? "Desmarcar como enviado ao CRM?" : "Marcar como enviado ao CRM?", juntarNomes(agNormalizado.pessoas), jaEnviado ? "Desmarcar" : "Marcar");
+  if (!confirmado) return;
+  agendamentos[index].crmEnviado = !jaEnviado;
+  agendamentos[index].crmEnviadoEm = !jaEnviado ? agoraISO() : null;
+  salvar(); filtrarAgenda(); mostrarToast(!jaEnviado ? "Marcado como enviado ao CRM." : "CRM desmarcado.", "ok");
+}
 
 
-
-function montarListaAgendaDia(dataSelecionada) { const listaDoDia = agendamentos.map((item, index) => ({ ...normalizarAgendamento(item), indexOriginal: index })).filter((item) => item.data === dataSelecionada).sort((a, b) => extrairNumeroSenha(a) - extrairNumeroSenha(b)); if (!listaDoDia.length) return ""; const dataCurta = formatarDataBR(dataSelecionada); const linhas = ['*AGENDAMENTOS DO DIA ' + dataCurta + '*', ""]; listaDoDia.forEach((item) => { const partes = item.pessoas.map((p) => { const senha = p.senha || "SEM-SENHA"; const nome = (p.nome || "Sem nome").trim(); const numero = limparNumero(p.numero || ""); const numeroWhatsapp = numero ? '55' + numero : "sem número"; return senha + ' - ' + nome + ' - ' + numeroWhatsapp; }); const tipo = (item.tipo || "agendamento").toUpperCase(); linhas.push(partes.join(" / ")); linhas.push('Horário: ' + item.hora + ' | Unidade: ' + item.unidade + ' | Tipo: ' + tipo); linhas.push(""); }); linhas.push('*TOTAL: ' + listaDoDia.reduce((s, item) => s + (item.pessoas?.length || 1), 0) + '*'); return linhas.join("\n").trim(); }
-
+function montarListaAgendaDia(dataSelecionada) {
+  const listaDoDia = agendamentos
+    .map((item, index) => ({ ...normalizarAgendamento(item), indexOriginal: index }))
+    .filter((item) => item.data === dataSelecionada)
+    .sort((a, b) => extrairNumeroSenha(a) - extrairNumeroSenha(b));
+  if (!listaDoDia.length) return "";
+  const dataCurta = formatarDataBR(dataSelecionada);
+  const linhas = [`*AGENDAMENTOS DO DIA ${dataCurta}*`, ""];
+  listaDoDia.forEach((item) => {
+    const nomes = juntarNomesComNumero(item.pessoas);
+    const senhas = item.pessoas.map((p) => p.senha).filter(Boolean).join(" / ");
+    const tipo = (item.tipo || "agendamento").toUpperCase();
+    linhas.push(`${senhas} - ${nomes}`);
+    linhas.push(`Horário: ${item.hora} | Unidade: ${item.unidade} | Tipo: ${tipo}`);
+    linhas.push("");
+  });
+  linhas.push(`*TOTAL: ${listaDoDia.reduce((s, item) => s + (item.pessoas?.length || 1), 0)}*`);
+  return linhas.join("\n").trim();
+}
 
 
 function copiarAgendaDoDia() {
@@ -1674,8 +1922,9 @@ function reenviarWhats(index, tipo = "paciente") {
   window.open(link, "_blank");
 }
 
-async function transformarEmReagendamento(index) { const agendamento = normalizarAgendamento(agendamentos[index]); if (!agendamento) return; if (!(await confirmarAcao("Marcar este registro como reagendamento?", juntarNomes(agendamento.pessoas), "Marcar"))) return; agendamentos[index].tipo = "reagendamento"; salvar(); filtrarAgenda(); if (dataRelatorio && dataRelatorio.value === agendamento.data) gerarRelatorio(); }
-
+async function transformarEmReagendamento(index) {
+  return editarTipoAgendamento(index);
+}
 
 async function excluir(index) {
   const agendamento = normalizarAgendamento(agendamentos[index]);
@@ -1696,6 +1945,7 @@ async function excluir(index) {
 
 function filtrarAgenda() {
   const dataSelecionada = filtroData.value;
+
   if (!dataSelecionada) {
     mostrarToast("Selecione uma data.", "aviso");
     return;
@@ -1714,68 +1964,80 @@ function filtrarAgenda() {
   listaAgenda.innerHTML = listaDoDia.map((item) => {
     const nomes = juntarNomes(item.pessoas);
     const senhas = item.pessoas.map((p) => p.senha).join(" / ");
-    const statusClasse = item.crmEnviado ? "crm-enviado" : "crm-pendente";
 
+    // Bloco por pessoa com cópia individual de nome e número
     const pessoasHTML = item.pessoas.map((p, pessoaIndex) => {
-      const nomeSafe = escaparHTML((p.nome || "").toUpperCase());
+      const nomeSafe = escaparHTML(p.nome || "");
       const numeroFormatado = escaparHTML(formatarNumero(p.numero));
       const numeroLimpo = limparNumero(p.numero);
-      const nomeValor = escaparHTML((p.nome || "").trim());
-      const numeroValor = escaparHTML(numeroLimpo);
+      const nomeLimpo = (p.nome || "").trim().replace(/'/g, "\\'");
 
       return `
-        <div class="paciente-agenda-linha">
-          <div class="paciente-agenda-info">
-            <span class="paciente-agenda-nome">${nomeSafe}</span>
-            <button type="button" class="btn-mini" onclick="editarNomePaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar nome">✎</button>
-            <span class="paciente-agenda-numero">${numeroFormatado}</span>
-            <button type="button" class="btn-mini" onclick="editarNumeroPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar número">✎</button>
-            ${p.senha ? `<span class="paciente-agenda-senha">Senha: ${escaparHTML(p.senha)}</span>` : ""}
+        <div style="
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:10px;
+          padding:8px 10px;
+          border-radius:10px;
+          background:color-mix(in srgb, var(--bg-input) 90%, transparent 10%);
+          flex-wrap:wrap;
+        ">
+          <div>
+            <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span><button type="button" class="btn-mini" onclick="editarNomePaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar nome">✎</button>
+            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span><button type="button" class="btn-mini" onclick="editarNumeroPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar número">✎</button>
+            ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
           </div>
-          <div class="paciente-agenda-acoes">
-            <button type="button" data-valor="${nomeValor}" onclick="copiarTexto(this.dataset.valor, '✅ Nome copiado.')">Copiar nome</button>
-            <button type="button" data-valor="${numeroValor}" onclick="copiarTexto(this.dataset.valor, '✅ Número copiado.')">Copiar número</button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button
+              type="button"
+              onclick="copiarTexto('${nomeLimpo}', '✅ Nome copiado.')"
+              style="font-size:0.82rem; padding:6px 10px;"
+            >Copiar nome</button>
+            <button
+              type="button"
+              onclick="copiarTexto('${numeroLimpo}', '✅ Número copiado.')"
+              style="font-size:0.82rem; padding:6px 10px;"
+            >Copiar número</button>
           </div>
         </div>
       `;
     }).join("");
 
     return `
-      <div class="agenda-item ${statusClasse}">
-        <div class="agenda-item__cabecalho">
-          <p>
-            <strong>${escaparHTML(nomes.toUpperCase())}</strong>
-            — <span>${escaparHTML(item.unidade)}</span><button type="button" class="btn-mini" onclick="editarUnidadeAgendamento(${item.indexOriginal})" title="Editar unidade">✎</button>
-            — <span>${escaparHTML(item.hora)}</span><button type="button" class="btn-mini" onclick="editarHorarioAgendamento(${item.indexOriginal})" title="Editar horário">✎</button>
-          </p>
-          <p>
-            Tipo: <strong>${escaparHTML((item.tipo || "agendamento").toUpperCase())}</strong><button type="button" class="btn-mini" onclick="editarTipoAgendamento(${item.indexOriginal})" title="Editar tipo">✎</button>
-            &nbsp;|&nbsp; ${getTituloSenha(item.pessoas.length)}: <strong>${escaparHTML(senhas)}</strong>
-            <button type="button" class="btn-mini" onclick="editarDataAgendamento(${item.indexOriginal})" title="Editar data">📅</button>
-          </p>
-          <p>
-            <span class="crm-status ${item.crmEnviado ? 'crm-status--ok' : ''}">
-              ${item.crmEnviado ? '✓ CRM Enviado' : 'CRM pendente'}
-            </span>
-            ${item.crmEnviadoEm ? `<span class="crm-horario">${new Date(item.crmEnviadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>` : ""}
-          </p>
-        </div>
+      <div class="agenda-item ${item.crmEnviado ? 'crm-enviado' : 'crm-pendente'}">
+        <p>
+          <strong>${escaparHTML(nomes)}</strong>
+          — ${escaparHTML(item.unidade)} <button type="button" class="btn-mini" onclick="editarUnidadeAgendamento(${item.indexOriginal})" title="Editar unidade">✎</button>
+          — ${escaparHTML(item.hora)} <button type="button" class="btn-mini" onclick="editarHorarioAgendamento(${item.indexOriginal})" title="Editar horário">✎</button>
+        </p>
+        <p style="margin-bottom:10px;">
+          Tipo: <strong>${escaparHTML(formatarTipoRegistro(item.tipo))}</strong> <button type="button" class="btn-mini" onclick="editarTipoAgendamento(${item.indexOriginal})" title="Editar tipo do registro">✎</button>
+          &nbsp;|&nbsp; ${getTituloSenha(item.pessoas.length)}: <strong>${escaparHTML(senhas)}</strong>
+        </p>
+        <p style="margin-bottom:10px;">
+          <span class="crm-status ${item.crmEnviado ? 'crm-status--ok' : ''}">
+            ${item.crmEnviado ? '✓ CRM Enviado' : 'CRM pendente'}
+          </span>
+          ${item.crmEnviadoEm ? `<span style="color:var(--texto-fraco); font-size:0.84rem; margin-left:8px;">${new Date(item.crmEnviadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>` : ""}
+        </p>
 
-        <div class="agenda-item__pessoas">
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
           ${pessoasHTML}
         </div>
 
-        <div class="agenda-item__acoes">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'paciente')">Comprovante Paciente</button>
           <button type="button" onclick="verComprovante(${item.indexOriginal}, 'crm')">Comprovante CRM</button>
+          <button type="button" onclick="editarDataAgendamento(${item.indexOriginal})">Editar data</button>\n          <button type="button" onclick="editarUnidadeAgendamento(${item.indexOriginal})">Editar unidade</button>\n          <button type="button" onclick="editarHorarioAgendamento(${item.indexOriginal})">Editar horário</button>
           <button type="button" class="${item.crmEnviado ? '' : 'btn-perigo'}" onclick="alternarCRMEnviado(${item.indexOriginal})">${item.crmEnviado ? '✓ CRM Enviado' : 'Subir CRM'}</button>
+          <button type="button" onclick="transformarEmReagendamento(${item.indexOriginal})">Marcar Reagendamento</button>
           <button type="button" onclick="excluir(${item.indexOriginal})">Excluir</button>
         </div>
       </div>
     `;
   }).join("");
 }
-
 
 // =========================
 // RELATÓRIO DIÁRIO
@@ -1787,48 +2049,26 @@ function normalizarNomeUnidadeRelatorio(unidade = "") {
 
 function gerarRelatorio() {
   const dataSelecionada = dataRelatorio.value;
-  if (!dataSelecionada) {
-    mostrarToast("Selecione uma data.", "aviso");
-    return;
-  }
-
-  const registros = agendamentos
-    .map(normalizarAgendamento)
-    .filter((item) => item.data === dataSelecionada);
-
+  if (!dataSelecionada) { mostrarToast("Selecione uma data.", "aviso"); return; }
+  const registros = agendamentos.map(normalizarAgendamento).filter((item) => item.data === dataSelecionada);
   const mapa = {};
-  UNIDADES_ORDEM.forEach((u) => {
-    mapa[u] = { agendamento: 0, reagendamento: 0, inclusao: 0, totalLinha: 0 };
-  });
-
+  UNIDADES_ORDEM.forEach((u) => mapa[u] = { agendamento: 0, reagendamento: 0, inclusao: 0, totalLinha: 0 });
   registros.forEach((registro) => {
     const quantidade = registro.pessoas?.length || 1;
     const unidade = registro.unidade;
     if (!mapa[unidade]) mapa[unidade] = { agendamento: 0, reagendamento: 0, inclusao: 0, totalLinha: 0 };
     const tipo = registro.tipo || "agendamento";
-    if (tipo === "reagendamento") {
-      mapa[unidade].reagendamento += quantidade;
-      mapa[unidade].totalLinha += quantidade;
-    } else if (tipo === "inclusao") {
-      mapa[unidade].inclusao += quantidade;
-      mapa[unidade].totalLinha += quantidade;
-    } else {
-      mapa[unidade].agendamento += quantidade;
-      mapa[unidade].totalLinha += quantidade;
-    }
+    if (tipo === "reagendamento") { mapa[unidade].reagendamento += quantidade; mapa[unidade].totalLinha += quantidade; }
+    else if (tipo === "inclusao") { mapa[unidade].inclusao += quantidade; mapa[unidade].totalLinha += quantidade; }
+    else { mapa[unidade].agendamento += quantidade; mapa[unidade].totalLinha += quantidade; }
   });
-
   const nomeDia = capitalizar(obterNomeDiaSemana(dataSelecionada));
   const dataCurta = formatarDataBR(dataSelecionada);
-  const linhas = UNIDADES_ORDEM.map((unidade) =>
-    `DIA ${dataCurta} *(${String(mapa[unidade]?.totalLinha || 0).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`
-  );
-
+  const linhas = UNIDADES_ORDEM.map((unidade) => `DIA ${dataCurta} *(${String(mapa[unidade]?.totalLinha || 0).padStart(2, "0")}) ${normalizarNomeUnidadeRelatorio(unidade)}*`);
   const totalAgendamentos = Object.values(mapa).reduce((s, i) => s + i.agendamento, 0);
   const totalReagendamentos = Object.values(mapa).reduce((s, i) => s + i.reagendamento, 0);
   const totalInclusoes = Object.values(mapa).reduce((s, i) => s + i.inclusao, 0);
   const totalGeral = totalAgendamentos + totalInclusoes + totalReagendamentos;
-
   let texto = `*DIÁRIO* \n    _*${nomeDia} ${dataCurta}*_\n\n`;
   texto += linhas.join("\n\n");
   texto += `\n\n*${totalAgendamentos} AGENDAMENTOS*\n`;
@@ -2367,3 +2607,11 @@ trocarAba("agendamento");
 
 if (filtroData && !filtroData.value) filtroData.value = obterDataHojeISO();
 if (dataRelatorio && !dataRelatorio.value) dataRelatorio.value = obterDataHojeISO();
+
+
+try {
+  preencherSegmentacoesPadraoBanco();
+  atualizarUIBancoPadrao();
+} catch (erro) {
+  console.warn("Não foi possível inicializar controles extras do banco.", erro);
+}
