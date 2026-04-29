@@ -2750,3 +2750,41 @@ function enviarAgendamentosParaExtensao(silencioso = false) {
     return false;
   }
 }
+
+
+
+// =========================
+// SINCRONIZAÇÃO DE VOLTA DA EXTENSÃO CRM
+// =========================
+// Quando a extensão marca/desmarca "CRM" no painel lateral,
+// esta ponte atualiza a memória interna do QuickLead e redesenha a agenda
+// sem precisar atualizar a página com F5.
+window.addEventListener("message", (event) => {
+  const data = event.data || {};
+
+  if (data.type !== "QUICKLEAD_ATUALIZAR_AGENDAMENTOS_DA_EXTENSAO") return;
+  if (!Array.isArray(data.agendamentos)) return;
+
+  try {
+    agendamentos = data.agendamentos.map((item) => normalizarAgendamento(item));
+    localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+
+    if (typeof filtrarAgenda === "function") {
+      filtrarAgenda();
+    }
+
+    if (typeof gerarRelatorio === "function" && dataRelatorio?.value) {
+      gerarRelatorio();
+    }
+
+    if (typeof mostrarToast === "function") {
+      mostrarToast("Agenda atualizada pela extensão.", "ok");
+    }
+  } catch (erro) {
+    console.error("Erro ao atualizar agenda pela extensão:", erro);
+    if (typeof mostrarToast === "function") {
+      mostrarToast("Não foi possível atualizar a agenda pela extensão.", "erro");
+    }
+  }
+});
+
