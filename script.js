@@ -265,6 +265,8 @@ function salvar() {
   localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
   atualizarStatusSync("Salvo localmente");
   sincronizarExtensaoCRMAutomatico();
+
+  enviarAgendamentosParaExtensao(true);
 }
 
 function atualizarStatusSync(texto = "Modo local ativo") {
@@ -2711,3 +2713,40 @@ function sincronizarExtensaoCRM(silencioso = false) {
   }
 }
 
+
+
+
+function enviarAgendamentosParaExtensao(silencioso = false) {
+  try {
+    const dadosAgendamentos = (agendamentos || []).map((item) => normalizarAgendamento(item));
+
+    const payload = {
+      origem: "QuickLead",
+      tipo: "agendamentos",
+      agendamentos: dadosAgendamentos,
+      total: dadosAgendamentos.length,
+      atualizadoEm: Date.now()
+    };
+
+    localStorage.setItem("quickleadExtensaoAgendamentos", JSON.stringify(payload));
+
+    window.postMessage({
+      type: "QUICKLEAD_ENVIAR_AGENDAMENTOS_EXTENSAO",
+      payload
+    }, window.location.origin);
+
+    if (!silencioso) {
+      mostrarToast(
+        "Agendamentos enviados para a extensão.",
+        "ok",
+        `${dadosAgendamentos.length} registros enviados para o painel CRM.`
+      );
+    }
+
+    return true;
+  } catch (erro) {
+    console.error("Erro ao enviar agendamentos para extensão:", erro);
+    if (!silencioso) mostrarToast("Não foi possível enviar os agendamentos para a extensão.", "erro");
+    return false;
+  }
+}
