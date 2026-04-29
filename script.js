@@ -245,6 +245,18 @@ function fecharModalEntrada(valor = null) {
 }
 
 
+
+let quickleadAutoSyncTimer = null;
+
+function sincronizarExtensaoCRMAutomatico() {
+  clearTimeout(quickleadAutoSyncTimer);
+  quickleadAutoSyncTimer = setTimeout(() => {
+    if (typeof sincronizarExtensaoCRM === "function") {
+      sincronizarExtensaoCRM(true);
+    }
+  }, 250);
+}
+
 // =========================
 // BASE / UTILIDADES
 // =========================
@@ -252,6 +264,7 @@ function salvar() {
   localStorage.setItem("bancoLeads", JSON.stringify(bancoLeads));
   localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
   atualizarStatusSync("Salvo localmente");
+  sincronizarExtensaoCRMAutomatico();
 }
 
 function atualizarStatusSync(texto = "Modo local ativo") {
@@ -1746,6 +1759,20 @@ async function editarNumeroPaciente(agendamentoIndex, pessoaIndex) {
 }
 
 
+
+async function editarObservacaoPaciente(agendamentoIndex, pessoaIndex) {
+  const agendamento = normalizarAgendamento(agendamentos[agendamentoIndex]);
+  if (!agendamento?.pessoas?.[pessoaIndex]) return;
+  const atual = agendamento.pessoas[pessoaIndex].observacao || "";
+  const novo = await solicitarEntrada("Editar observação do paciente", atual, "Editar observação");
+  if (novo === null) return;
+  const observacao = String(novo).trim();
+  agendamentos[agendamentoIndex].pessoas[pessoaIndex].observacao = observacao;
+  salvar();
+  filtrarAgenda();
+  mostrarToast("Observação atualizada.", "ok");
+}
+
 function extrairNumeroSenha(agendamento = {}) {
   const ag = normalizarAgendamento(agendamento);
   const primeiraSenha = ag.pessoas?.map((p) => p.senha).find(Boolean) || "";
@@ -2010,7 +2037,8 @@ function filtrarAgenda() {
         ">
           <div>
             <span style="font-weight:700; color:var(--texto);">${nomeSafe}</span><button type="button" class="btn-mini" onclick="editarNomePaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar nome">✎</button>
-            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span><button type="button" class="btn-mini" onclick="editarNumeroPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar número">✎</button>
+            <span style="color:var(--texto-suave); margin-left:8px;">${numeroFormatado}</span><button type="button" class="btn-mini" onclick="editarNumeroPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar número">✎</button><button type="button" class="btn-mini btn-mini--obs" onclick="editarObservacaoPaciente(${item.indexOriginal}, ${pessoaIndex})" title="Editar observação">💬</button>
+            ${p.observacao ? `<span style="color:var(--texto-fraco); font-size:0.82rem; margin-left:8px;">Obs: ${escaparHTML(p.observacao)}</span>` : ""}
             ${p.senha ? `<span style="color:var(--texto-fraco); font-size:0.86rem; margin-left:8px;">Senha: ${escaparHTML(p.senha)}</span>` : ""}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -2033,6 +2061,7 @@ function filtrarAgenda() {
       <div class="agenda-item ${item.crmEnviado ? 'crm-enviado' : 'crm-pendente'}">
         <p>
           <strong>${escaparHTML(nomes)}</strong>
+          — ${escaparHTML(formatarDataBR(item.data))} <button type="button" class="btn-mini" onclick="editarDataAgendamento(${item.indexOriginal})" title="Editar data">✎</button>
           — ${escaparHTML(item.unidade)} <button type="button" class="btn-mini" onclick="editarUnidadeAgendamento(${item.indexOriginal})" title="Editar unidade">✎</button>
           — ${escaparHTML(item.hora)} <button type="button" class="btn-mini" onclick="editarHorarioAgendamento(${item.indexOriginal})" title="Editar horário">✎</button>
         </p>
@@ -2651,3 +2680,34 @@ function preencherSelectsSegmentacaoPadrao() {
 }
 
 try { preencherSelectsSegmentacaoPadrao(); } catch (e) { console.warn('Falha ao preparar segmentação padrão:', e); }
+
+
+
+function sincronizarExtensaoCRM(silencioso = false) {
+  try {
+    const payload = agendamentos.map((item) => normalizarAgendamento(item));
+
+    localStorage.setItem("quickleadCRMBridge", JSON.stringify({
+      agendamentos: payload,
+      atualizadoEm: Date.now()
+    }));
+
+    window.postMessage({
+      type: "QUICKLEAD_SYNC_AGENDAMENTOS",
+      agendamentos: payload,
+      atualizadoEm: Date.now()
+    }, "*");
+
+    if (!silencioso) {
+      mostrarToast(
+        "Painel CRM sincronizado.",
+        "ok",
+        "Abra ou atualize o RD Station CRM para visualizar a agenda lateral."
+      );
+    }
+  } catch (erro) {
+    console.error("Erro ao sincronizar extensão CRM:", erro);
+    if (!silencioso) mostrarToast("Não foi possível sincronizar o painel CRM.", "erro");
+  }
+}
+
