@@ -51,7 +51,7 @@
         Agendar
       </button>
       <button type="button" onclick="trocarAba('agenda')" aria-controls="agenda">
-        Agenda
+        Agendamentos
       </button>
       <button type="button" onclick="trocarAba('filtro')" aria-controls="filtro">
         Filtro
@@ -167,6 +167,7 @@
           <div class="acoes-secundarias">
             <button type="button" onclick="filtrarAgenda()">Atualizar</button>
             <button type="button" onclick="copiarAgendaDoDia()">Copiar agendamentos do dia</button>
+            <button type="button" onclick="sincronizarExtensaoCRM()">Sincronizar CRM agora</button>
           </div>
 
           <div id="listaAgenda" aria-live="polite"></div>
